@@ -27,3 +27,4 @@ Known issues/to-do list:
 - Running the script twice sometimes cuts internet access to the machine
 - Script must be run using the bash command rather than the sh command
 - Want to add a method of quarantining media files
+- Want to add support for more service auditing and more hacking tool removals
