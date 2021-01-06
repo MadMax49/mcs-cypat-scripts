@@ -1,4 +1,4 @@
-# MCS Ubuntu Script v2.0 release
+# MCS Ubuntu Script v3.0 release
 Ubuntu Script for MCS to secure an Ubuntu machine
 
 List of security features:
@@ -7,15 +7,19 @@ List of security features:
 - Automatically configures the firewall (Blocks insecure ports and enables logging)
 - Automatic service auditing for specific services with user input
 - Option to lock root account
+- Unalias support
 - Automatically removes common hacking tools/remote access tools
 - Denies outside packets with iptables
 - Disables reboot with Ctrl+Alt+Del
 - Disallows guest account
 - Removes all startup scripts from the machine
-- Disallows root login with ssh
+- SSH secure configuration
+- SSH key security
 - Configures password longevity
 - Configures password complexity requirements
 - Configures account lockout policy
+- Secures Shared Memory
+- Configured /etc/sysctl.conf
 
 Other features:
 - Creates file 'changelog.log' on the desktop and logs all actions performed by the script
@@ -28,3 +32,4 @@ Known issues/to-do list:
 - Script must be run using the bash command rather than the sh command
 - Want to add a method of quarantining media files
 - Want to add support for more service auditing and more hacking tool removals
+- Want to further expand /etc/sysctl.conf editing
