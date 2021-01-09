@@ -1,5 +1,5 @@
-# MCS Ubuntu Script v4.0 release
-Ubuntu Script for MCS to secure an Ubuntu machine
+# MCS Ubuntu/Debian Script v4.0 release
+Script for MCS to secure a Linux machine
 
 List of security features:
 - Installs useful packages at the start (firewall, antivirus/rootkit, auditd + others)
