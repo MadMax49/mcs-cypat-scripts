@@ -1,4 +1,4 @@
-# MCS Ubuntu Script v3.0 release
+# MCS Ubuntu Script v4.0 release
 Ubuntu Script for MCS to secure an Ubuntu machine
 
 List of security features:
@@ -21,6 +21,9 @@ List of security features:
 - Secures Shared Memory
 - Configured /etc/sysctl.conf
 - Secures important files with chmod
+- Logs locations of all audio files
+- Configures rkhunter to check for updates
+- Antivirus and antirootkit are automatically run at end of script
 
 Other features:
 - Creates file 'changelog.log' on the desktop and logs all actions performed by the script
@@ -29,7 +32,7 @@ Other features:
 - If script is run twice, prompt allows for only running specific portions of the script rather than rerunning the whole thing
 
 Known issues/to-do list:
-- Running the script twice sometimes cuts internet access to the machine
+- Running the script twice rarely cuts internet access to the machine
 - Script must be run using the bash command rather than the sh command
-- Want to add a method of quarantining media files
+- Want to improve Shared Memory security
 - Want to further expand /etc/sysctl.conf editing
