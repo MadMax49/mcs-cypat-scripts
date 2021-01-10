@@ -1,6 +1,6 @@
 #!/bin/bash
  
-echo "MCS Ubuntu Script v4.1 Updated 1/9/2021 at 5:36pm EST"
+echo "MCS Ubuntu Script v4.6 Updated 1/10/2021 at 1:02am EST"
 echo "Created by Massimo Marino"
 
 if [[ "$(whoami)" != root ]]
@@ -40,8 +40,6 @@ packages () {
 	apt-get install apparmor-profiles-extra -y -qq
 	echo "IPTables (Network manager)"
 	apt-get install iptables -y -qq
-	echo "PortSentry (Network manager)"
-	apt-get install portsentry -y -qq 
 	echo "Lynis (system auditer)"
 	apt-get install lynis -y -qq 
 	echo "UFW (Firewall)"
@@ -301,7 +299,7 @@ general_config () {
 	chmod 664 /etc/group
 	chmod 0700 /etc/rc*
 	chmod 0700 /etc/init.d*
-	chmod 0700 /etc/profile
+	chmod 0755 /etc/profile
 	chmod 0700 /etc/hosts.allow
 	chmod 0700 /etc/mtab,
 	chmod 0700 /etc/utmp
@@ -446,7 +444,7 @@ file_config () {
 	echo "Setting account lockout policy"
 	cp /etc/pam.d/common-auth ~/Desktop/backups/
 	sed -i '16s/.*/# here are the per-package modules (the "Primary" block)\n/' /etc/pam.d/common-auth
-	sed -i '17s/.*/auth\o011required\o011\o011\o011pam_tally2.so onerr=fail deny=5 unlock_time=1800 audit/' /etc/pam.d/common-auth
+	sed -i '17s/.*/auth\o011required\o011\o011\o011pam_tally2.so onerr=fail deny=5 unlock_time=600 audit/' /etc/pam.d/common-auth
 	echo "- Account lockout policy set in /etc/pam.d/common-auth" >> ~/Desktop/changelog.log
 
 	echo "Securing Shared Memory"
@@ -610,6 +608,68 @@ media_files () {
 
 }
 
+user_auditing () {
+	mkdir -p ~/Desktop/user_auditing 
+	chmod 777 ~/Desktop/user_auditing 
+	touch ~/Desktop/user_auditing/to-do 
+	chmod 777 ~/Desktop/user_auditing/to-do
+
+	echo "Please enter a list of all authorized *administrators* on the machine (as stated on the README) separated by spaces (please put a space after the last item as well" 
+	read authAdminList 
+	IFS=' ' read -r -a authAdmins <<< "$authAdminList" 
+
+	echo "Authorized Administrators already on the system:" >> ~/Desktop/user_auditing/to-do
+	for item in "${authAdmins[@]}"
+	do
+		echo "$item" >> ~/Desktop/user_auditing/to-do
+	done
+
+	echo "Please enter a list of all authorized users on the machine (as stated on the README) separated by spaces" 
+	read authGenUserList 
+	IFS=' ' read -r -a authGenUsers <<< "$authGenUserList" 
+
+	echo >> ~/Desktop/user_auditing/to-do
+	echo "Authorized Users already on the system:" >> ~/Desktop/user_auditing/to-do
+	for item in "${authGenUsers[@]}"
+	do
+		echo "$item" >> ~/Desktop/user_auditing/to-do
+	done
+
+	authUserList=("${authAdminList}${authGenUserList}")
+	authUsers=("${authAdmins[@]}" "${authGenUsers[@]}")
+
+	echo "Please enter a list of all current users on the machine (make sure all users have id's above 0!) separated by spaces" 
+	read currentUserList 
+	IFS=' ' read -r -a currentUsers <<< "$currentUserList" 
+
+	echo >> ~/Desktop/user_auditing/to-do
+	echo "Current users on the system:" >> ~/Desktop/user_auditing/to-do
+	for item in "${currentUsers[@]}" 
+	do 
+		echo "$item" >> ~/Desktop/user_auditing/to-do
+	done 
+
+	echo >> ~/Desktop/user_auditing/to-do
+	echo "Users to delete off the system:" >> ~/Desktop/user_auditing/to-do
+	for item in "${currentUsers[@]}"
+	do 
+		if [[ "$authUserList" != *"$item"* ]]
+		then
+			echo "${item}" >> ~/Desktop/user_auditing/to-do
+		fi
+	done 
+
+	echo >> ~/Desktop/user_auditing/to-do
+	echo "Users to add to the system:" >> ~/Desktop/user_auditing/to-do
+	for item in "${authUsers[@]}"
+	do
+		if [[ "$currentUserList" != *"$item"* ]]
+		then
+			echo "${item}" >> ~/Desktop/user_auditing/to-do
+		fi
+	done
+}
+
 second_time_failsafe () {
 
 	failYN=""
@@ -726,8 +786,13 @@ end () {
 	echo "- Check for malicious packages that might still be installed (dpkg -l | grep <keyword> (i.e. crack))"
 	echo "- Make sure updates are checked for daily and update Ubuntu according to the ReadMe"
 	echo "- Make sure root is the only root account (:0:) (in /etc/group)"
-	echo "- Audit users"
+	echo "- Audit users (WIP)"
 }
+
+if [[ "$(date)" == *"Sat Jan  23"* ]]
+then
+	echo "Happy Competition Day!"
+fi
 
 echo "Type 'safe' to enter safe mode and anything else to continue"
 read safecheck
@@ -746,6 +811,7 @@ firewall
 services
 hacking_tools
 file_config
+user_auditing
 media_files
 
 #reload certain services/packages and clean up machine
@@ -759,6 +825,11 @@ apt-get clean -y -qq
 #run rkhunter
 rkhunter --check --vl --sk
 cp /var/log/rkhunter.log ~/Desktop
+chmod 777 ~/Desktop/rkhunter.log
+
+echo "Installing PortSentry because it can cause false negatives with rkhunter"
+echo "PortSentry (Network manager)"
+apt-get install portsentry -y -qq 
 
 end
 
