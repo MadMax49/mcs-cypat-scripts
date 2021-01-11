@@ -1,6 +1,5 @@
 #!/bin/bash
- 
-echo "MCS Ubuntu Script v4.6 Updated 1/10/2021 at 1:02am EST"
+echo "MCS Ubuntu Script v5.0 Updated 1/11/2021 at 1:00am EST"
 echo "Created by Massimo Marino"
 
 if [[ "$(whoami)" != root ]]
@@ -11,15 +10,18 @@ fi
 
 first_time_initialize () {  
 	echo "Creating backup folder and backing up important files"
-	mkdir -p ~/Desktop/backups
-	chmod 777 ~/Desktop/backups
-	cp /etc/group ~/Desktop/backups/
-	cp /etc/passwd ~/Desktop/backups/
-	touch ~/Desktop/changelog.log
-	chmod 777 ~/Desktop/changelog.log
-	echo "List of changes made by script:" > ~/Desktop/changelog.log
-	echo "- Backups folder created" >> ~/Desktop/changelog.log
-	echo "- Important files backed up" >> ~/Desktop/changelog.log
+	mkdir -p ~/Desktop/logs
+	chmod 777 ~/Desktop/logs
+	mkdir -p ~/Desktop/logs/backups
+	chmod 777 ~/Desktop/logs/backups
+	cp /etc/group ~/Desktop/logs/backups/
+	cp /etc/passwd ~/Desktop/logs/backups/
+	cp /etc/shadow ~/Desktop/logs/backups/
+	touch ~/Desktop/logs/changelog.log
+	chmod 777 ~/Desktop/logs/changelog.log
+	echo "List of changes made by script:" > ~/Desktop/logs/changelog.log
+	echo "- Backups folder created" >> ~/Desktop/logs/changelog.log
+	echo "- Important files backed up" >> ~/Desktop/logs/changelog.log
 }
 
 packages () { 
@@ -27,7 +29,7 @@ packages () {
 	apt-get update -y -qq 
 	apt-get upgrade -y -qq
 	apt-get dist-upgrade -y -qq 
-	echo "- Package installer 'apt' updated (update, upgrade, dist-upgrade)" >> ~/Desktop/changelog.log
+	echo "- Package installer 'apt' updated (update, upgrade, dist-upgrade)" >> ~/Desktop/logs/changelog.log
 
 	echo "Installing useful packages"
 	echo "Firefox (Browser)"
@@ -67,14 +69,18 @@ packages () {
 	echo "Fail2Ban (Firewall)"
 	apt-get install fail2ban -y -qq
 	echo "Install open-vm-tools?"
+	echo "AIDE (file integrity checker)"
+	apt-get install aide -y -qq
+	echo "Arpwatch (ethernet monitor)"
+	apt-get install arpwatch -y -qq
 	read vmtoolsYN
 	if [[ $vmtoolsYN == "yes" ]]
 	then
 		apt-get install open-vm-tools -y -qq
-		echo "- Package open-vm-tools installed" >> ~/Desktop/changelog.log
+		echo "- Package open-vm-tools installed" >> ~/Desktop/logs/changelog.log
 	fi
 	apt-get install --reinstall coreutils -y -qq
-	echo "- Packages firefox, debsecan, debsums, fail2ban, libpam-tmpdir, apt-listchanges, apt-show-versions, debian-goodies, apparmor, rkhunter, chkrootkit, iptables, portsentry, lynis, ufw, gufw, libpam-cracklib, auditd, tree, clamav, and clamtk installed; coreutils reinstalled" >> ~/Desktop/changelog.log
+	echo "- Packages firefox, debsecan, debsums, fail2ban, libpam-tmpdir, apt-listchanges, apt-show-versions, debian-goodies, apparmor, rkhunter, chkrootkit, iptables, portsentry, lynis, ufw, gufw, libpam-cracklib, auditd, tree, clamav, and clamtk installed; coreutils reinstalled" >> ~/Desktop/logs/changelog.log
 
 }
 
@@ -111,7 +117,7 @@ firewall () {
 	ufw deny out 6669/tcp
 	ufw logging on
 	ufw logging high
-	echo "- Firewall configured (Firewall enabled, Ports 1337, 23, 2049, 515, 135, 137, 138, 139, 445, 69, 514, 161, 162, 6660, 6661, 6662, 6663, 6664, 6665, 6666, 6667, 6668, 6669, and 111 denied, Logging on and high)" >> ~/Desktop/changelog.log
+	echo "- Firewall configured (Firewall enabled, Ports 1337, 23, 2049, 515, 135, 137, 138, 139, 445, 69, 514, 161, 162, 6660, 6661, 6662, 6663, 6664, 6665, 6666, 6667, 6668, 6669, and 111 denied, Logging on and high)" >> ~/Desktop/logs/changelog.log
 
 }
 
@@ -125,22 +131,23 @@ services () {
 		apt-get install openssh-server -y -qq  
 		apt-get upgrade openssl libssl-dev -y -qq  
 		apt-cache policy openssl libssl-dev  
-		echo "- Packages ssh and openssh-server installed and heartbleed bug fixed" >> ~/Desktop/changelog.log
+		echo "- Packages ssh and openssh-server installed and heartbleed bug fixed" >> ~/Desktop/logs/changelog.log
 		
 		 
 		echo "Editing /etc/sshd/sshd_config"
-		cp /etc/ssh/sshd_config ~/Desktop/backups/
+		cp /etc/ssh/sshd_config ~/Desktop/logs/backups/
+		sed -i '13s/.*/Port 22/' /etc/ssh/sshd_config 
 		sed -i '32s/.*/PermitRootLogin no/' /etc/ssh/sshd_config
 		sed -i '87s/.*/AllowTcpForwarding no/' /etc/ssh/sshd_config
 		sed -i '100s/.*/ClientAliveCountMax 2/' /etc/ssh/sshd_config
-		sed -i '99s/.*/Compression delayed/' /etc/ssh/sshd_config
+		sed -i '98s/.*/Compression DELAYED/' /etc/ssh/sshd_config
 		sed -i '27s/.*/LogLevel VERBOSE/' /etc/ssh/sshd_config
 		sed -i '34s/.*/MaxAuthTries 2/' /etc/ssh/sshd_config
 		sed -i '35s/.*/MaxSessions 2/' /etc/ssh/sshd_config
 		sed -i '95s/.*/TCPKeepAlive no/' /etc/ssh/sshd_config
 		sed -i '89s/.*/X11Forwarding no/' /etc/ssh/sshd_config
 		sed -i '86s/.*/AllowAgentForwarding no/' /etc/ssh/sshd_config
-		echo "- Configured /etc/ssh/sshd_config" >> ~/Desktop/changelog.log	
+		echo "- Configured /etc/ssh/sshd_config" >> ~/Desktop/logs/changelog.log	
 		
 		  
 		echo "Securing SSH keys"
@@ -148,25 +155,25 @@ services () {
 		chmod 700 ~/.ssh
 		touch ~/.ssh/authorized_keys
 		chmod 600 ~/.ssh/authorized_keys
-		echo "- Secured SSH keys" >> ~/Desktop/changelog.log
+		echo "- Secured SSH keys" >> ~/Desktop/logs/changelog.log
 		
 		echo "SSH port can accept SSH connections"
 		iptables -A INPUT -p tcp --dport ssh -j ACCEPT
 		
 		service ssh restart
 	else
-		echo "- openssh-server and ssh were not installed on this machine" >> ~/Desktop/changelog.log
+		echo "- openssh-server and ssh were not installed on this machine" >> ~/Desktop/logs/changelog.log
 	fi
 	 
 	echo "Is NGINX a critical service on this machine?"
 	read nginxYN
 	if [[ $nginxYN == "yes" ]]; then
 		apt-get install nginx  
-		echo "- NGINX installed" >> ~/Desktop/changelog.log
+		echo "- NGINX installed" >> ~/Desktop/logs/changelog.log
 	elif [[ $nginxYN == "no" ]]; then
 		apt-get purge nginx -y -qq  
 		apt-get purge nginx-common -y -qq  
-		echo "- NGINX removed from the machine" >> ~/Desktop/changelog.log
+		echo "- NGINX removed from the machine" >> ~/Desktop/logs/changelog.log
 	fi
 	 
 	echo "Is Samba a critical service on this machine?"
@@ -178,15 +185,14 @@ services () {
 		ufw allow microsoft-ds 
 		apt-get install samba -y -qq  
 		apt-get install system-config-samba -y -qq  
-		echo "- Samba installed and allowed" >> ~/Desktop/changelog.log
+		echo "- Samba installed and allowed" >> ~/Desktop/logs/changelog.log
 	elif [[ $sambaYN == "no" ]]; then
 		ufw deny netbios-ns
 		ufw deny netbios-dgm
 		ufw deny netbios-ssn
 		ufw deny microsoft-ds
-		apt-get purge samba -y -qq   
-		apt-get purge samba4 -y -qq  
-		echo "- Samba uninstalled and blocked" >> ~/Desktop/changelog.log
+		apt-get purge samba -y -qq    
+		echo "- Samba uninstalled and blocked" >> ~/Desktop/logs/changelog.log
 	fi
 	 
 	echo "Is FTP a critical service on this machine?"
@@ -198,7 +204,7 @@ services () {
 		ufw allow ftps-data 
 		ufw allow ftps
 		service vsftpd restart
-		echo "- FTP installed and allowed" >> ~/Desktop/changelog.log
+		echo "- FTP installed and allowed" >> ~/Desktop/logs/changelog.log
 	elif [[ $ftpYN == "no" ]]; then
 		ufw deny ftp 
 		ufw deny sftp 
@@ -206,7 +212,7 @@ services () {
 		ufw deny ftps-data 
 		ufw deny ftps
 		apt-get purge vsftpd -y -qq  
-		echo "- FTP uninstalled and blocked" >> ~/Desktop/changelog.log
+		echo "- FTP uninstalled and blocked" >> ~/Desktop/logs/changelog.log
 	fi
 	 
 	echo "Is Telnet a critical service on this machine?"
@@ -215,7 +221,7 @@ services () {
 		ufw allow telnet 
 		ufw allow rtelnet 
 		ufw allow telnets
-		echo "- Telnet allowed" >> ~/Desktop/changelog.log
+		echo "- Telnet allowed" >> ~/Desktop/logs/changelog.log
 	elif [[ $telnetYN == "no" ]]; then
 		ufw deny telnet 
 		ufw deny rtelnet 
@@ -225,7 +231,7 @@ services () {
 		apt-get purge inetutils-telnetd -y -qq  
 		apt-get purge telnetd-ssl -y -qq  
 		apt-get purge vsftpd -y -qq  
-		echo "- Telnet uninstalled and blocked" >> ~/Desktop/changelog.log
+		echo "- Telnet uninstalled and blocked" >> ~/Desktop/logs/changelog.log
 	fi
 	 
 	echo "Is MySQL a critical service on this machine?"
@@ -235,8 +241,7 @@ services () {
 		ufw allow ms-sql-m 
 		ufw allow mysql 
 		ufw allow mysql-proxy
-		apt-get install mysql-server -y -qq  
-		echo "- MySQL allowed and installed (WIP)" >> ~/Desktop/changelog.log
+		echo "- MySQL allowed (WIP)" >> ~/Desktop/logs/changelog.log
 	elif [[ $sqlYN == "no" ]]; then
 		ufw deny ms-sql-s 
 		ufw deny ms-sql-m 
@@ -244,23 +249,27 @@ services () {
 		ufw deny mysql-proxy
 		apt-get purge mysql-server -y -qq  
 		apt-get purge mysql -y -qq  
-		echo "- MySQL uninstalled and blocked (WIP)" >> ~/Desktop/changelog.log
+		echo "- MySQL uninstalled and blocked (WIP)" >> ~/Desktop/logs/changelog.log
 	fi
  
 	echo "Is this machine a web server?"
 	read webYN
 	if [[ $webYN == "yes" ]]; then
 		apt-get install apache2 -y -qq  
+		apt-get install apache2-utils -y -qq
+		apt-get install libapache2-mod-evasive -y -qq
+		apt-get install libapache2-modsecurity -y qq
 		ufw allow http 
 		ufw allow https
 		iptables -A INPUT -p tcp --dport 80 -j ACCEPT
-		echo "- Apache2 installed and http(s) allowed" >> ~/Desktop/changelog.log
+		systemctl restart apache2
+		echo "- Apache2 installed and http(s) allowed" >> ~/Desktop/logs/changelog.log
 	elif [[ $webYN == "no" ]]; then
 		ufw deny http
 		ufw deny https
 		apt-get purge apache2 -y -qq  
 		#rm -r /var/www/*
-		echo "- Apache2 removed and http(s) blocked" >> ~/Desktop/changelog.log
+		echo "- Apache2 removed and http(s) blocked" >> ~/Desktop/logs/changelog.log
 	fi
 
 }
@@ -277,38 +286,33 @@ general_config () {
 	
 	echo "Denying outside packets"
 	iptables -A INPUT -p all -s localhost  -i eth0 -j DROP
-	echo "- Denied outside packets" >> ~/Desktop/changelog.log
+	echo "- Denied outside packets" >> ~/Desktop/logs/changelog.log
 	
 	echo "Unaliasing all"
 	unalias -a
-	echo "- Unaliased all" >> ~/Desktop/changelog.log
+	echo "- Unaliased all" >> ~/Desktop/logs/changelog.log
 
 	echo "Enabling auditing"
 	auditctl -e 1
-	echo "- Auditing enabled with auditd (can be configured in /etc/audit/auditd.conf)" >> ~/Desktop/changelog.log
+	echo "- Auditing enabled with auditd (can be configured in /etc/audit/auditd.conf)" >> ~/Desktop/logs/changelog.log
 
 	echo "Disabling reboot with Ctrl-Alt "
 	sudo systemctl mask ctrl-alt-del.target
 	sudo systemctl daemon-reload
-	echo "- Disabled reboot with Ctrl-Alt " >> ~/Desktop/changelog.log
+	echo "- Disabled reboot with Ctrl-Alt " >> ~/Desktop/logs/changelog.log
 	
 	echo "Securing important files with chmod"
 	chmod -R 644 /var/log
 	chmod 664 /etc/passwd
 	chmod 664 /etc/shadow
 	chmod 664 /etc/group
+	chmod 0700 /etc/cups*
 	chmod 0700 /etc/rc*
 	chmod 0700 /etc/init.d*
 	chmod 0755 /etc/profile
 	chmod 0700 /etc/hosts.allow
-	chmod 0700 /etc/mtab,
-	chmod 0700 /etc/utmp
-	chmod 0700 /var/adm/wtmp
-	chmod 0700 /etc/syslog.pid
 	chmod 0700 /etc/sysctl.conf
-	chmod 0700 /etc/inittab
 	chmod 2750 /bin/su
-	chmod 2750 /bin/sudo
 	chmod 2750 /bin/ping
 	chmod 2750 /sbin/ifconfig
 	chmod 2750 /usr/bin/w
@@ -316,6 +320,19 @@ general_config () {
 	chmod 2750 /usr/bin/locate
 	chmod 2750 /usr/bin/whereis
 	
+	echo "Configuring AIDE"
+	aideinit
+	cp /var/lib/aide/aide.db.new /var/lib/aide/aide.db
+	update-aide.conf
+	cp /var/lib/aide/aide.conf.autogenerated /etc/aide/aide.conf
+	
+	echo "Starting arpwatch"
+	chkconfig --level 35 arpwatch on
+	/etc/init.d/arpwatch start
+	
+	echo "Starting Postfix"
+	cp /usr/share/postfix/main.cf.debian /etc/postfix/main.cf
+	service postfix reload
 }
 
 hacking_tools () {
@@ -362,13 +379,6 @@ hacking_tools () {
 	echo "Removing SipCrack"
 	apt-get purge sipcrack -y -qq  
 
-	echo "Removing Zeitgeist"
-	apt-get purge zeitgeist-core -y -qq  
-	apt-get purge zeitgeist-datahub -y -qq  
-	apt-get purge python-zeitgeist -y -qq  
-	apt-get purge rhythmbox-plugin-zeitgeist -y -qq  
-	apt-get purge zeitgeist -y -qq  
-
 	echo "Removing NFS"
 	apt-get purge nfs-kernel-server -y -qq  
 	apt-get purge nfs-common -y -qq  
@@ -401,7 +411,7 @@ hacking_tools () {
 	apt-get purge nmap -y -qq  
 
 	echo "Removing SQLMap"
-	apt-get purge sqlmap  
+	apt-get purge sqlmap -y -qq
 
 	echo "Removing packages that can potentially contribute to backdoors"
 	apt-get purge backdoor-factory -y -qq  
@@ -411,56 +421,58 @@ hacking_tools () {
 	apt-get autoremove -y -qq  
 	apt-get autoclean -y -qq  
 	apt-get clean -y -qq  
-	echo "- Removed netcat, CeWl, nmap, Medusa, Wfuzz, Hashcat, John the Ripper, Hydra, Aircrack-NG, FCrackZIP, LCrack, OphCrack, Pyrit, rarcrack, SipCrack, Zeitgeist, NFS, VNC, and cleaned up packages" >> ~/Desktop/changelog.log
+	echo "- Removed netcat, CeWl, nmap, Medusa, Wfuzz, Hashcat, John the Ripper, Hydra, Aircrack-NG, FCrackZIP, LCrack, OphCrack, Pyrit, rarcrack, SipCrack, NFS, VNC, and cleaned up packages" >> ~/Desktop/logs/changelog.log
 
 }
 
 file_config () {
 
 	echo "Disallowing guest account"
-	cp /usr/share/lightdm/lightdm.conf.d/50-ubuntu.conf ~/Desktop/backups/
-	sed -i '2s/.*/allow-guest=false/' >> /usr/share/lightdm/lightdm.conf.d/50-ubuntu.conf
-	echo "- Disabled guest account" >> ~/Desktop/changelog.log
+	cp /usr/share/lightdm/lightdm.conf.d/50-ubuntu.conf ~/Desktop/logs/backups/
+	sed -i '2s/$/\n/' /usr/share/lightdm/lightdm.conf.d/50-ubuntu.conf
+	sed -i '3s/.*/allow-guest=false/' /usr/share/lightdm/lightdm.conf.d/50-ubuntu.conf
+	echo "- Disabled guest account" >> ~/Desktop/logs/changelog.log
 
 	echo "Securing /etc/rc.local"
 	echo > /etc/rc.local
 	echo "exit 0" > /etc/rc.local
-	echo "- /etc/rc.local secured" >> ~/Desktop/changelog.log
+	echo "- /etc/rc.local secured" >> ~/Desktop/logs/changelog.log
 
 	echo "Editing /etc/login.defs"
-	cp /etc/login.defs ~/Desktop/backups/
+	cp /etc/login.defs ~/Desktop/logs/backups/
 	sed -i '160s/.*/PASS_MAX_DAYS\o01130/' /etc/login.defs
 	sed -i '161s/.*/PASS_MIN_DAYS\o0117/' /etc/login.defs
 	sed -i '162s/.*/PASS_WARN_AGE\o01114/' /etc/login.defs
 	sed -i '151s/.*/UMASK\o011\o011027/' /etc/login.defs
-	echo "- /etc/login.defs configured (Min days 7, Max days 30, Warn age 14, umask higher perms)"
+	echo "- /etc/login.defs configured (Min days 7, Max days 30, Warn age 14, umask higher perms)" >> ~/Desktop/logs/changelog.log
 
 	echo "Editing /etc/pam.d/common-password"
-	cp /etc/pam.d/common-password ~/Desktop/backups/
+	cp /etc/pam.d/common-password ~/Desktop/logs/backups/
 	sed -i '26s/.*/password\o011[success=1 default=ignore]\o011pam_unix.so obscure pam_unix.so obscure use_authtok try_first_pass remember=5 minlen=8/' /etc/pam.d/common-password
 	sed -i '25s/.*/password\o011requisite\o011\o011\o011pam_cracklib.so retry=3 minlen=8 difok=3 ucredit=-1 lcredit=-1 dcredit=-1 ocredit=-1/' /etc/pam.d/common-password
-	echo "- /etc/pam.d/common-password edited (remember=5, minlen=8, complexity requirements)" >> ~/Desktop/changelog.log
+	echo "- /etc/pam.d/common-password edited (remember=5, minlen=8, complexity requirements)" >> ~/Desktop/logs/changelog.log
 
 	echo "Setting account lockout policy"
-	cp /etc/pam.d/common-auth ~/Desktop/backups/
-	sed -i '16s/.*/# here are the per-package modules (the "Primary" block)\n/' /etc/pam.d/common-auth
+	cp /etc/pam.d/common-auth ~/Desktop/logs/backups/
+	sed -i '16s/$/\n/' /etc/pam.d/common-auth
 	sed -i '17s/.*/auth\o011required\o011\o011\o011pam_tally2.so onerr=fail deny=5 unlock_time=600 audit/' /etc/pam.d/common-auth
-	echo "- Account lockout policy set in /etc/pam.d/common-auth" >> ~/Desktop/changelog.log
+	echo "- Account lockout policy set in /etc/pam.d/common-auth" >> ~/Desktop/logs/changelog.log
 
 	echo "Securing Shared Memory"
-	cp /etc/fstab ~/Desktop/backups/
+	cp /etc/fstab ~/Desktop/logs/backups/
 	mount -o remount,noexec,nosuid /dev/shm
-	echo "- Shared memory secured in  /etc/fstab" >> ~/Desktop/changelog.log
+	echo "- Shared memory secured in  /etc/fstab" >> ~/Desktop/logs/changelog.log
 
 	echo "Configuring rkhunter to allow checking for updates"
-	cp /etc/rkhunter.conf ~/Desktop.backups
+	cp /etc/rkhunter.conf ~/Desktop/logs.backups
 	sed -i '107s/.*/UPDATE_MIRRORS=1/' /etc/rkhunter.conf
 	sed -i '122s/.*/MIRRORS_MODE=0/' /etc/rkhunter.conf
 	sed -i '1189s/.*/WEB_CMD=""/' /etc/rkhunter.conf
-	echo "- Configured /etc/rkhunter.conf to allow for checking for updates" >> ~/Desktop/changelog.log
+	sed -i '440s/.*/PKGMGR=DPKG/' /etc/rkhunter.conf
+	echo "- Configured /etc/rkhunter.conf to allow for checking for updates" >> ~/Desktop/logs/changelog.log
 	
 	echo "Configuring /etc/sysctl.conf"
-	cp /etc/sysctl.conf ~/Desktop/backups/
+	cp /etc/sysctl.conf ~/Desktop/logs/backups/
 	sed -i '59s/.*/net.ipv4.conf.all.log_martians = 1/' /etc/sysctl.conf
 	sed -i '52s/.*/net.ipv4.conf.all.send_redirects = 0/' /etc/sysctl.conf
 	sed -i '55s/.*/net.ipv4.conf.all.accept_source_route = 0/' /etc/sysctl.conf
@@ -471,7 +483,7 @@ file_config () {
 	sed -i '25s/.*/net.ipv4.tcp_syncookies=1/' /etc/sysctl.conf
 	sed -i '44s/.*/net.ipv4.conf.all.accept_redirects = 0/' /etc/sysctl.conf
 	sed -i '45s/.*/net.ipv6.conf.all.accept_redirects = 0/' /etc/sysctl.conf
-	echo "- /etc/sysctl.conf configured (basic)" >> ~/Desktop/changelog.log
+	echo "- /etc/sysctl.conf configured (basic)" >> ~/Desktop/logs/changelog.log
 
 }
 
@@ -479,160 +491,157 @@ media_files () {
 
 	echo "Logging the fire directories of media files on the machine"
 	echo "Logging all media files"
-	touch ~/Desktop/media_files.log
-	chmod 777 ~/Desktop/media_files.log
+	touch ~/Desktop/logs/media_files.log
+	chmod 777 ~/Desktop/logs/media_files.log
 
-	echo "Most common types of media files" >> ~/Desktop/media_files.log
-	find / -name "*.midi" -type f >> ~/Desktop/media_files.log
-	find / -name "*.mid" -type f  >> ~/Desktop/media_files.log	
-	find / -name "*.mp3" -type f   >> ~/Desktop/media_files.log
-	find / -name "*.ogg" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.wav" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.avi" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.mov" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.wmv" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.mp4" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.avi" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.swf" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.ico" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.svg" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.gif" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.jpeg" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.jpg" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.png" -type f    >> ~/Desktop/media_files.log
+	echo "Most common types of media files" >> ~/Desktop/logs/media_files.log
+	find / -name "*.midi" >> ~/Desktop/logs/media_files.log
+	find / -name "*.mid"  >> ~/Desktop/logs/media_files.log	
+	find / -name "*.mp3"  >> ~/Desktop/logs/media_files.log
+	find / -name "*.ogg" ! -path '*/snap/*' ! -path '*/usr/share/*' >> ~/Desktop/logs/media_files.log
+	find / -name "*.wav" ! -path '*/usr/share/*' ! -path '*/usr/lib/*' >> ~/Desktop/logs/media_files.log
+	find / -name "*.mov"  >> ~/Desktop/logs/media_files.log
+	find / -name "*.wmv"  >> ~/Desktop/logs/media_files.log
+	find / -name "*.mp4"  >> ~/Desktop/logs/media_files.log
+	find / -name "*.avi"  >> ~/Desktop/logs/media_files.log
+	find / -name "*.swf"  >> ~/Desktop/logs/media_files.log
+	find / -name "*.ico" ! -path '*/usr/share/*' >> ~/Desktop/logs/media_files.log
+	find / -name "*.svg" ! -path '*/var/lib/*' ! -path '*/etc/alternatives/*' ! -path '*/snap/*' ! -path '*/usr/lib/*' ! -path '*/usr/share/*' >> ~/Desktop/logs/media_files.log
+	find / -name "*.gif" ! -path '*/usr/lib/*' ! -path '*/usr/share/*'>> ~/Desktop/logs/media_files.log
+	find / -name "*.jpeg"  >> ~/Desktop/logs/media_files.log
+	find / -name "*.jpg" ! -path '*/usr/share/*' ! -path '*/snap/*' ! -path '*/usr/lib/*' >> ~/Desktop/logs/media_files.log
+	find / -name "*.png" ! -path '*/etc/alternatives/*' ! -path '*/snap/*' ! -path '*/usr/lib/*' ! -path '*/usr/share/*' ! -path '*/var/lib/*' >> ~/Desktop/logs/media_files.log
 
-	echo >> ~/Desktop/media_files.log
-	echo "PHP files:" >> ~/Desktop/media_files.log
-	find / -name "*.php" -type f  >> ~/Desktop/media_files.log
-	find / -name "*.php3" -type f  >> ~/Desktop/media_files.log
-	find / -name "*.php4" -type f  >> ~/Desktop/media_files.log
-	find / -name "*.phtml" -type f  >> ~/Desktop/media_files.log
-	find / -name "*.phps" -type f  >> ~/Desktop/media_files.log
-	find / -name "*.phpt" -type f  >> ~/Desktop/media_files.log
-	find / -name "*.php5" -type f  >> ~/Desktop/media_files.log
+	echo >> ~/Desktop/logs/media_files.log
+	echo "PHP files:" >> ~/Desktop/logs/media_files.log
+	find / -name "*.php" ! -path '*/var/cache/*'  >> ~/Desktop/logs/media_files.log
+	find / -name "*.php3"   >> ~/Desktop/logs/media_files.log
+	find / -name "*.php4"   >> ~/Desktop/logs/media_files.log
+	find / -name "*.phtml"   >> ~/Desktop/logs/media_files.log
+	find / -name "*.phps"   >> ~/Desktop/logs/media_files.log
+	find / -name "*.phpt"   >> ~/Desktop/logs/media_files.log
+	find / -name "*.php5"   >> ~/Desktop/logs/media_files.log
 
-	echo >> ~/Desktop/media_files.log
-	echo "Script files:" >> ~/Desktop/media_files.log
-	find / -name "*.sh" -type f  >> ~/Desktop/media_files.log
-	find / -name "*.bash" -type f  >> ~/Desktop/media_files.log
-	find / -name "*.bsh" -type f  >> ~/Desktop/media_files.log
-	find / -name "*.csh" -type f  >> ~/Desktop/media_files.log
-	find / -name "*.bash_profile" -type f  >> ~/Desktop/media_files.log
-	find / -name "*.profile" -type f  >> ~/Desktop/media_files.log
-	find / -name "*.bashrc" -type f  >> ~/Desktop/media_files.log
-	find / -name "*.zsh" -type f  >> ~/Desktop/media_files.log
-	find / -name "*.ksh" -type f  >> ~/Desktop/media_files.log
-	find / -name "*.cc" -type f  >> ~/Desktop/media_files.log
-	find / -name "*.startx" -type f  >> ~/Desktop/media_files.log
-	find / -name "*.bat" -type f  >> ~/Desktop/media_files.log
-	find / -name "*.cmd" -type f  >> ~/Desktop/media_files.log
-	find / -name "*.nt" -type f  >> ~/Desktop/media_files.log
-	find / -name "*.asp" -type f  >> ~/Desktop/media_files.log
-	find / -name "*.vb" -type f  >> ~/Desktop/media_files.log
-	find / -name "*.vbs" -type f  >> ~/Desktop/media_files.log
-	find / -name "*.tab" -type f  >> ~/Desktop/media_files.log
-	find / -name "*.spf" -type f  >> ~/Desktop/media_files.log
-	find / -name "*.rc" -type f  >> ~/Desktop/media_files.log
-	find / -name "*.reg" -type f  >> ~/Desktop/media_files.log
-	find / -name "*.py" -type f  >> ~/Desktop/media_files.log
-	find / -name "*.ps1" -type f  >> ~/Desktop/media_files.log
-	find / -name "*.psm1" -type f  >> ~/Desktop/media_files.log	
+	echo >> ~/Desktop/logs/media_files.log
+	echo "Script files:" >> ~/Desktop/logs/media_files.log
+	find / -name "*.sh" ! -path '*/usr/libreoffice/*' ! -path '*/snap/*' ! -path '*/usr/bin/*' ! -path '*/usr/lib/*' ! -path '*/usr/share/*' ! -path '*/usr/src/*' ! -path '*/lib/*' ! -path '*/boot/*' ! -path '*/etc/profile.d/*' ! -path '*/etc/gdm3/*' ! -path '*/etc/acpi/*' ! -path '*/etc/wpa_supplicant/*' ! -path '*/etc/init.d/*' ! -path '*/etc/console-setup/*' >> ~/Desktop/logs/media_files.log
+	find / -name "*.bash" ! -path '*/usr/share/*'  >> ~/Desktop/logs/media_files.log
+	find / -name "*.bsh"   >> ~/Desktop/logs/media_files.log
+	find / -name "*.csh" ! -path '*/usr/share/*' ! -path '*/snap/*' ! -path '*/usr/lib/*' >> ~/Desktop/logs/media_files.log
+	find / -name "*.bash_profile" >> ~/Desktop/logs/media_files.log
+	find / -name "*.profile" ! -path '*/snap/*' ! -path '*/usr/share/*' ! -path '*/usr/src/*'  >> ~/Desktop/logs/media_files.log
+	find / -name "*.bashrc" ! -path '*/snap/*' ! -path '*/usr/share/*'  >> ~/Desktop/logs/media_files.log
+	find / -name "*.zsh"   >> ~/Desktop/logs/media_files.log
+	find / -name "*.ksh"   >> ~/Desktop/logs/media_files.log
+	find / -name "*.cc" ! -path '*/usr/src/*'  >> ~/Desktop/logs/media_files.log
+	find / -name "*.startx"   >> ~/Desktop/logs/media_files.log
+	find / -name "*.bat" ! -path '*/usr/share/*' >> ~/Desktop/logs/media_files.log
+	find / -name "*.cmd" ! -path '*/usr/src/*'  >> ~/Desktop/logs/media_files.log
+	find / -name "*.nt"   >> ~/Desktop/logs/media_files.log
+	find / -name "*.asp" ! -path '*/usr/lib/*'  >> ~/Desktop/logs/media_files.log
+	find / -name "*.vb"   >> ~/Desktop/logs/media_files.log
+	find / -name "*.vbs"   >> ~/Desktop/logs/media_files.log
+	find / -name "*.tab" ! -path '*/snap/*' ! -path '*/usr/share/*' ! -path '*/run/*' >> ~/Desktop/logs/media_files.log
+	find / -name "*.spf"   >> ~/Desktop/logs/media_files.log
+	find / -name "*.rc" ! -path '*/snap/*' ! -path '*/usr/share/*' >> ~/Desktop/logs/media_files.log
+	find / -name "*.reg"   >> ~/Desktop/logs/media_files.log
+	find / -name "*.py"  ! -path '*/snap/*' ! -path '*/usr/lib/*' ! -path '*/usr/share/*' ! -path '*/usr/src/*' >> ~/Desktop/logs/media_files.log
+	find / -name "*.ps1"   >> ~/Desktop/logs/media_files.log
+	find / -name "*.psm1"   >> ~/Desktop/logs/media_files.log	
 	
-	echo >> ~/Desktop/media_files.log
-	echo "Audio:" >> ~/Desktop/media_files.log	
-	find / -name "*.mod" -type f  >> ~/Desktop/media_files.log
-	find / -name "*.mp2" -type f   >> ~/Desktop/media_files.log
-	find / -name "*.mpa" -type f   >> ~/Desktop/media_files.log
-	find / -name "*.abs" -type f   >> ~/Desktop/media_files.log
-	find / -name "*.mpega" -type f   >> ~/Desktop/media_files.log
-	find / -name "*.au" -type f   >> ~/Desktop/media_files.log
-	find / -name "*.snd" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.aiff" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.aif" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.sid" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.flac" -type f    >> ~/Desktop/media_files.log
+	echo >> ~/Desktop/logs/media_files.log
+	echo "Audio:" >> ~/Desktop/logs/media_files.log	
+	find / -name "*.mod"  ! -path '*/usr/share/*' ! -path '*/usr/lib/*' ! -path '*/boot/*' >> ~/Desktop/logs/media_files.log
+	find / -name "*.mp2"    >> ~/Desktop/logs/media_files.log
+	find / -name "*.mpa"    >> ~/Desktop/logs/media_files.log
+	find / -name "*.abs"    >> ~/Desktop/logs/media_files.log
+	find / -name "*.mpega"    >> ~/Desktop/logs/media_files.log
+	find / -name "*.au"    >> ~/Desktop/logs/media_files.log
+	find / -name "*.snd"     >> ~/Desktop/logs/media_files.log
+	find / -name "*.aiff"     >> ~/Desktop/logs/media_files.log
+	find / -name "*.aif"     >> ~/Desktop/logs/media_files.log
+	find / -name "*.sid"     >> ~/Desktop/logs/media_files.log
+	find / -name "*.flac"     >> ~/Desktop/logs/media_files.log
 	
-	echo >> ~/Desktop/media_files.log
-	echo "Video:" >> ~/Desktop/media_files.log
-	find / -name "*.mpeg" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.mpg" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.mpe" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.dl" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.movie" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.movi" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.mv" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.iff" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.anim5" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.anim3" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.anim7" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.vfw" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.avx" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.fli" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.flc" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.qt" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.spl" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.swf" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.dcr" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.dir" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.dxr" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.rpm" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.rm" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.smi" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.ra" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.ram" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.rv" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.asf" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.asx" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.wma" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.wax" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.wmx" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.3gp" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.flv" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.m4v" -type f    >> ~/Desktop/media_files.log
+	echo >> ~/Desktop/logs/media_files.log
+	echo "Video:" >> ~/Desktop/logs/media_files.log
+	find / -name "*.mpeg"     >> ~/Desktop/logs/media_files.log
+	find / -name "*.mpg" ! -path '*/lib/*' >> ~/Desktop/logs/media_files.log
+	find / -name "*.mpe"     >> ~/Desktop/logs/media_files.log
+	find / -name "*.dl"     >> ~/Desktop/logs/media_files.log
+	find / -name "*.movie"     >> ~/Desktop/logs/media_files.log
+	find / -name "*.movi"     >> ~/Desktop/logs/media_files.log
+	find / -name "*.mv"     >> ~/Desktop/logs/media_files.log
+	find / -name "*.iff"     >> ~/Desktop/logs/media_files.log
+	find / -name "*.anim5"     >> ~/Desktop/logs/media_files.log
+	find / -name "*.anim3"     >> ~/Desktop/logs/media_files.log
+	find / -name "*.anim7"     >> ~/Desktop/logs/media_files.log
+	find / -name "*.vfw"     >> ~/Desktop/logs/media_files.log
+	find / -name "*.avx"     >> ~/Desktop/logs/media_files.log
+	find / -name "*.fli"     >> ~/Desktop/logs/media_files.log
+	find / -name "*.flc"     >> ~/Desktop/logs/media_files.log
+	find / -name "*.qt"     >> ~/Desktop/logs/media_files.log
+	find / -name "*.spl"     >> ~/Desktop/logs/media_files.log
+	find / -name "*.swf"     >> ~/Desktop/logs/media_files.log
+	find / -name "*.dcr"     >> ~/Desktop/logs/media_files.log
+	find / -name "*.dir"  ! -path '*/snap/*' ! -path '*/usr/share/*'  >> ~/Desktop/logs/media_files.log
+	find / -name "*.dxr"     >> ~/Desktop/logs/media_files.log
+	find / -name "*.rpm"     >> ~/Desktop/logs/media_files.log
+	find / -name "*.rm"     >> ~/Desktop/logs/media_files.log
+	find / -name "*.smi"     >> ~/Desktop/logs/media_files.log
+	find / -name "*.ra"     >> ~/Desktop/logs/media_files.log
+	find / -name "*.ram"     >> ~/Desktop/logs/media_files.log
+	find / -name "*.rv"     >> ~/Desktop/logs/media_files.log
+	find / -name "*.asf"     >> ~/Desktop/logs/media_files.log
+	find / -name "*.asx"     >> ~/Desktop/logs/media_files.log
+	find / -name "*.wma"     >> ~/Desktop/logs/media_files.log
+	find / -name "*.wax"     >> ~/Desktop/logs/media_files.log
+	find / -name "*.wmx"     >> ~/Desktop/logs/media_files.log
+	find / -name "*.3gp"     >> ~/Desktop/logs/media_files.log
+	find / -name "*.flv"     >> ~/Desktop/logs/media_files.log
+	find / -name "*.m4v"     >> ~/Desktop/logs/media_files.log
 	
-	echo >> ~/Desktop/media_files.log
-	echo "Images:" >> ~/Desktop/media_files.log
-	find / -name "*.tiff" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.tif" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.rs" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.rgb" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.xwd" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.xpm" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.ppm" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.pbm" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.pgm" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.pcx" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.svgz" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.im1" -type f    >> ~/Desktop/media_files.log
-	find / -name "*.jpe" -type f    >> ~/Desktop/media_files.log
+	echo >> ~/Desktop/logs/media_files.log
+	echo "Images:" >> ~/Desktop/logs/media_files.log
+	find / -name "*.tiff"     >> ~/Desktop/logs/media_files.log
+	find / -name "*.tif"     >> ~/Desktop/logs/media_files.log
+	find / -name "*.rs"     >> ~/Desktop/logs/media_files.log
+	find / -name "*.rgb"     >> ~/Desktop/logs/media_files.log
+	find / -name "*.xwd"     >> ~/Desktop/logs/media_files.log
+	find / -name "*.xpm"  ! -path '*/snap/*' ! -path '*/usr/share/*'  >> ~/Desktop/logs/media_files.log
+	find / -name "*.ppm"  ! -path '*/usr/share/*'   >> ~/Desktop/logs/media_files.log
+	find / -name "*.pbm"     >> ~/Desktop/logs/media_files.log
+	find / -name "*.pgm"     >> ~/Desktop/logs/media_files.log
+	find / -name "*.pcx"     >> ~/Desktop/logs/media_files.log
+	find / -name "*.svgz" ! -path '*/usr/share/*'    >> ~/Desktop/logs/media_files.log
+	find / -name "*.im1"     >> ~/Desktop/logs/media_files.log
+	find / -name "*.jpe"     >> ~/Desktop/logs/media_files.log
 
 }
 
 user_auditing () {
-	mkdir -p ~/Desktop/user_auditing 
-	chmod 777 ~/Desktop/user_auditing 
-	touch ~/Desktop/user_auditing/to-do 
-	chmod 777 ~/Desktop/user_auditing/to-do
+	touch ~/Desktop/logs/userchangelog.log
+	chmod 777 ~/Desktop/logs/userchangelog.log
 
 	echo "Please enter a list of all authorized *administrators* on the machine (as stated on the README) separated by spaces (please put a space after the last item as well" 
 	read authAdminList 
 	IFS=' ' read -r -a authAdmins <<< "$authAdminList" 
 
-	echo "Authorized Administrators already on the system:" >> ~/Desktop/user_auditing/to-do
+	echo "Authorized Administrators already on the system:" >> ~/Desktop/logs/userchangelog.log
 	for item in "${authAdmins[@]}"
 	do
-		echo "$item" >> ~/Desktop/user_auditing/to-do
+		echo "$item" >> ~/Desktop/logs/userchangelog.log
 	done
 
 	echo "Please enter a list of all authorized users on the machine (as stated on the README) separated by spaces" 
 	read authGenUserList 
 	IFS=' ' read -r -a authGenUsers <<< "$authGenUserList" 
 
-	echo >> ~/Desktop/user_auditing/to-do
-	echo "Authorized Users already on the system:" >> ~/Desktop/user_auditing/to-do
+	echo >> ~/Desktop/logs/userchangelog.log
+	echo "Authorized Standard Users already on the system:" >> ~/Desktop/logs/userchangelog.log
 	for item in "${authGenUsers[@]}"
 	do
-		echo "$item" >> ~/Desktop/user_auditing/to-do
+		echo "$item" >> ~/Desktop/logs/userchangelog.log
 	done
 
 	authUserList=("${authAdminList}${authGenUserList}")
@@ -642,32 +651,58 @@ user_auditing () {
 	read currentUserList 
 	IFS=' ' read -r -a currentUsers <<< "$currentUserList" 
 
-	echo >> ~/Desktop/user_auditing/to-do
-	echo "Current users on the system:" >> ~/Desktop/user_auditing/to-do
+	echo >> ~/Desktop/logs/userchangelog.log
+	echo "Current users on the system:" >> ~/Desktop/logs/userchangelog.log
 	for item in "${currentUsers[@]}" 
 	do 
-		echo "$item" >> ~/Desktop/user_auditing/to-do
+		echo "$item" >> ~/Desktop/logs/userchangelog.log
 	done 
 
-	echo >> ~/Desktop/user_auditing/to-do
-	echo "Users to delete off the system:" >> ~/Desktop/user_auditing/to-do
+	echo >> ~/Desktop/logs/userchangelog.log
+	echo "Users deleted off the system:" >> ~/Desktop/logs/userchangelog.log
 	for item in "${currentUsers[@]}"
 	do 
 		if [[ "$authUserList" != *"$item"* ]]
 		then
-			echo "${item}" >> ~/Desktop/user_auditing/to-do
+			echo "${item}" >> ~/Desktop/logs/userchangelog.log
+			deluser --remove-home ${item}
 		fi
 	done 
 
-	echo >> ~/Desktop/user_auditing/to-do
-	echo "Users to add to the system:" >> ~/Desktop/user_auditing/to-do
+	echo >> ~/Desktop/logs/userchangelog.log
+	echo "Users added to the system:" >> ~/Desktop/logs/userchangelog.log
 	for item in "${authUsers[@]}"
 	do
 		if [[ "$currentUserList" != *"$item"* ]]
 		then
-			echo "${item}" >> ~/Desktop/user_auditing/to-do
+			echo "${item}" >> ~/Desktop/logs/userchangelog.log
+			adduser ${item}
 		fi
 	done
+
+	echo >> ~/Desktop/logs/userchangelog.log
+	echo "Authorized admins given sudo permissions:" >> ~/Desktop/logs/userchangelog.log
+	for item in "${authAdmins[@]}"
+	do
+		if [[ "$(groups ${item})" != *"sudo"* ]]
+		then
+			echo "${item}" >> ~/Desktop/logs/userchangelog.log
+			usermod -aG sudo ${item}
+		fi
+	done
+
+	echo >> ~/Desktop/logs/userchangelog.log
+	echo "Authorized standard users stripped of sudo permissions:" >> ~/Desktop/logs/userchangelog.log
+	for item in "${authGenUsers[@]}"
+	do
+		if [[ "$(groups ${item})" == *"sudo"* ]]
+		then 
+			echo "${item}" >> ~/Desktop/logs/userchangelog.log
+			gpasswd -d ${item} sudo
+		fi
+	done
+
+	echo "- Users auditing completed. Please check inside the 'userchangelog.log' file on your desktop for more information." >> ~/Desktop/logs/changelog.log
 }
 
 second_time_failsafe () {
@@ -676,7 +711,7 @@ second_time_failsafe () {
 	while [ $failYN != "exit" ]
 	do
 		 
-		echo "Which part of the script would you like to redo? (all, packages, firewall, services, hacking_tools, general_config, file_config, media_files) (type exit to leave)"
+		echo "Which part of the script would you like to redo? (all, packages, firewall, services, hacking_tools, general_config, file_config, user_auditing, media_files) (type exit to leave)"
 		read failYN
 		if [[ $failYN == "all" ]]
 		then
@@ -685,6 +720,7 @@ second_time_failsafe () {
 			services
 			hacking_tools
 			general_config
+			user_auditing
 			file_config
 			media_files
 		elif [[ $failYN == "packages" ]]
@@ -705,6 +741,9 @@ second_time_failsafe () {
 		elif [[ $failYN == "file_config" ]]
 		then
 			file_config
+		elif [[ $failYN == "user_auditing" ]]
+		then	
+			user_auditing
 		elif [[ $failYN == "media_files" ]]
 		then
 			media_files
@@ -716,7 +755,7 @@ second_time_failsafe () {
 
 }		
 	
-failsafe=~/Desktop/changelog.log
+failsafe=~/Desktop/logs/changelog.log
 if [[ -f "$failsafe" ]]
 then
 	echo "This script is detected as being run for more than one time"
@@ -730,17 +769,17 @@ then
 		read removeYN
 		if [[ $removeYN == "yes" ]]
 		then
-			rm ~/Desktop/changelog.log
-			rm -r ~/Desktop/backups
+			rm ~/Desktop/logs/changelog.log
+			rm -r ~/Desktop/logs/backups
 			echo "Replacing backup folder and backing up important files"
-			mkdir -p ~/Desktop/backups
-			chmod 777 ~/Desktop/backups
-			cp /etc/group ~/Desktop/backups/
-			cp /etc/passwd ~/Desktop/backups/
-			touch changelog.log ~/Desktop
-			chmod 777 ~/Desktop/changelog.log
-			echo "List of changes made by script:" > ~/Desktop/changelog.log
-			echo "- Backups folder recreated\n- Important files backed up" >> ~/Desktop/changelog.log
+			mkdir -p ~/Desktop/logs/backups
+			chmod 777 ~/Desktop/logs/backups
+			cp /etc/group ~/Desktop/logs/backups/
+			cp /etc/passwd ~/Desktop/logs/backups/
+			touch changelog.log ~/Desktop/logs
+			chmod 777 ~/Desktop/logs/changelog.log
+			echo "List of changes made by script:" > ~/Desktop/logs/changelog.log
+			echo "- Backups folder recreated\n- Important files backed up" >> ~/Desktop/logs/changelog.log
 			
 			 
 			second_time_failsafe
@@ -748,18 +787,18 @@ then
 		then
 			  
 			echo "Replacing legacy folder and backing up old files"
-			mkdir -p ~/Desktop/script_legacy
-			mv ~/Desktop/changelog.log ~/Desktop/script_legacy
-			mv -r ~/Desktop/backups/ ~/Desktop/script_legacy
+			mkdir -p ~/Desktop/logs/script_legacy
+			mv ~/Desktop/logs/changelog.log ~/Desktop/logs/script_legacy
+			mv -r ~/Desktop/logs/backups/ ~/Desktop/logs/script_legacy
 			echo "Creating new backups folder and backing up important files"
-			mkdir -p ~/Desktop/backups
-			chmod 777 ~/Desktop/backups
-			cp /etc/group ~/Desktop/backups/
-			cp /etc/passwd ~/Desktop/backups/
-			touch changelog2.log ~/Desktop
-			chmod 777 ~/Desktop/changelog.log
-			echo "List of changes made by script:" > ~/Desktop/changelog.log
-			echo "- Backups folder recreated\n- Important files backed up" >> ~/Desktop/changelog.log
+			mkdir -p ~/Desktop/logs/backups
+			chmod 777 ~/Desktop/logs/backups
+			cp /etc/group ~/Desktop/logs/backups/
+			cp /etc/passwd ~/Desktop/logs/backups/
+			touch changelog2.log ~/Desktop/logs
+			chmod 777 ~/Desktop/logs/changelog.log
+			echo "List of changes made by script:" > ~/Desktop/logs/changelog.log
+			echo "- Backups folder recreated\n- Important files backed up" >> ~/Desktop/logs/changelog.log
 			
 			second_time_failsafe
 		else
@@ -779,14 +818,11 @@ fi
 end () {
 	echo "Manual changes:"
 	echo "- Run ClamTK antivirus scan"
-	echo "- Run rkhunter scan (sudo rkhunter --check)"
-	echo "- Run lynis audit (sudo lynis audit system)"
-	echo "- Check for backdoors (netstat -anp | grep LISTEN | grep -v STREAM"
+	echo "- Check for backdoors (netstat -anp | grep LISTEN | grep -v STREAM)"
 	echo "- Run bash vulnerability test"
 	echo "- Check for malicious packages that might still be installed (dpkg -l | grep <keyword> (i.e. crack))"
 	echo "- Make sure updates are checked for daily and update Ubuntu according to the ReadMe"
 	echo "- Make sure root is the only root account (:0:) (in /etc/group)"
-	echo "- Audit users (WIP)"
 }
 
 if [[ "$(date)" == *"Sat Jan  23"* ]]
@@ -824,8 +860,13 @@ apt-get clean -y -qq
 
 #run rkhunter
 rkhunter --check --vl --sk
-cp /var/log/rkhunter.log ~/Desktop
-chmod 777 ~/Desktop/rkhunter.log
+cp /var/log/rkhunter.log ~/Desktop/logs
+chmod 777 ~/Desktop/logs/rkhunter.log
+
+#run lynis
+lynis audit system
+cp /var/log/lynis.log ~/Desktop/logs
+chmod 777 ~/Desktop/logs/lynis.log
 
 echo "Installing PortSentry because it can cause false negatives with rkhunter"
 echo "PortSentry (Network manager)"
