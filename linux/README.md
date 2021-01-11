@@ -1,4 +1,4 @@
-# MCS Ubuntu v4.6/Debian Script v1.1 release
+# MCS Ubuntu v5.0/Debian Script v1.1 release
 Script for MCS to secure a Linux machine
 
 List of security features:
@@ -24,17 +24,17 @@ List of security features:
 - Logs locations of all audio files
 - Configures rkhunter to check for updates
 - Antivirus and antirootkit are automatically run at end of script
+- Complete User Auditing (delete users, add users, change incorrect groups) (with user input) [UBU only]
 
 Other features:
 - Creates file 'changelog.log' on the desktop and logs all actions performed by the script
 - Creates directory 'backups' which automatically backs up important files or files that are edited by the script
 - Will abort the script if not run as root to avoid errors
 - If script is run twice, prompt allows for only running specific portions of the script rather than rerunning the whole thing
-- Beta support for User Auditing
 
 Known issues/to-do list:
 - Running the script twice rarely cuts internet access to the machine
 - Script must be run using the bash command rather than the sh command
-- Want to improve User Auditing
+- Want to improve User Auditing (make automatic, check for unwanted root users)
 - Want to improve Shared Memory security
 - Want to further expand /etc/sysctl.conf editing
