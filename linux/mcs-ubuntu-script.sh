@@ -1,5 +1,5 @@
 #!/bin/bash
-echo "MCS Ubuntu Script v5.8 Updated 1/14/2021 at 6:55pm EST"
+echo "MCS Ubuntu Script v5.8.1 Updated 1/14/2021 at 6:57pm EST"
 echo "Created by Massimo Marino"
 
 if [[ "$(whoami)" != root ]]
@@ -164,18 +164,6 @@ services () {
 		service ssh restart
 	else
 		echo "- openssh-server and ssh were not installed on this machine" >> ~/Desktop/logs/changelog.log
-	fi
-	 
-	echo "Is NGINX a critical service on this machine?"
-	read nginxYN
-	if [[ $nginxYN == "yes" ]]; then
-		apt-get install nginx -y -qq
-		echo "- NGINX installed" >> ~/Desktop/logs/changelog.log
-	elif [[ $nginxYN == "no" ]]; then
-		apt-get purge nginx -y -qq  
-		apt-get purge nginx-common -y -qq  
-		apt-get purge nginx-core -y -qq
-		echo "- NGINX removed from the machine" >> ~/Desktop/logs/changelog.log
 	fi
 	 
 	echo "Is Samba a critical service on this machine?"
