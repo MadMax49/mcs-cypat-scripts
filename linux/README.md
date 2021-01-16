@@ -1,4 +1,4 @@
-# MCS Ubuntu v5.0/Debian Script v1.1 release
+# MCS Ubuntu v5.8.1/Debian Script v1.1 release
 Script for MCS to secure a Linux machine
 
 List of security features:
