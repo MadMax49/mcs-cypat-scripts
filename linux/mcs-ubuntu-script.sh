@@ -1,5 +1,5 @@
 #!/bin/bash
-echo "MCS Ubuntu Script v5.8.1 Updated 1/14/2021 at 6:57pm EST"
+echo "MCS Ubuntu Script v6.0 Updated 1/18/2021 at 1:45am EST"
 echo "Created by Massimo Marino"
 
 if [[ "$(whoami)" != root ]]
@@ -9,7 +9,11 @@ then
 fi
 
 first_time_initialize () {  
-	echo "Creating backup folder and backing up important files"
+	echo "What is the username of the main user on this computer?"
+	read mainUser
+	echo "Creating backup folder and backing up important files + boot files + home files"
+	dump 0zf backup.boot /boot
+	zip -r myzipbackup.zip  * --exclude=access_log --exclude=tmp
 	mkdir -p ~/Desktop/logs
 	chmod 777 ~/Desktop/logs
 	mkdir -p ~/Desktop/logs/backups
@@ -32,48 +36,60 @@ packages () {
 	echo "- Package installer 'apt' updated (update, upgrade, dist-upgrade)" >> ~/Desktop/logs/changelog.log
 
 	echo "Installing useful packages"
-	echo "Firefox (Browser)"
+	echo "#########Firefox (Browser)#########"
 	apt-get install firefox -y -qq 
-	echo "RKHunter (AntiRootkit/antivirus)"
+	echo "#########RKHunter (AntiRootkit/antivirus)#########"
 	apt-get install rkhunter -y -qq
-	echo "AppArmor (Kernel enhancer)"
+	echo "#########AppArmor (Kernel enhancer)#########"
 	apt-get install apparmor -y -qq
 	apt-get install apparmor-profiles -y -qq 
 	apt-get install apparmor-profiles-extra -y -qq
-	echo "IPTables (Network manager)"
+	echo "#########IPTables (Network manager)#########"
 	apt-get install iptables -y -qq
-	echo "Lynis (system auditer)"
+	echo "#########Lynis (system auditer)#########"
 	apt-get install lynis -y -qq 
-	echo "UFW (Firewall)"
+	echo "#########UFW (Firewall)#########"
 	apt-get install ufw -y -qq 
 	apt-get install gufw -y -qq 
-	echo "ClamAV (Antivirus)"
-	apt-get install clamav -y -qq 
+	echo "#########ClamAV (Antivirus)#########"
+	apt-get install clamav-daemon -y -qq
+	apt-get install clamav -y -qq
 	apt-get install clamtk -y -qq 
-	echo "Libpam (password complexity enforcers)"
+	echo "#########Libpam (password complexity enforcers)#########"
 	apt-get install libpam-cracklib -y -qq 
 	apt-get install libpam-tmpdir -y -qq 
-	echo "Auditd (auditer)"
+	echo "#########Auditd (auditer)#########"
 	apt-get install auditd -y -qq 
-	echo "Tree (view all files on machine)"
+	echo "#########Tree (view all files on machine)#########"
 	apt-get install tree -y -qq
-	echo "APT (APT package installer enchancements)"
+	echo "#########APT (APT package installer enchancements)#########"
 	apt-get install apt-listchanges -y -qq 
 	apt-get install apt-show-versions -y -qq 
-	echo "Debian-Goodies (package assistant)"
+	echo "#########Debian-Goodies (package assistant)#########"
 	apt-get install debian-goodies -y -qq 
-	echo "Debsecan (package vulnerability reporter)"
+	echo "#########Debsecan (package vulnerability reporter)#########"
 	apt-get install debsecan -y -qq 
-	echo "Debsums (package verifier)"
+	echo "#########Debsums (package verifier)#########"
 	apt-get install debsums -y -qq
-	echo "Fail2Ban (Firewall)"
+	echo "#########Fail2Ban (Firewall)#########"
 	apt-get install fail2ban -y -qq
-	echo "Install open-vm-tools?"
-	echo "AIDE (file integrity checker)"
+	echo "#########AIDE (file integrity checker)#########"
 	apt-get install aide -y -qq
-	echo "Arpwatch (ethernet monitor)"
+	echo "#########Arpwatch (ethernet monitor)#########"
 	apt-get install arpwatch -y -qq
-	echo "Install VM tools?"
+	echo "#########Unzip and zip (zip file manager)#########"
+	apt-get install unzip -y -qq
+	apt-get install zip -y -qq
+	echo "#########dos2unix (Text file converter)#########"
+	apt-get install dos2unix -y -qq
+	echo "#########unattended upgrades (linux updater)#########"
+	apt-get install unattended-upgrades -y -qq
+	echo "#########LogWatch (Log watcher)#########"
+	apt-get install logwatch -y- qq
+	apt-get install libdate-manip-perl -y -qq
+	echo "#########HardInfo (system info and benchmarks)#########"
+	apt-get install hardinfo -y -qq
+	echo "#########Install VM tools?#########"
 	read vmtoolsYN
 	if [[ $vmtoolsYN == "yes" ]]
 	then
@@ -81,12 +97,12 @@ packages () {
 		echo "- Package open-vm-tools installed" >> ~/Desktop/logs/changelog.log
 	fi
 	apt-get install --reinstall coreutils -y -qq
-	echo "- Packages firefox, debsecan, debsums, fail2ban, libpam-tmpdir, apt-listchanges, apt-show-versions, debian-goodies, apparmor, rkhunter, chkrootkit, iptables, portsentry, lynis, ufw, gufw, libpam-cracklib, auditd, tree, clamav, and clamtk installed; coreutils reinstalled" >> ~/Desktop/logs/changelog.log
+	echo "- Packages firefox, aide, arpwatch, unzip, zip, dos2unix, unattended-upgrades, debsecan, debsums, fail2ban, libpam-tmpdir, apt-listchanges, apt-show-versions, debian-goodies, apparmor, rkhunter, chkrootkit, iptables, portsentry, lynis, ufw, gufw, libpam-cracklib, auditd, tree, clamav, and clamtk installed; coreutils reinstalled" >> ~/Desktop/logs/changelog.log
 
 }
 
 firewall () { 
-	echo "Configuring firewall (UFW)"
+	echo "#########Configuring firewall (UFW)#########"
 	ufw enable
 	ufw deny 1337
 	ufw deny 23
@@ -116,6 +132,7 @@ firewall () {
 	ufw deny out 6667/tcp
 	ufw deny out 6668/tcp
 	ufw deny out 6669/tcp
+	ufw default deny
 	ufw logging on
 	ufw logging high
 	echo "- Firewall configured (Firewall enabled, Ports 1337, 23, 2049, 515, 135, 137, 138, 139, 445, 69, 514, 161, 162, 6660, 6661, 6662, 6663, 6664, 6665, 6666, 6667, 6668, 6669, and 111 denied, Logging on and high)" >> ~/Desktop/logs/changelog.log
@@ -124,8 +141,8 @@ firewall () {
 
 services () {
  
-	echo "Service Auditing"
-	echo "Is openssh-server a critical service on this machine?"
+	echo "#########Service Auditing#########"
+	echo "#########Is openssh-server a critical service on this machine?#########"
 	read sshYN
 	if [[ $sshYN == "yes" ]]; then
 		apt-get install ssh -y -qq  
@@ -135,12 +152,13 @@ services () {
 		echo "- Packages ssh and openssh-server installed and heartbleed bug fixed" >> ~/Desktop/logs/changelog.log
 		
 		 
-		echo "Editing /etc/sshd/sshd_config"
+		echo "#########Editing /etc/sshd/sshd_config#########"
 		cp /etc/ssh/sshd_config ~/Desktop/logs/backups/
 		sed -i '13s/.*/Port 22/' /etc/ssh/sshd_config 
 		sed -i '32s/.*/PermitRootLogin no/' /etc/ssh/sshd_config
 		sed -i '87s/.*/AllowTcpForwarding no/' /etc/ssh/sshd_config
-		sed -i '100s/.*/ClientAliveCountMax 2/' /etc/ssh/sshd_config
+		sed -i '99s/.*/ClientAliveInterval 300/' /etc/ssh/sshd_config
+		sed -i '100s/.*/ClientAliveCountMax 0/' /etc/ssh/sshd_config
 		sed -i '98s/.*/Compression DELAYED/' /etc/ssh/sshd_config
 		sed -i '27s/.*/LogLevel VERBOSE/' /etc/ssh/sshd_config
 		sed -i '34s/.*/MaxAuthTries 2/' /etc/ssh/sshd_config
@@ -148,25 +166,37 @@ services () {
 		sed -i '95s/.*/TCPKeepAlive no/' /etc/ssh/sshd_config
 		sed -i '89s/.*/X11Forwarding no/' /etc/ssh/sshd_config
 		sed -i '86s/.*/AllowAgentForwarding no/' /etc/ssh/sshd_config
-		echo "- Configured /etc/ssh/sshd_config" >> ~/Desktop/logs/changelog.log	
+		sed -i '94s/.*/PrintLastLog no/' /etc/ssh/sshd_config
+		sed -i '97s/.*/PermitUserEnvironment no/' /etc/ssh/sshd_config
+		sed -i '56s/.*/PasswordAuthentication no/' /etc/ssh/sshd_config
+		sed -i '53s/.*/IgnoreRhosts yes/' /etc/ssh/sshd_config
+		sed -i '48s/.*/HostbasedAuthentication no/' /etc/ssh/sshd_config
+		sed -i '31s/.*/LoginGraceTime 300/' /etc/ssh/sshd_config
+		sed -i '103s/.*/MaxStartups 2/' /etc/ssh/sshd_config
+		sed -i '33s/.*/StrictModes yes/' /etc/ssh/sshd_config
+		echo "- Configured /etc/ssh/sshd_config" >> ~/Desktop/logs/changelog.log		
 		
 		  
-		echo "Securing SSH keys"
-		mkdir ~/.ssh
+		echo "#########Securing SSH keys#########"
+		mkdir -p ~/.ssh/
 		chmod 700 ~/.ssh
 		touch ~/.ssh/authorized_keys
 		chmod 600 ~/.ssh/authorized_keys
+		cd ~/.ssh
+		ssh-keygen -t rsa
+		cd
 		echo "- Secured SSH keys" >> ~/Desktop/logs/changelog.log
 		
-		echo "SSH port can accept SSH connections"
+		echo "#########SSH port can accept SSH connections#########"
 		iptables -A INPUT -p tcp --dport ssh -j ACCEPT
-		
+		iptables -I INPUT -p tcp --dport 22 -i eth0 -m state --state NEW -m recent --set
+		iptables -I INPUT -p tcp --dport 22 -i eth0 -m state --state NEW -m recent --update --seconds 60 --hitcount 5 -j DROP
+
 		service ssh restart
-	else
-		echo "- openssh-server and ssh were not installed on this machine" >> ~/Desktop/logs/changelog.log
+		echo "- SSH configured" >> ~/Desktop/logs/changelog.log
 	fi
 	 
-	echo "Is Samba a critical service on this machine?"
+	echo "#########Is Samba a critical service on this machine?#########"
 	read sambaYN
 	if [[ $sambaYN == "yes" ]]; then
 		ufw allow netbios-ns
@@ -185,7 +215,7 @@ services () {
 		echo "- Samba uninstalled and blocked" >> ~/Desktop/logs/changelog.log
 	fi
 	 
-	echo "Is FTP a critical service on this machine?"
+	echo "#########Is FTP a critical service on this machine?#########"
 	read ftpYN
 	if [[ $ftpYN == "yes" ]]; then
 		ufw allow ftp 
@@ -196,7 +226,7 @@ services () {
 		service vsftpd restart
 		echo "- FTP installed and allowed" >> ~/Desktop/logs/changelog.log
 	elif [[ $ftpYN == "no" ]]; then
-		service stop vsftpd
+		service vsftpd stop 
 		ufw deny ftp 
 		ufw deny sftp 
 		ufw deny saft 
@@ -206,7 +236,7 @@ services () {
 		echo "- FTP uninstalled and blocked" >> ~/Desktop/logs/changelog.log
 	fi
 	 
-	echo "Is Telnet a critical service on this machine?"
+	echo "#########Is Telnet a critical service on this machine?#########"
 	read telnetYN
 	if [[ $telnetYN == "yes" ]]; then
 		ufw allow telnet 
@@ -226,7 +256,7 @@ services () {
 		echo "- Telnet uninstalled and blocked" >> ~/Desktop/logs/changelog.log
 	fi
 	 
-	echo "Is MySQL a critical service on this machine?"
+	echo "#########Is MySQL a critical service on this machine?#########"
 	read sqlYN
 	if [[ $sqlYN == "yes" ]]; then
 		ufw allow ms-sql-s 
@@ -239,12 +269,11 @@ services () {
 		ufw deny ms-sql-m 
 		ufw deny mysql 
 		ufw deny mysql-proxy
-		apt-get purge mysql-server -y -qq  
-		apt-get purge mysql -y -qq  
+		apt-get purge mysql-server -y -qq    
 		echo "- MySQL uninstalled and blocked (WIP)" >> ~/Desktop/logs/changelog.log
 	fi
  
-	echo "Is this machine a web server?"
+	echo "#########Is this machine a web server?#########"
 	read webYN
 	if [[ $webYN == "yes" ]]; then
 		echo "Apache2 or NGINX? (If unsure, choose Apache2) (Case sensitive)"
@@ -269,13 +298,90 @@ services () {
 			apt-get install apache2-utils -y -qq
 			apt-get install libapache2-mod-evasive -y -qq
 			apt-get install libapache2-mod-security2 -y -qq
+			
+			echo "#########Is PHP used on this web server?#########"
+			read phpYN
+			if [[ $phpYN == "yes" ]]; then
+				apt-get install php7.2 -y -qq
+				cp /etc/php/7.2/apache2/php.ini ~/Desktop/logs/backups/
+				echo "safe_mode = On" >> /etc/php/7.2/apache2/php.ini
+				echo "safe_mode_gid = On" >> /etc/php/7.2/apache2/php.ini
+				echo "sql.safe_mode=On" >> /etc/php/7.2/apache2/php.ini
+				echo "register_globals = Off" >> /etc/php/7.2/apache2/php.ini
+				sed -i '530s/.*/track_errors = Off/' /etc/php/7.2/apache2/php.ini
+				sed -i '547s/.*/html_errors = Off/' /etc/php/7.2/apache2/php.ini
+				sed -i '310s/.*/disable_functions = php_uname, getmyuid, getmypid, passthru, leak, listen, diskfreespace, tmpfile, link, ignore_user_abord, shell_exec, dl, set_time_limit, exec, system, highlight_file, source, show_source, fpaththru, virtual, posix_ctermid, posix_getcwd, posix_getegid, posix_geteuid, posix_getgid, posix_getgrgid, posix_getgrnam, posix_getgroups, posix_getlogin, posix_getpgid, posix_getpgrp, posix_getpid, posix, _getppid, posix_getpwnam, posix_getpwuid, posix_getrlimit, posix_getsid, posix_getuid, posix_isatty, posix_kill, posix_mkfifo, posix_setegid, posix_seteuid, posix_setgid, posix_setpgid, posix_setsid, posix_setuid, posix_times, posix_ttyname, posix_uname, proc_open, proc_close, proc_get_status, proc_nice, proc_terminate, phpinfo/' /etc/php/7.2/apache2/php.ini
+				sed -i '833s/.*/allow_url_fopen = Off/' /etc/php/7.2/apache2/php.ini
+				sed -i '837s/.*/allow_url_include = Off/' /etc/php/7.2/apache2/php.ini
+				sed -i '818s/.*/upload_tmp_dir = /var/php_tmp/' /etc/php/7.2/apache2/php.ini
+				sed -i '380s/.*/max_execution_time = 10/' /etc/php/7.2/apache2/php.ini
+				sed -i '390s/.*/max_input_time = 30/' /etc/php/7.2/apache2/php.ini
+				sed -i '401s/.*/memory_limit = 40M/' /etc/php/7.2/apache2/php.ini
+				sed -i '669s/.*/post_max_size=1K/' /etc/php/7.2/apache2/php.ini
+				sed -i '1412s/.*/session.cookie_httponly = 1/' /etc/php/7.2/apache2/php.ini
+				service apache2 restart
+				echo "- Configured PHP 7.2 for use on a web server" >> ~/Desktop/logs/changelog.log
+			fi
+			
 			ufw allow http 
 			ufw allow https
 			systemctl restart apache2
-			sed -i '92s/.*/Timeout 15/' /etc/apache2/apache2.conf
-			sed -i '98s/.*/KeepAlive Off/' /etc/apache2/apache2.conf
+			cp /etc/ufw/before.rules ~/Desktop/logs/backups/
+			sed -i '12s/$/\n/' /etc/ufw/before.rules
+			sed -i '13s/.*/:ufw-http - [0:0]\n/' /etc/ufw/before.rules
+			sed -i '14s/.*/:ufw-http-logdrop - [0:0]/' /etc/ufw/before.rules
+			sed -i '76s/$/\n/' /etc/ufw/before.rules
+			sed -i '77s/.*/### Start HTTP ###\n/' /etc/ufw/before.rules
+			sed -i '78s/.*/\n/' /etc/ufw/before.rules
+			sed -i '79s/.*/# Enter rule\n/' /etc/ufw/before.rules
+			sed -i '80s/.*/-A ufw-before-input -p tcp --dport 80 -j ufw-http\n/' /etc/ufw/before.rules
+			sed -i '81s/.*/-A ufw-before-input -p tcp --dport 443 -j ufw-http\n/' /etc/ufw/before.rules
+			sed -i '82s/.*/\n/' /etc/ufw/before.rules
+			sed -i '83s/.*/# Limit connections per Class C\n/' /etc/ufw/before.rules
+			sed -i '84s/.*/-A ufw-http -p tcp --syn -m connlimit --connlimit-above 50 --connlimit-mask 24 -j ufw-http-logdrop\n/' /etc/ufw/before.rules
+			sed -i '85s/.*/\n/' /etc/ufw/before.rules
+			sed -i '86s/.*/# Limit connections per IP\n/' /etc/ufw/before.rules
+			sed -i '87s/.*/-A ufw-http -m state --state NEW -m recent --name conn_per_ip --set\n/' /etc/ufw/before.rules
+			sed -i '88s/.*/-A ufw-http -m state --state NEW -m recent --name conn_per_ip --update --seconds 10 --hitcount 20 -j ufw-http-logdrop\n/' /etc/ufw/before.rules
+			sed -i '89s/.*/\n/' /etc/ufw/before.rules
+			sed -i '90s/.*/# Limit packets per IP\n/' /etc/ufw/before.rules
+			sed -i '91s/.*/-A ufw-http -m recent --name pack_per_ip --set\n/' /etc/ufw/before.rules
+			sed -i '92s/.*/-A ufw-http -m recent --name pack_per_ip --update --seconds 1 --hitcount 20 -j ufw-http-logdrop\n/' /etc/ufw/before.rules
+			sed -i '93s/.*/\n/' /etc/ufw/before.rules
+			sed -i '94s/.*/# Finally accept\n/' /etc/ufw/before.rules
+			sed -i '95s/.*/-A ufw-http -j ACCEPT\n/' /etc/ufw/before.rules
+			sed -i '96s/.*/\n/' /etc/ufw/before.rules
+			sed -i '97s/.*/# Log\n/' /etc/ufw/before.rules
+			sed -i '98s/.*/-A ufw-http-logdrop -m limit --limit 3\/min --limit-burst 10 -j LOG --log-prefix \"[UFW HTTP DROP] \"\n/' /etc/ufw/before.rules
+			sed -i '99s/.*/-A ufw-http-logdrop -j DROP\n/' /etc/ufw/before.rules
+			sed -i '100s/.*/\n/' /etc/ufw/before.rules
+			sed -i '101s/.*/### End HTTP ###/' /etc/ufw/before.rules
+			sed -i '102s/.*/\n/' /etc/ufw/before.rules
+			sed -i '103s/.*/-A INPUT -p icmp -m limit --limit 6\/s --limit-burst 1 -j ACCEPT/' /etc/ufw/before.rules
+			sed -i '104s/.*/-A INPUT -p icmp -j DROP/' /etc/ufw/before.rules
+			service apache2 restart
+			echo "- UFW configured for use on a web server" >> ~/Desktop/logs/changelog.log
+			
+			sed -i '92s/.*/Timeout 100/' /etc/apache2/apache2.conf
+			sed -i '98s/.*/KeepAlive On/' /etc/apache2/apache2.conf
 			sed -i '126s/.*/HostnameLookups On/' /etc/apache2/apache2.conf
+			sed -i '105s/.*/MaxKeepAliveRequests 75/' /etc/apache2/apache2.conf
+			echo "<IfModule mod_headers.c>" >> /etc/apache2/apache2.conf
+			echo "Header always append X-Frame-Options SAMEORIGIN" >> /etc/apache2/apache2.conf
+			echo "</IfModule>" >> /etc/apache2/apache2.conf
+			echo "FileETag None" >> /etc/apache2/apache2.conf
+			echo "RewriteEngine On" >> /etc/apache2/apache2.conf
+			echo "RewriteCond %{THE_REQUEST} !HTTP/1\.1$" >> /etc/apache2/apache2.conf
+			echo "RewriteRule .* - [F]" >> /etc/apache2/apache2.conf
+			echo "TraceEnable off" >> /etc/apache2/apache2.conf
+			chown -R 750 /etc/apache2/bin /etc/apache2/conf
+			chmod 511 /usr/sbin/apache2
+			chmod 750 /var/log/apache2/
+			chmod 750 /etc/apache2/conf/
+			chmod 640 /etc/apache2/conf/*
+			chgrp -R $mainUser /etc/apache2/conf
 			chmod -R 444 /var/www
+			/etc/init.d/apache2 restart
 			echo "- Apache2 installed, configured, and http(s) allowed" >> ~/Desktop/logs/changelog.log
 		fi
 	elif [[ $webYN == "no" ]]; then
@@ -293,37 +399,44 @@ services () {
 		#rm -r /var/www/*
 		echo "- Apache2 removed and http(s) blocked" >> ~/Desktop/logs/changelog.log
 	fi
-
+	
+	echo "#########Is this machine an email server?#########"
+	read emailYN
+	if [[ $emailYN == "yes" ]]; then
+		echo
+	elif [[ $emailYN == "no" ]]; then
+		apt-get purge dovecot-* -y -qq
+	fi
 }
 
 general_config () {
  
-	echo "Should root user be locked?"
+	echo "#########Should root user be locked?#########"
 	read lockRootYN
 	if [[ $lockRootYN == yes ]]
 	then 
-		usermod -L root
+		passwd -l root
 		echo "- Root account locked. Use 'usermod -U root' to unlock it (but good luck without root)"
 	fi
 	
-	echo "Denying outside packets"
+	echo "#########Denying outside packets#########"
 	iptables -A INPUT -p all -s localhost  -i eth0 -j DROP
 	echo "- Denied outside packets" >> ~/Desktop/logs/changelog.log
 	
-	echo "Unaliasing all"
+	echo "#########Unaliasing all#########"
 	unalias -a
 	echo "- Unaliased all" >> ~/Desktop/logs/changelog.log
 
-	echo "Enabling auditing"
+	echo "#########Enabling auditing#########"
 	auditctl -e 1
 	echo "- Auditing enabled with auditd (can be configured in /etc/audit/auditd.conf)" >> ~/Desktop/logs/changelog.log
 
-	echo "Disabling reboot with Ctrl-Alt "
-	sudo systemctl mask ctrl-alt-del.target
-	sudo systemctl daemon-reload
+	echo "#########Disabling reboot with Ctrl-Alt-Del#########"
+	systemctl mask ctrl-alt-del.target
+	systemctl daemon-reload
 	echo "- Disabled reboot with Ctrl-Alt " >> ~/Desktop/logs/changelog.log
 	
-	echo "Securing important files with chmod"
+	echo "#########Securing important files with chmod#########"
 	chmod -R 644 /var/log
 	chmod 664 /etc/passwd
 	chmod 664 /etc/shadow
@@ -349,31 +462,55 @@ general_config () {
 	#update-aide.conf
 	#cp /var/lib/aide/aide.conf.autogenerated /etc/aide/aide.conf
 	
-	echo "Starting arpwatch"
-	#chkconfig --level 35 arpwatch on
+	echo "#########Starting arpwatch#########"
 	/etc/init.d/arpwatch start
 	arpwatch
 	echo "- Arpwatch started" >> ~/Desktop/logs/changelog.log
 	
-	echo "Starting Postfix"
+	echo "#########Starting Postfix#########"
 	cp /usr/share/postfix/main.cf.debian /etc/postfix/main.cf
-	run postconf -e disable_vrfy_command=yes
+	postconf -e disable_vrfy_command=yes
 	service postfix reload
+	chmod 755 /etc/postfix
+	chmod 644 /etc/postfix/*.cf
+	chmod 755 /etc/postfix/postfix-script*
+	chmod 755 /var/spool/postfix
+	chown root:root /var/log/mail*
+	chmod 600 /var/log/mail*
+	service postfix restart
 	echo "- Postfix started" >> ~/Desktop/logs/changelog.log
 	
-	echo "Backing up and clearing crontab"
+	echo "#########Configuring fail2ban#########"
+	cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
+	service fail2ban restart
+	
+	echo "#########Backing up and clearing crontab#########"
 	touch ~/Desktop/logs/backups/crontab-backup
 	crontab -l > ~/Desktop/logs/backups/crontab-backup
 	crontab -r
 	echo "- Crontab backed up and cleared" >> ~/Desktop/logs/changelog.log
 	
+	echo "#########Enabling unattended upgrades#########"
+	dpkg-reconfigure -plow unattended-upgrades
+	
+	echo "#########Configuring swapfile#########"
+	swapon -s
+	echo "#########Is there a swap file present?#########"
+	read swapYN
+	if [[ $swapYN == "yes" ]]; then
+		echo 0 | tee /proc/sys/vm/swappiness
+		echo vm.swappiness = 0 | tee -a /etc/sysctl.conf
+		chown root:root /swapfile
+		chmod 0600 /swapfile
+	fi
 }
 
 hacking_tools () {
 	
-	echo "Updating packages"
+	echo "#########Updating package list#########"
 	apt-get update  
 	
+	echo "#########Removing potential hacking tools#########"
 	echo "Removing netcat"
 	apt-get purge netcat -y -qq  
 	apt-get purge netcat-openbsd -y -qq  
@@ -446,12 +583,41 @@ hacking_tools () {
 
 	echo "Removing SQLMap"
 	apt-get purge sqlmap -y -qq
+	
+	echo "Removing SNMP"
+	apt-get purge --auto-remove snmp
 
 	echo "Removing packages that can potentially contribute to backdoors"
 	apt-get purge backdoor-factory -y -qq  
 	apt-get purge shellinabox -y -qq  
 
-	echo "Cleaning up Packages"
+	echo "Disabling ATD"
+	echo 'manual' > /etc/init/atd.override
+	apt-get purge at
+	
+	echo "Disabling Avahi"
+	cd /etc/init
+	touch avahi-daemon.override
+	echo "manual" > avahi-daemon.override
+	cd
+	
+	echo "Disabling Modemmanager"
+	echo "manual" > /etc/init/modemmanager.override
+	
+	echo "Disabling Wireless"
+	sed -i '1 i\iface wlan0 inet manual' /etc/network/interfaces
+
+	echo "#########Disabling unused compilers#########"
+	chmod 000 /usr/bin/byacc
+	chmod 000 /usr/bin/yacc
+	chmod 000 /usr/bin/bcc
+	chmod 000 /usr/bin/kgcc
+	chmod 000 /usr/bin/cc
+	chmod 000 /usr/bin/gcc
+	chmod 000 /usr/bin/*c++
+	chmod 000 /usr/bin/*g++	
+	
+	echo "#########Cleaning up Packages#########"
 	apt-get autoremove -y -qq  
 	apt-get autoclean -y -qq  
 	apt-get clean -y -qq  
@@ -461,18 +627,19 @@ hacking_tools () {
 
 file_config () {
 
-	echo "Disallowing guest account"
+	echo "#########Disallowing guest account#########"
 	cp /usr/share/lightdm/lightdm.conf.d/50-ubuntu.conf ~/Desktop/logs/backups/
 	sed -i '2s/$/\n/' /usr/share/lightdm/lightdm.conf.d/50-ubuntu.conf
 	sed -i '3s/.*/allow-guest=false/' /usr/share/lightdm/lightdm.conf.d/50-ubuntu.conf
 	echo "- Disabled guest account" >> ~/Desktop/logs/changelog.log
 
-	echo "Securing /etc/rc.local"
+	echo "#########Securing /etc/rc.local#########"
 	echo > /etc/rc.local
-	echo "exit 0" > /etc/rc.local
-	echo "- /etc/rc.local secured" >> ~/Desktop/logs/changelog.log
+	echo "rfkill block bluetooth" > /etc/rc.local
+	echo "exit 0" >> /etc/rc.local
+	echo "- /etc/rc.local secured and bluetooth disabled" >> ~/Desktop/logs/changelog.log
 
-	echo "Editing /etc/login.defs"
+	echo "#########Editing /etc/login.defs#########"
 	cp /etc/login.defs ~/Desktop/logs/backups/
 	sed -i '160s/.*/PASS_MAX_DAYS\o01130/' /etc/login.defs
 	sed -i '161s/.*/PASS_MIN_DAYS\o0117/' /etc/login.defs
@@ -480,24 +647,37 @@ file_config () {
 	sed -i '151s/.*/UMASK\o011\o011027/' /etc/login.defs
 	echo "- /etc/login.defs configured (Min days 7, Max days 30, Warn age 14, umask higher perms)" >> ~/Desktop/logs/changelog.log
 
-	echo "Editing /etc/pam.d/common-password"
+	echo "#########Editing /etc/pam.d/common-password#########"
 	cp /etc/pam.d/common-password ~/Desktop/logs/backups/
 	sed -i '26s/.*/password\o011[success=1 default=ignore]\o011pam_unix.so obscure pam_unix.so obscure use_authtok try_first_pass remember=5 minlen=8/' /etc/pam.d/common-password
 	sed -i '25s/.*/password\o011requisite\o011\o011\o011pam_cracklib.so retry=3 minlen=8 difok=3 ucredit=-1 lcredit=-1 dcredit=-1 ocredit=-1/' /etc/pam.d/common-password
 	echo "- /etc/pam.d/common-password edited (remember=5, minlen=8, complexity requirements)" >> ~/Desktop/logs/changelog.log
-
-	echo "Setting account lockout policy"
+	
+	echo "#########Setting up a cronjob to remove failed login attempts from the main user#########"
+	touch ~/removefails.sh
+	chmod 777 ~/removefails.sh
+	echo "#!/bin/bash" > ~/removefails.sh
+	echo "pam_tally2 --user=$mainUser --reset" >> ~/removefails.sh
+	echo "- Script to clear logins set up, just add a cronjob to the crontab to run it every 10 minutes" >> ~/Desktop/logs/changelog.log
+	
+	echo "#########Setting account lockout policy#########"
 	cp /etc/pam.d/common-auth ~/Desktop/logs/backups/
 	sed -i '16s/$/\n/' /etc/pam.d/common-auth
 	sed -i '17s/.*/auth\o011required\o011\o011\o011pam_tally2.so onerr=fail deny=5 unlock_time=600 audit/' /etc/pam.d/common-auth
 	echo "- Account lockout policy set in /etc/pam.d/common-auth" >> ~/Desktop/logs/changelog.log
 
-	echo "Securing Shared Memory"
+	echo "#########Securing Shared Memory#########"
 	cp /etc/fstab ~/Desktop/logs/backups/
-	mount -o remount,noexec,nosuid /dev/shm
+	echo "tmpfs\o011\o011/run/shm\o011tmpfs\o011defaults,noexec,nosuid 0       0" >> /etc/fstab
+	mount -a
 	echo "- Shared memory secured in  /etc/fstab" >> ~/Desktop/logs/changelog.log
 
-	echo "Configuring rkhunter to allow checking for updates"
+	echo "#########Managing file permissions for /etc/securetty#########"
+	chown root:root /etc/securetty
+	chmod 0600 /etc/securetty
+	echo "- /etc/securetty may only be accessed by root" >> ~/Desktop/logs/changelog.log
+	
+	echo "#########Configuring rkhunter to allow checking for updates#########"
 	cp /etc/rkhunter.conf ~/Desktop/logs/backups
 	sed -i '107s/.*/UPDATE_MIRRORS=1/' /etc/rkhunter.conf
 	sed -i '122s/.*/MIRRORS_MODE=0/' /etc/rkhunter.conf
@@ -505,26 +685,46 @@ file_config () {
 	sed -i '440s/.*/PKGMGR=DPKG/' /etc/rkhunter.conf
 	echo "- Configured /etc/rkhunter.conf to allow for checking for updates" >> ~/Desktop/logs/changelog.log
 	
-	echo "Configuring /etc/sysctl.conf"
+	echo "#########Configuring /etc/sysctl.conf#########"
 	cp /etc/sysctl.conf ~/Desktop/logs/backups/
-	sed -i '59s/.*/net.ipv4.conf.all.log_martians = 1/' /etc/sysctl.conf
-	sed -i '52s/.*/net.ipv4.conf.all.send_redirects = 0/' /etc/sysctl.conf
+	sed -i '28s/.*/net.ipv4.ip_forward=0/' /etc/sysctl.conf
+	sed -i '19s/.*/net.ipv4.conf.default.rp_filter=1/' /etc/sysctl.conf
+	sed -i '20s/.*/net.ipv4.conf.all.rp_filter=1/' /etc/sysctl.conf
 	sed -i '55s/.*/net.ipv4.conf.all.accept_source_route = 0/' /etc/sysctl.conf
 	sed -i '56s/.*/net.ipv6.conf.all.accept_source_route = 0/' /etc/sysctl.conf
-	sed -i '68s/.*/kernel.sysrq=0/' /etc/sysctl.conf
-	sed -i '76s/.*/fs.protected_hardlinks=1/' /etc/sysctl.conf
-	sed -i '77s/.*/fs.protected_symlinks=1/' /etc/sysctl.conf
+	sed -i '52s/.*/net.ipv4.conf.all.send_redirects = 0/' /etc/sysctl.conf
 	sed -i '25s/.*/net.ipv4.tcp_syncookies=1/' /etc/sysctl.conf
 	sed -i '44s/.*/net.ipv4.conf.all.accept_redirects = 0/' /etc/sysctl.conf
 	sed -i '45s/.*/net.ipv6.conf.all.accept_redirects = 0/' /etc/sysctl.conf
-	echo "- /etc/sysctl.conf configured (basic)" >> ~/Desktop/logs/changelog.log
+	sed -i '49s/.*/net.ipv4.conf.all.secure_redirects = 0/' /etc/sysctl.conf
+	sed -i '59s/.*/net.ipv4.conf.all.log_martians = 1/' /etc/sysctl.conf
+	sed -i '68s/.*/kernel.sysrq=0/' /etc/sysctl.conf
+	sed -i '76s/.*/fs.protected_hardlinks=1/' /etc/sysctl.conf
+	sed -i '77s/.*/fs.protected_symlinks=1/' /etc/sysctl.conf
+	
+	echo "#########Should IPv6 be disabled?#########"
+	read ipv6YN
+	if [[ $ipv6YN == "yes" ]]; then
+		echo "#disable ipv6" >> /etc/sysctl.conf
+		echo "net.ipv6.conf.all.disable_ipv6 = 1" >> /etc/sysctl.conf
+		echo "net.ipv6.conf.default.disable_ipv6 = 1" >> /etc/sysctl.conf
+		echo "net.ipv6.conf.lo.disable_ipv6 = 1" >> /etc/sysctl.conf
+		echo "- Ipv6 disabled in /etc/sysctl.conf" >> ~/Desktop/logs/changelog.log
+		if [[ "$(whereis bind9)" == */usr/share/bind9* ]]; then
+			sed -i '3s/.*/RESOLVCONF=yes/' /etc/default/bind9
+			sed -i '6s/.*/OPTIONS="-4 -u bind" -/' /etc/default/bind9
+			echo "- IPv6 disabled in bind9" >> ~/Desktop/logs/changelog.log
+		fi
+		sed -i '7s/.*/IPV6=no/' /etc/default/ufw
+		echo "- IPv6 disabled in UFW"
+	fi	
+	echo "- /etc/sysctl.conf configured" >> ~/Desktop/logs/changelog.log
 
 }
 
 media_files () {
 
-	echo "Logging the fire directories of media files on the machine"
-	echo "Logging all media files"
+	echo "#########Logging the fire directories of media files on the machine#########"
 	touch ~/Desktop/logs/media_files.log
 	chmod 777 ~/Desktop/logs/media_files.log
 
@@ -543,8 +743,8 @@ media_files () {
 	find / -name "*.svg" ! -path '*/var/lib/*' ! -path '*/etc/alternatives/*' ! -path '*/snap/*' ! -path '*/usr/lib/*' ! -path '*/usr/share/*' >> ~/Desktop/logs/media_files.log
 	find / -name "*.gif" ! -path '*/usr/lib/*' ! -path '*/usr/share/*'>> ~/Desktop/logs/media_files.log
 	find / -name "*.jpeg"  >> ~/Desktop/logs/media_files.log
-	find / -name "*.jpg" ! -path '*/usr/share/*' ! -path '*/snap/*' ! -path '*/usr/lib/*' >> ~/Desktop/logs/media_files.log
-	find / -name "*.png" ! -path '*/etc/alternatives/*' ! -path '*/snap/*' ! -path '*/usr/lib/*' ! -path '*/usr/share/*' ! -path '*/var/lib/*' >> ~/Desktop/logs/media_files.log
+	find / -name "*.jpg" ! -path '*/usr/share/*' ! -path '*/snap/*' ! -path '*/usr/lib/*' ! -path '*/home/$mainUser/.cache/*' >> ~/Desktop/logs/media_files.log
+	find / -name "*.png" ! -path '*/etc/alternatives/*' ! -path '*/snap/*' ! -path '*/usr/lib/*' ! -path '*/usr/share/*' ! -path '*/var/lib/*' ! -path '*/home/$mainUser/.cache/*' >> ~/Desktop/logs/media_files.log
 
 	echo >> ~/Desktop/logs/media_files.log
 	echo "PHP files:" >> ~/Desktop/logs/media_files.log
@@ -657,40 +857,51 @@ user_auditing () {
 	touch ~/Desktop/logs/userchangelog.log
 	chmod 777 ~/Desktop/logs/userchangelog.log
 
-	echo "Please enter a list of all authorized *administrators* on the machine (as stated on the README) separated by spaces (please put a space after the last item as well" 
+	echo "#########Please enter a list of all authorized *administrators* on the machine (as stated on the README) separated by spaces#########" 
 	read authAdminList 
 	IFS=' ' read -r -a authAdmins <<< "$authAdminList" 
 
-	echo "Authorized Administrators already on the system:" >> ~/Desktop/logs/userchangelog.log
+	echo "Authorized Administrators supposed to be on the system:" >> ~/Desktop/logs/userchangelog.log
 	for item in "${authAdmins[@]}"
 	do
 		echo "$item" >> ~/Desktop/logs/userchangelog.log
 	done
 
-	echo "Please enter a list of all authorized users on the machine (as stated on the README) separated by spaces" 
+	echo "#########Please enter a list of all authorized users on the machine (as stated on the README) separated by spaces#########" 
 	read authGenUserList 
 	IFS=' ' read -r -a authGenUsers <<< "$authGenUserList" 
 
 	echo >> ~/Desktop/logs/userchangelog.log
-	echo "Authorized Standard Users already on the system:" >> ~/Desktop/logs/userchangelog.log
+	echo "Authorized Standard Users supposed to be on the system:" >> ~/Desktop/logs/userchangelog.log
 	for item in "${authGenUsers[@]}"
 	do
 		echo "$item" >> ~/Desktop/logs/userchangelog.log
 	done
 
-	authUserList=("${authAdminList}${authGenUserList}")
+	authUserList=("${authAdminList} ${authGenUserList}")
 	authUsers=("${authAdmins[@]}" "${authGenUsers[@]}")
 
-	currentUserList=$(awk -F':' '$2 ~ "\$" {print $1}' /etc/shadow | tr '\n' ' ')
+	currentUserList=$(eval getent passwd {$(awk '/^UID_MIN/ {print $2}' /etc/login.defs)..$(awk '/^UID_MAX/ {print $2}' /etc/login.defs)} | cut -d: -f1 | tr '\n' ' ')
 	IFS=' ' read -r -a currentUsers <<< "$currentUserList" 
-
+	
+	echo >> ~/Desktop/logs/userchangelog.log
+	echo "Users without passwords given passwords:" >> ~/Desktop/logs/userchangelog.log
+	for item in "${currentUsers[@]}" 
+	do 
+		if [[ $(cat /etc/shadow | grep ${item}) != *":$"* ]]; then
+			echo "Setting a new password for $item"
+			passwd $item
+			echo "$item" >> ~/Desktop/logs/userchangelog.log
+		fi
+	done 
+	
 	echo >> ~/Desktop/logs/userchangelog.log
 	echo "Current users on the system:" >> ~/Desktop/logs/userchangelog.log
 	for item in "${currentUsers[@]}" 
 	do 
 		echo "$item" >> ~/Desktop/logs/userchangelog.log
 	done 
-
+	
 	echo >> ~/Desktop/logs/userchangelog.log
 	echo "Users deleted off the system:" >> ~/Desktop/logs/userchangelog.log
 	for item in "${currentUsers[@]}"
@@ -754,7 +965,7 @@ second_time_failsafe () {
 	while [ $failYN != "exit" ]
 	do
 		 
-		echo "Which part of the script would you like to redo? (all, packages, firewall, services, hacking_tools, general_config, file_config, user_auditing, media_files) (type exit to leave)"
+		echo "#########Which part of the script would you like to redo? (all, packages, firewall, services, hacking_tools, general_config, file_config, user_auditing, media_files) (type exit to leave)#########"
 		read failYN
 		if [[ $failYN == "all" ]]
 		then
@@ -791,7 +1002,7 @@ second_time_failsafe () {
 		then
 			media_files
 		else
-			echo "Option not found"
+			echo "#########Option not found (or exiting)#########"
 		fi
 	done
 	exit 0
@@ -802,8 +1013,8 @@ failsafe=~/Desktop/logs/changelog.log
 if [[ -f "$failsafe" ]]
 then
 	echo "This script is detected as being run for more than one time"
-	echo "This has been known to cause a wide variety of problems, including potential loss of internet, which in worst case scenario, can necessetate a restart of the image."
-	echo "Luckily, a system has been implemented to avoid this problem, functions"
+	echo "This has been known to cause a wide variety of problems, including potential loss of internet, which in worst case scenario, can necessitate a restart of the image."
+	echo "Luckily, a system has been implemented to avoid this problem"
 	echo "Would you like to continue with choosing which parts of the script to redo?"
 	read restartYN
 	if [[ $restartYN == "yes" ]]
@@ -812,37 +1023,18 @@ then
 		read removeYN
 		if [[ $removeYN == "yes" ]]
 		then
-			rm ~/Desktop/logs/changelog.log
-			rm -r ~/Desktop/logs/backups
-			echo "Replacing backup folder and backing up important files"
-			mkdir -p ~/Desktop/logs/backups
-			chmod 777 ~/Desktop/logs/backups
-			cp /etc/group ~/Desktop/logs/backups/
-			cp /etc/passwd ~/Desktop/logs/backups/
-			touch changelog.log ~/Desktop/logs
-			chmod 777 ~/Desktop/logs/changelog.log
-			echo "List of changes made by script:" > ~/Desktop/logs/changelog.log
-			echo "- Backups folder recreated\n- Important files backed up" >> ~/Desktop/logs/changelog.log
-			
-			 
+			rm -r ~/Desktop/logs
+			first_time_initialize
 			second_time_failsafe
 		elif [[ $removeYN == "no" ]]
 		then
 			  
 			echo "Replacing legacy folder and backing up old files"
-			mkdir -p ~/Desktop/logs/script_legacy
-			mv ~/Desktop/logs/changelog.log ~/Desktop/logs/script_legacy
-			mv -r ~/Desktop/logs/backups/ ~/Desktop/logs/script_legacy
-			echo "Creating new backups folder and backing up important files"
-			mkdir -p ~/Desktop/logs/backups
-			chmod 777 ~/Desktop/logs/backups
-			cp /etc/group ~/Desktop/logs/backups/
-			cp /etc/passwd ~/Desktop/logs/backups/
-			touch changelog2.log ~/Desktop/logs
-			chmod 777 ~/Desktop/logs/changelog.log
-			echo "List of changes made by script:" > ~/Desktop/logs/changelog.log
-			echo "- Backups folder recreated\n- Important files backed up" >> ~/Desktop/logs/changelog.log
-			
+			mkdir -p ~/Desktop/logs_legacy
+			mv -r ~/Desktop/logs ~/Desktop/logs_legacy
+			mv ~/Desktop/logs/changelog.log ~/Desktop/logs_legacy
+			mv -r ~/Desktop/logs/backups/ ~/Desktop/logs_legacy
+			first_time_initialize
 			second_time_failsafe
 		else
 			echo "Option not recognized"
@@ -851,7 +1043,7 @@ then
 	elif [[ $restartYN == "no" ]]
 	then
 		echo "Exiting script"
-		exit 1
+		exit 0
 	else
 		echo "Option not recognized"
 		exit 1
@@ -859,15 +1051,17 @@ then
 fi
 
 end () {
-	echo "Manual changes:"
-	echo "- Check for backdoors (netstat -anp | grep LISTEN | grep -v STREAM)"
-	echo "- Check for malicious packages that might still be installed (dpkg -l | grep <keyword> (i.e. crack))"
-	echo "- Make sure updates are checked for daily and update Ubuntu according to the ReadMe"
+	touch ~/Desktop/to-do.txt
+	chmod 777 ~/Desktop/to-do.txt
+	echo "Manual changes:" >> ~/Desktop/to-do.txt
+	echo "- Check for backdoors (netstat -anp | grep LISTEN | grep -v STREAM)" >> ~/Desktop/to-do.txt
+	echo "- Check for malicious packages that might still be installed (dpkg -l | grep <keyword> (i.e. crack))" >> ~/Desktop/to-do.txt
+	echo "- Make sure updates are checked for daily and update Ubuntu according to the ReadMe" >> ~/Desktop/to-do.txt
 }
 
 if [[ "$(date)" == *"Sat Jan  23"* ]]
 then
-	echo "Happy Competition Day!"
+	echo "Happy Competition Day :D! Good luck and don't mess up!"
 fi
 
 echo "Type 'safe' to enter safe mode and anything else to continue"
@@ -893,6 +1087,7 @@ media_files
 #reload certain services/packages and clean up machine
 iptables -P INPUT DROP
 rkhunter --propupd
+sysctl -p
 service ssh restart
 apt-get update
 apt-get upgrade
@@ -910,18 +1105,38 @@ lynis audit system
 cp /var/log/lynis.log ~/Desktop/logs
 chmod 777 ~/Desktop/logs/lynis.log
 
-echo "Installing PortSentry because it can cause false negatives with rkhunter"
-echo "PortSentry (Network manager)"
+echo "#########Installing PortSentry because it can cause false negatives with rkhunter#########"
+echo "#########PortSentry (Network manager)#########"
 apt-get install portsentry -y -qq 
 
 echo 
-echo "Bash Vulnerability Test"
+echo "#########Bash Vulnerability Test#########"
 env i='() { :;}; echo Your system is Bash vulnerable' bash -c "echo Bash vulnerability test"
-echo "Is Bash vulnerable?"
+echo "#########Is Bash vulnerable?#########"
 read bashvulnYN
 if [[ $bashvulnYN == "yes" ]]; then
 	apt-get update && apt-get install --only-upgrade bash
 fi
+
+echo "#########Creating symbolic link to /var/log/ in logs folder on Desktop#########"
+ln -s /var/log/ ~/Desktop/logs/servicelogs
+touch ~/Desktop/logs/logs_to_check.txt
+chmod 777 ~/Desktop/logs/logs_to_check.txt
+echo "Logs to check often:" >> ~/Desktop/logs/logs_to_check.txt
+echo "/var/log/messages - The main system logs or current activity logs are available." >> ~/Desktop/logs/logs_to_check.txt
+echo "/var/log/auth.log - Authentication logs" >> ~/Desktop/logs/logs_to_check.txt
+echo "/var/log/kern.log - Kernel logs" >> ~/Desktop/logs/logs_to_check.txt
+echo "/var/log/cron.log - Crond logs (cron job)" >> ~/Desktop/logs/logs_to_check.txt
+echo "/var/log/maillog - Mail server logs" >> ~/Desktop/logs/logs_to_check.txt
+echo "/var/log/boot.log - System boot log" >> ~/Desktop/logs/logs_to_check.txt
+echo "/var/log/mysqld.log - MySQL database server log file" >> ~/Desktop/logs/logs_to_check.txt
+echo "/var/log/secure - Authentication log" >> ~/Desktop/logs/logs_to_check.txt
+echo "/var/log/ufw.log - Firewall log" >> ~/Desktop/logs/logs_to_check.txt
+echo "/var/log/utmp or /var/log/wtmp - Login records file." >> ~/Desktop/logs/logs_to_check.txt
+echo "Execute 'sudo logwatch | less' to see an overview of all important log files" >> ~/Desktop/logs/logs_to_check.txt
+echo "- Created symbolic link to /var/log/ in logs folder on Desktop" 
+
+ufw reload
 
 end
 
