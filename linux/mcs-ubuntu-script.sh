@@ -1,5 +1,5 @@
 #!/bin/bash
-echo "MCS Ubuntu Script v7.0 Updated 1/19/2021 at 11:20pm EST"
+echo "MCS Ubuntu Script v7.4 Updated 1/20/2021 at 12:34pm EST"
 echo "Created by Massimo Marino"
 
 if [[ "$(whoami)" != root ]]; then
@@ -8,6 +8,8 @@ if [[ "$(whoami)" != root ]]; then
 fi
 
 first_time_initialize() {
+	echo "#########Unaliasing all#########"
+	\unalias -a
 	echo "What is the username of the main user on this computer?"
 	read -r mainUser
 	echo "Creating backup folder and backing up important files + boot files + home files"
@@ -62,9 +64,9 @@ packages() {
 	apt-get install auditd -y -qq
 	echo "#########Tree (view all files on machine)#########"
 	apt-get install tree -y -qq
-	echo "#########apt-get (apt-get package installer enchancements)#########"
-	apt-get install apt-get-listchanges -y -qq
-	apt-get install apt-get-show-versions -y -qq
+	echo "#########APT (APT package installer enchancements)#########"
+	apt-get install apt-listchanges -y -qq
+	apt-get install apt-show-versions -y -qq
 	echo "#########Debian-Goodies (package assistant)#########"
 	apt-get install debian-goodies -y -qq
 	echo "#########Debsecan (package vulnerability reporter)#########"
@@ -96,6 +98,8 @@ packages() {
 	if [[ $vmtoolsYN == "yes" ]]; then
 		apt-get install open-vm-tools -y -qq
 		echo "- Package open-vm-tools installed" >>~/Desktop/logs/changelog.log
+	elif [[ $vmtoolsYN == "exit" ]]; then
+		exit 1
 	fi
 	apt-get install --reinstall coreutils -y -qq
 	echo "- Packages firefox, aide, arpwatch, unzip, zip, dos2unix, unattended-upgrades, debsecan, debsums, fail2ban, libpam-tmpdir, apt-get-listchanges, apt-get-show-versions, debian-goodies, apparmor, rkhunter, chkrootkit, iptables, portsentry, lynis, ufw, gufw, libpam-cracklib, auditd, tree, clamav, and clamtk installed; coreutils reinstalled" >>~/Desktop/logs/changelog.log
@@ -145,19 +149,6 @@ services() {
 	echo "*********Is this machine a LAMP server? (Linux Apache2 MySQL PHP)*********"
 	read -r lampYN
 	if [[ $lampYN == "yes" ]]; then
-		logicalName="$(lshw -C network | grep 'logical name:' | cut -d ':' -f2 | awk '{print $1}')"
-		publicIP="$(ip addr show "$logicalName" | grep inet | awk '{ print $2; }' | sed 's/\/.*$//' | head -1)"
-		touch ~/Desktop/server-link.desktop
-		chmod 777 ~/Desktop/server-link.desktop
-		{
-			echo [Desktop Entry]
-			echo Encoding=UTF-8
-			echo Name=Link to web server
-			echo Type=Link
-			echo URL="http://""${publicIP}""/"
-			echo Icon=text-html
-			echo Name[en_US]=server-link
-		} >>~/Desktop/server-link.desktop
 		apt-get purge nginx -y -qq
 		apt-get purge nginx-common -y -qq
 		apt-get purge nginx-core -y -qq
@@ -214,10 +205,10 @@ services() {
 		sed -i '105s/.*/MaxKeepAliveRequests 75/' /etc/apache2/apache2.conf
 		{
 			echo "<IfModule mod_headers.c>"
-			"Header always append X-Frame-Options SAMEORIGIN"
-			"</IfModule>"
-			"FileETag None"
-			"TraceEnable off"
+			echo "Header always append X-Frame-Options SAMEORIGIN"
+			echo "</IfModule>"
+			echo "FileETag None"
+			echo "TraceEnable off"
 		} >>/etc/apache2/apache2.conf
 		chown -R 750 /etc/apache2/bin /etc/apache2/conf
 		chmod 511 /usr/sbin/apache2
@@ -227,9 +218,29 @@ services() {
 		chgrp -R "$mainUser" /etc/apache2/conf
 		chmod -R 444 /var/www
 		/etc/init.d/apache2 restart
+		logicalName="$(lshw -C network | grep 'logical name:' | cut -d ':' -f2 | awk '{print $1}')"
+		publicIP="$(ip addr show "$logicalName" | grep inet | awk '{ print $2; }' | sed 's/\/.*$//' | head -1)"
+		touch ~/Desktop/server-link.desktop
+		chmod 777 ~/Desktop/server-link.desktop
+		{
+			echo [Desktop Entry]
+			echo Encoding=UTF-8
+			echo Name=Link to web server
+			echo Type=Link
+			echo URL="http://""${publicIP}""/"
+			echo Icon=text-html
+			echo Name[en_US]=server-link
+		} >>~/Desktop/server-link.desktop
 		echo "- Apache2 installed, configured, and http(s) allowed" >>~/Desktop/logs/changelog.log
 		#install + config mysql
+		apt-get install mysql-server-5.7 -y -qq
+		dpkg --configure mysql-server-5.7
+		#mv /etc/mysql/my.cnf /etc/mysql/my.cnf.bak
+		#rm -r /etc/mysql/mysql.conf.d/
+		#mv /etc/mysql/debian.cnf /etc/mysql/debian.cnf.bak
+		#apt-get purge mysql-server mysql-server-5.7 mysql-server-core-5.7 -y -qq
 		apt-get install mysql-server -y -qq
+		ln -s /etc/mysql/mysql.conf.d /etc/mysql/conf.d
 		mysql_secure_installation
 
 		echo "####Installing PHP####"
@@ -341,6 +352,8 @@ services() {
 		elif [[ $sshYN == "no" ]]; then
 			apt-get purge openssh-server
 			ufw deny ssh
+		elif [[ $sshYN == "exit" ]]; then
+			exit 1
 		fi
 	else
 		echo "#########Service Auditing#########"
@@ -424,12 +437,16 @@ services() {
 		echo "*********Is Samba a critical service on this machine?*********"
 		read -r sambaYN
 		if [[ $sambaYN == "yes" ]]; then
-			ufw allow netbios-ns
-			ufw allow netbios-dgm
-			ufw allow netbios-ssn
 			ufw allow microsoft-ds
+			ufw allow 137/udp
+			ufw allow 138/udp
+			ufw allow 139/tcp
+			ufw allow 445/tcp
 			apt-get install samba -y -qq
 			apt-get install system-config-samba -y -qq
+			apt-get install libpam-winbind -y -qq
+			sed -i '221s/.*/;   guest ok = no/' /etc/samba/smb.conf
+			systemctl restart smbd.service nmbd.service
 			echo "- Samba installed and allowed" >>~/Desktop/logs/changelog.log
 		elif [[ $sambaYN == "no" ]]; then
 			ufw deny netbios-ns
@@ -450,11 +467,36 @@ services() {
 			service vsftpd enable
 			sed -i '25s/.*/anonymous_enable=NO/' /etc/vsftpd.conf
 			sed -i '28s/.*/local_enable=YES/' /etc/vsftpd.conf
-			sed -i '31s/.*/write_enable=NO/' /etc/vsftpd.conf
+			sed -i '31s/.*/write_enable=YES/' /etc/vsftpd.conf
 			sed -i '35s/.*/local_umask=022/' /etc/vsftpd.conf
 			sed -i '40s/.*/anon_upload_enable=NO/' /etc/vsftpd.conf
 			sed -i '44s/.*/anon_mkdir_write_enable=NO/' /etc/vsftpd.conf
 			sed -i '48s/.*/dirmessage_enable=YES/' /etc/vsftpd.conf
+			openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/private/vsftpd.pem -out /etc/ssl/private/vsftpd.pem
+			sed -i '151s/.*/ssl_enable=YES' /etc/vsftpd.conf
+			sed -i '114s/.*/chroot_local_user=YES/' /etc/vsftpd.conf
+			sed -i '125s/.*/chroot_list_file=/etc/vsftpd.chroot_list/' /etc/vsftpd.conf
+			{
+				echo "rsa_cert_file=/etc/ssl/private/vsftpd.pem"
+				echo "rsa_private_key_file=/etc/ssl/private/vsftpd.pem"
+				echo "allow_anon_ssl=NO"
+				echo "force_local_data_ssl=YES"
+				echo "force_local_logins_ssl=YES"
+				echo "ssl_tlsv1=YES"
+				echo "ssl_sslv2=NO"
+				echo "ssl_sslv3=NO"
+				echo "require_ssl_reuse=NO"
+				echo "ssl_ciphers=HIGH"
+				echo "pasv_min_port=40000"
+				echo "pasv_max_port=50000"
+			} >>/etc/vsftpd.conf
+			mkdir /srv/ftp/new_location
+			usermod –d /srv/ftp/new_location ftp
+			systemctl restart vsftpd.service
+			ufw allow 20/tcp
+			ufw allow 21/tcp
+			ufw allow 40000:50000/tcp
+			ufw allow 990/tcp
 			ufw allow ftp
 			ufw allow sftp
 			ufw allow saft
@@ -651,6 +693,25 @@ services() {
 			ufw allow imap2
 			ufw allow imaps
 			ufw allow pop3s
+			apt-get install postfix -y -qq
+			usermod -aG mail "$mainUser"
+			usermod -aG mail "$(whoami)"
+
+			echo "#########Starting Postfix#########"
+			cp /usr/share/postfix/main.cf.debian /etc/postfix/main.cf
+			postconf -e disable_vrfy_command=yes
+			service postfix reload
+			chmod 755 /etc/postfix
+			chmod 644 /etc/postfix/*.cf
+			chmod 755 /etc/postfix/postfix-script*
+			chmod 755 /var/spool/postfix
+			chown root:root /var/log/mail*
+			chmod 600 /var/log/mail*
+			service postfix restart
+			echo "- Postfix started" >>~/Desktop/logs/changelog.log
+
+			apt-get install mailutils
+			service postifx restart
 		elif [[ $emailYN == "no" ]]; then
 			ufw deny smtp
 			ufw deny pop2
@@ -658,7 +719,22 @@ services() {
 			ufw deny imap2
 			ufw deny imaps
 			ufw deny pop3s
+			apt-get purge postfix -y -qq
 			apt-get purge dovecot-* -y -qq
+		fi
+
+		echo "*********Is this machine a DNS server?*********"
+		read -r DNSYN
+		if [[ $DNSYN == "yes" ]]; then
+			apt-get install bind9
+			named-checkzone test.com. /var/cache/bind/db.test
+			{
+				echo "zone \"test.com.\" {"
+				echo "\o011type master;"
+				echo "\o011file \"db.test\";"
+				echo "};"
+			} >>/etc/bind/named.conf.default-zones
+			systemctl restart bind9
 		fi
 	fi
 }
@@ -675,10 +751,6 @@ general_config() {
 	echo "#########Denying outside packets#########"
 	iptables -A INPUT -p all -s localhost -i eth0 -j DROP
 	echo "- Denied outside packets" >>~/Desktop/logs/changelog.log
-
-	echo "#########Unaliasing all#########"
-	unalias -a
-	echo "- Unaliased all" >>~/Desktop/logs/changelog.log
 
 	echo "#########Enabling auditing#########"
 	auditctl -e 1
@@ -720,19 +792,6 @@ general_config() {
 	arpwatch
 	echo "- Arpwatch started" >>~/Desktop/logs/changelog.log
 
-	echo "#########Starting Postfix#########"
-	cp /usr/share/postfix/main.cf.debian /etc/postfix/main.cf
-	postconf -e disable_vrfy_command=yes
-	service postfix reload
-	chmod 755 /etc/postfix
-	chmod 644 /etc/postfix/*.cf
-	chmod 755 /etc/postfix/postfix-script*
-	chmod 755 /var/spool/postfix
-	chown root:root /var/log/mail*
-	chmod 600 /var/log/mail*
-	service postfix restart
-	echo "- Postfix started" >>~/Desktop/logs/changelog.log
-
 	echo "#########Backing up and clearing crontab#########"
 	touch ~/Desktop/logs/backups/crontab-backup
 	crontab -l >~/Desktop/logs/backups/crontab-backup
@@ -752,7 +811,7 @@ general_config() {
 		chown root:root /swapfile
 		chmod 0600 /swapfile
 	elif [[ $swapYN == "no" ]]; then
-		fallocate -l 4G /swapfile # same as "sudo dd if=/dev/zero of=/swapfile bs=1G count=4"
+		fallocate -l 4G /swapfile
 		chown root:root /swapfile
 		chmod 0600 /swapfile
 		mkswap /swapfile
@@ -779,6 +838,7 @@ hacking_tools() {
 	echo "####Removing John the Ripper####"
 	apt-get purge john -y -qq
 	apt-get purge john-data -y -qq
+	apt-get purge johnny -y -qq
 
 	echo "Removing Hydra"
 	apt-get purge hydra -y -qq
@@ -824,6 +884,7 @@ hacking_tools() {
 	echo "Removing Hashcat"
 	apt-get purge hashcat -y -qq
 	apt-get purge hashcat-data -y -qq
+	apt-get purge hash-identifier -y -qq
 
 	echo "Removing CeWl"
 	apt-get purge cewl -y -qq
@@ -836,6 +897,7 @@ hacking_tools() {
 
 	echo "Removing SQLMap"
 	apt-get purge sqlmap -y -qq
+	apt-get purge sqldict -y -qq
 
 	echo "Removing SNMP"
 	apt-get purge snmp -y -qq
@@ -985,6 +1047,46 @@ file_config() {
 	fi
 	echo "- /etc/sysctl.conf configured" >>~/Desktop/logs/changelog.log
 
+	echo "#########Configuring Auditd#########"
+	echo >/etc/audit/rules.d/audit.rules
+	{
+		echo "# first of all, reset the rules (delete all)"
+		echo "-D"
+		echo
+		echo "# increase the buffers to survive stress events. make this bigger for busy systems."
+		echo "-b 1024"
+		echo
+		echo "# monitor unlink() and rmdir() system calls."
+		echo "-a exit,always -S unlink -S rmdir"
+		echo
+		echo "# monitor open() system call by Linux UID 1001."
+		echo "-a exit,always -S open -F loginuid=1001"
+		echo
+		echo "# monitor write-access and change in file properties (read/write/execute) of the following files."
+		echo "-w /etc/group -p wa"
+		echo "-w /etc/passwd -p wa"
+		echo "-w /etc/shadow -p wa"
+		echo "-w /etc/sudoers -p wa"
+		echo
+		echo "# monitor read-access of the following directory."
+		echo "-w /sys/ -p r"
+		echo
+		echo "# lock the audit configuration to prevent any modification of this file."
+		echo "-e 2"
+	} >>/etc/audit/rules.d/audit.rules
+	service auditd restart
+
+	echo "#########Password Protecting GRUB Bootloader#########"
+	echo "*********Please enter a password for the GRUB Boorloader*********"
+	read -r grubpass
+	echo "*********Please re-enter your password*********"
+	read -r grubpassconfirm
+	if [[ $grubpass == "$grubpassconfirm" ]]; then
+		echo "password $grubpass" >>/etc/grub.conf
+		echo "GRUB Bootloader password protected" >>~/Desktop/logs/changelog.log
+	else
+		echo "GRUB Bootloader not protected with password" >>~/Desktop/logs/changelog.log
+	fi
 }
 
 media_files() {
@@ -1216,6 +1318,11 @@ user_auditing() {
 	for thing in "${rootUsers[@]}"; do
 		echo "${thing%%:*}" >>~/Desktop/logs/userchangelog.log
 	done
+
+	for item in "${authUsers[@]}"; do
+		crontab -r "$item"
+	done
+	echo "- Cleared crontab for all users" >>~/Desktop/logs/changelog.log
 
 }
 

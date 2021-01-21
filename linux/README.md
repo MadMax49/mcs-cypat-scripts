@@ -1,4 +1,4 @@
-# MCS Ubuntu v5.8.1/Debian Script v1.1 release
+# MCS Ubuntu v7.4/Debian Script v1.1 release
 Script for MCS to secure a Linux machine
 
 List of security features:
@@ -19,7 +19,7 @@ List of security features:
 - Configures password complexity requirements
 - Configures account lockout policy
 - Secures Shared Memory
-- Configured /etc/sysctl.conf
+- Configures /etc/sysctl.conf
 - Secures important files with chmod
 - Logs locations of all audio files
 - Configures rkhunter to check for updates
