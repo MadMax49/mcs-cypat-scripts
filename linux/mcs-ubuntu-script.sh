@@ -103,7 +103,8 @@ packages() {
 	fi
 	apt-get install --reinstall coreutils -y -qq
 	echo "- Packages firefox, aide, arpwatch, unzip, zip, dos2unix, unattended-upgrades, debsecan, debsums, fail2ban, libpam-tmpdir, apt-get-listchanges, apt-get-show-versions, debian-goodies, apparmor, rkhunter, chkrootkit, iptables, portsentry, lynis, ufw, gufw, libpam-cracklib, auditd, tree, clamav, and clamtk installed; coreutils reinstalled" >>~/Desktop/logs/changelog.log
-
+	echo "Type anything to continue"
+	read -r timeCheck
 }
 
 firewall() {
@@ -141,7 +142,8 @@ firewall() {
 	ufw logging on
 	ufw logging high
 	echo "- Firewall configured (Firewall enabled, Ports 1337, 23, 2049, 515, 135, 137, 138, 139, 445, 69, 514, 161, 162, 6660, 6661, 6662, 6663, 6664, 6665, 6666, 6667, 6668, 6669, and 111 denied, Logging on and high)" >>~/Desktop/logs/changelog.log
-
+	echo "Type anything to continue"
+	read -r timeCheck
 }
 
 services() {
@@ -153,6 +155,8 @@ services() {
 		apt-get purge nginx-common -y -qq
 		apt-get purge nginx-core -y -qq
 		echo "- NGINX removed from the machine" >>~/Desktop/logs/changelog.log
+		echo "Type anything to continue"
+		read -r timeCheck
 		apt-get install apache2 -y -qq
 		apt-get install apache2-utils -y -qq
 		apt-get install libapache2-mod-evasive -y -qq
@@ -193,10 +197,12 @@ services() {
 		sed -i '100s/.*/\n/' /etc/ufw/before.rules
 		sed -i '101s/.*/### End HTTP ###\n/' /etc/ufw/before.rules
 		sed -i '102s/.*/\n/' /etc/ufw/before.rules
-		sed -i '103s/.*/-A INPUT -p icmp -m limit --limit 6\/s --limit-burst 1 -j ACCEPT/' /etc/ufw/before.rules
+		sed -i '103s/.*/-A INPUT -p icmp -m limit --limit 6\/s --limit-burst 1 -j ACCEPT\n/' /etc/ufw/before.rules
 		sed -i '104s/.*/-A INPUT -p icmp -j DROP/' /etc/ufw/before.rules
 		service apache2 restart
 		echo "- UFW configured for use on a web server" >>~/Desktop/logs/changelog.log
+		echo "Type anything to continue"
+		read -r timeCheck
 
 		echo "####Configuring Apache2 config file####"
 		sed -i '92s/.*/Timeout 100/' /etc/apache2/apache2.conf
@@ -218,6 +224,8 @@ services() {
 		chgrp -R "$mainUser" /etc/apache2/conf
 		chmod -R 444 /var/www
 		/etc/init.d/apache2 restart
+		echo "Type anything to continue"
+		read -r timeCheck
 		logicalName="$(lshw -C network | grep 'logical name:' | cut -d ':' -f2 | awk '{print $1}')"
 		publicIP="$(ip addr show "$logicalName" | grep inet | awk '{ print $2; }' | sed 's/\/.*$//' | head -1)"
 		touch ~/Desktop/server-link.desktop
@@ -234,15 +242,13 @@ services() {
 		echo "- Apache2 installed, configured, and http(s) allowed" >>~/Desktop/logs/changelog.log
 		#install + config mysql
 		apt-get install mysql-server-5.7 -y -qq
-		dpkg --configure mysql-server-5.7
-		#mv /etc/mysql/my.cnf /etc/mysql/my.cnf.bak
-		#rm -r /etc/mysql/mysql.conf.d/
-		#mv /etc/mysql/debian.cnf /etc/mysql/debian.cnf.bak
-		#apt-get purge mysql-server mysql-server-5.7 mysql-server-core-5.7 -y -qq
+		mv /etc/mysql/my.cnf /etc/mysql/my.cnf.bak
+		mv /etc/mysql/debian.cnf /etc/mysql/debian.cnf.bak
 		apt-get install mysql-server -y -qq
 		ln -s /etc/mysql/mysql.conf.d /etc/mysql/conf.d
 		mysql_secure_installation
-
+		echo "Type anything to continue"
+		read -r timeCheck
 		echo "####Installing PHP####"
 		apt-get install php
 		apt-get install libapache2-mod-php
@@ -274,6 +280,8 @@ services() {
 		sed -i '401s/.*/memory_limit = 40M/' /etc/php/7.2/apache2/php.ini
 		sed -i '669s/.*/post_max_size=1K/' /etc/php/7.2/apache2/php.ini
 		sed -i '1412s/.*/session.cookie_httponly = 1/' /etc/php/7.2/apache2/php.ini
+		echo "Type anything to continue"
+		read -r timeCheck
 		service apache2 restart
 		echo "- Configured PHP 7.2 for use on a web server" >>~/Desktop/logs/changelog.log
 
@@ -349,9 +357,13 @@ services() {
 
 			service ssh restart
 			echo "- SSH configured" >>~/Desktop/logs/changelog.log
+			echo "Type anything to continue"
+			read -r timeCheck
 		elif [[ $sshYN == "no" ]]; then
 			apt-get purge openssh-server
 			ufw deny ssh
+			echo "Type anything to continue"
+			read -r timeCheck
 		elif [[ $sshYN == "exit" ]]; then
 			exit 1
 		fi
@@ -429,9 +441,13 @@ services() {
 
 			service ssh restart
 			echo "- SSH configured" >>~/Desktop/logs/changelog.log
+			echo "Type anything to continue"
+			read -r timeCheck
 		elif [[ $sshYN == "no" ]]; then
 			apt-get purge openssh-server
 			ufw deny ssh
+			echo "Type anything to continue"
+			read -r timeCheck
 		fi
 
 		echo "*********Is Samba a critical service on this machine?*********"
@@ -447,6 +463,8 @@ services() {
 			apt-get install libpam-winbind -y -qq
 			sed -i '221s/.*/;   guest ok = no/' /etc/samba/smb.conf
 			systemctl restart smbd.service nmbd.service
+			echo "Type anything to continue"
+			read -r timeCheck
 			echo "- Samba installed and allowed" >>~/Desktop/logs/changelog.log
 		elif [[ $sambaYN == "no" ]]; then
 			ufw deny netbios-ns
@@ -454,6 +472,8 @@ services() {
 			ufw deny netbios-ssn
 			ufw deny microsoft-ds
 			apt-get purge samba -y -qq
+			echo "Type anything to continue"
+			read -r timeCheck
 			echo "- Samba uninstalled and blocked" >>~/Desktop/logs/changelog.log
 		fi
 
@@ -504,6 +524,8 @@ services() {
 			ufw allow ftps
 			service vsftpd restart
 			echo "- FTP installed and allowed" >>~/Desktop/logs/changelog.log
+			echo "Type anything to continue"
+			read -r timeCheck
 		elif [[ $ftpYN == "no" ]]; then
 			service vsftpd stop
 			ufw deny ftp
@@ -513,6 +535,8 @@ services() {
 			ufw deny ftps
 			apt-get purge vsftpd -y -qq
 			echo "- FTP uninstalled and blocked" >>~/Desktop/logs/changelog.log
+			echo "Type anything to continue"
+			read -r timeCheck
 		fi
 
 		echo "#########Is Telnet a critical service on this machine?#########"
@@ -533,6 +557,8 @@ services() {
 			apt-get purge telnetd-ssl -y -qq
 			apt-get purge vsftpd -y -qq
 			echo "- Telnet uninstalled and blocked" >>~/Desktop/logs/changelog.log
+			echo "Type anything to continue"
+			read -r timeCheck
 		fi
 
 		echo "#########Is MySQL a critical service on this machine?#########"
@@ -543,6 +569,8 @@ services() {
 			ufw allow mysql
 			ufw allow mysql-proxy
 			echo "- MySQL allowed (WIP)" >>~/Desktop/logs/changelog.log
+			echo "Type anything to continue"
+			read -r timeCheck
 		elif [[ $sqlYN == "no" ]]; then
 			ufw deny ms-sql-s
 			ufw deny ms-sql-m
@@ -550,6 +578,8 @@ services() {
 			ufw deny mysql-proxy
 			apt-get purge mysql-server -y -qq
 			echo "- MySQL uninstalled and blocked (WIP)" >>~/Desktop/logs/changelog.log
+			echo "Type anything to continue"
+			read -r timeCheck
 		fi
 
 		echo "#########Is this machine a web server?#########"
@@ -568,6 +598,8 @@ services() {
 				ufw allow http
 				ufw allow https
 				echo "- NGINX installed" >>~/Desktop/logs/changelog.log
+				echo "Type anything to continue"
+				read -r timeCheck
 			elif [[ $webserviceYN == "Apache2" ]]; then
 				apt-get purge nginx -y -qq
 				apt-get purge nginx-common -y -qq
@@ -577,7 +609,8 @@ services() {
 				apt-get install apache2-utils -y -qq
 				apt-get install libapache2-mod-evasive -y -qq
 				apt-get install libapache2-mod-security2 -y -qq
-
+				echo "Type anything to continue"
+				read -r timeCheck
 				echo "*********Is PHP used on this web server?*********"
 				read -r phpYN
 				if [[ $phpYN == "yes" ]]; then
@@ -604,6 +637,8 @@ services() {
 					sed -i '1412s/.*/session.cookie_httponly = 1/' /etc/php/7.2/apache2/php.ini
 					service apache2 restart
 					echo "- Configured PHP 7.2 for use on a web server" >>~/Desktop/logs/changelog.log
+					echo "Type anything to continue"
+					read -r timeCheck
 				fi
 
 				ufw allow http
@@ -645,7 +680,8 @@ services() {
 				sed -i '104s/.*/-A INPUT -p icmp -j DROP/' /etc/ufw/before.rules
 				service apache2 restart
 				echo "- UFW configured for use on a web server" >>~/Desktop/logs/changelog.log
-
+				echo "Type anything to continue"
+				read -r timeCheck
 				echo "####Configuring Apache2 config file####"
 				sed -i '92s/.*/Timeout 100/' /etc/apache2/apache2.conf
 				sed -i '98s/.*/KeepAlive On/' /etc/apache2/apache2.conf
@@ -667,6 +703,8 @@ services() {
 				chmod -R 444 /var/www
 				/etc/init.d/apache2 restart
 				echo "- Apache2 installed, configured, and http(s) allowed" >>~/Desktop/logs/changelog.log
+				echo "Type anything to continue"
+				read -r timeCheck
 			fi
 		elif [[ $webYN == "no" ]]; then
 			apt-get purge nginx -y -qq
@@ -682,6 +720,8 @@ services() {
 			apt-get purge libapache2-mod-security2 -y -qq
 			rm -r /var/www/*
 			echo "- Apache2 removed and http(s) blocked" >>~/Desktop/logs/changelog.log
+			echo "Type anything to continue"
+			read -r timeCheck
 		fi
 
 		echo "*********Is this machine an email server?*********"
@@ -712,6 +752,8 @@ services() {
 
 			apt-get install mailutils
 			service postifx restart
+			echo "Type anything to continue"
+			read -r timeCheck
 		elif [[ $emailYN == "no" ]]; then
 			ufw deny smtp
 			ufw deny pop2
@@ -721,6 +763,8 @@ services() {
 			ufw deny pop3s
 			apt-get purge postfix -y -qq
 			apt-get purge dovecot-* -y -qq
+			echo "Type anything to continue"
+			read -r timeCheck
 		fi
 
 		echo "*********Is this machine a DNS server?*********"
@@ -735,6 +779,8 @@ services() {
 				echo "};"
 			} >>/etc/bind/named.conf.default-zones
 			systemctl restart bind9
+			echo "Type anything to continue"
+			read -r timeCheck
 		fi
 	fi
 }
@@ -818,6 +864,8 @@ general_config() {
 		swapon /swapfile
 		swapon -s
 	fi
+	echo "Type anything to continue"
+	read -r timeCheck
 }
 
 hacking_tools() {
@@ -944,7 +992,8 @@ hacking_tools() {
 	apt-get autoclean -y -qq
 	apt-get clean -y -qq
 	echo "- Removed netcat, CeWl, Medusa, Wfuzz, Hashcat, John the Ripper, Hydra, Aircrack-NG, FCrackZIP, LCrack, OphCrack, Pyrit, rarcrack, SipCrack, NFS, VNC, and cleaned up packages" >>~/Desktop/logs/changelog.log
-
+	echo "Type anything to continue"
+	read -r timeCheck
 }
 
 file_config() {
@@ -960,9 +1009,8 @@ file_config() {
 
 	echo "#########Securing /etc/rc.local#########"
 	echo >/etc/rc.local
-	echo "rfkill block bluetooth" >/etc/rc.local
 	echo "exit 0" >>/etc/rc.local
-	echo "- /etc/rc.local secured and bluetooth disabled" >>~/Desktop/logs/changelog.log
+	echo "- /etc/rc.local secured" >>~/Desktop/logs/changelog.log
 
 	echo "#########Editing /etc/login.defs#########"
 	cp /etc/login.defs ~/Desktop/logs/backups/
@@ -982,7 +1030,7 @@ file_config() {
 	touch ~/removefails.sh
 	chmod 777 ~/removefails.sh
 	echo "#!/bin/bash" >~/removefails.sh
-	echo "pam_tally2 --user=$mainUser --reset" >>~/removefails.sh
+	echo "pam_tally2 --user=$mainUser --reset" >>~/Desktop/removefails.sh
 	echo "- Script to clear logins set up, just add a cronjob to the crontab to run it every 10 minutes" >>~/Desktop/logs/changelog.log
 
 	echo "#########Setting account lockout policy#########"
@@ -1026,7 +1074,8 @@ file_config() {
 	sed -i '68s/.*/kernel.sysrq=0/' /etc/sysctl.conf
 	sed -i '76s/.*/fs.protected_hardlinks=1/' /etc/sysctl.conf
 	sed -i '77s/.*/fs.protected_symlinks=1/' /etc/sysctl.conf
-
+	echo "Type anything to continue"
+	read -r timeCheck
 	echo "*********Should IPv6 be disabled?*********"
 	read -r ipv6YN
 	if [[ $ipv6YN == "yes" ]]; then
@@ -1044,6 +1093,8 @@ file_config() {
 		fi
 		sed -i '7s/.*/IPV6=no/' /etc/default/ufw
 		echo "- IPv6 disabled in UFW" >>~/Desktop/logs/changelog.log
+		echo "Type anything to continue"
+		read -r timeCheck
 	fi
 	echo "- /etc/sysctl.conf configured" >>~/Desktop/logs/changelog.log
 
@@ -1087,6 +1138,8 @@ file_config() {
 	else
 		echo "GRUB Bootloader not protected with password" >>~/Desktop/logs/changelog.log
 	fi
+	echo "Type anything to continue"
+	read -r timeCheck
 }
 
 media_files() {
@@ -1219,6 +1272,8 @@ media_files() {
 		find / -name "*.jpe"
 
 	} >>~/Desktop/logs/media_files.log
+	echo "Type anything to continue"
+	read -r timeCheck
 }
 
 user_auditing() {
@@ -1323,6 +1378,8 @@ user_auditing() {
 		crontab -r "$item"
 	done
 	echo "- Cleared crontab for all users" >>~/Desktop/logs/changelog.log
+	echo "Type anything to continue"
+	read -r timeCheck
 
 }
 
@@ -1447,6 +1504,8 @@ apt-get upgrade
 apt-get autoremove -y -qq
 apt-get autoclean -y -qq
 apt-get clean -y -qq
+echo "Type anything to continue"
+read -r timeCheck
 
 #run rkhunter
 rkhunter --check --vl --sk
@@ -1494,6 +1553,7 @@ chmod 777 ~/Desktop/logs/logs_to_check.txt
 
 "- Created symbolic link to /var/log/ in logs folder on Desktop" >>~/Desktop/logs/changelog.log
 
+echo "$timeCheck"
 ufw reload
 
 end
