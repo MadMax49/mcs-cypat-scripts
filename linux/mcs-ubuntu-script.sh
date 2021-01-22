@@ -27,6 +27,29 @@ first_time_initialize() {
 	echo "List of changes made by script:" >~/Desktop/logs/changelog.log
 	echo "- Backups folder created" >>~/Desktop/logs/changelog.log
 	echo "- Important files backed up" >>~/Desktop/logs/changelog.log
+	echo "Is MySQL a critical service on this machine (LAMP or otherwise)?"
+	read -r sqlYN
+	if [[ "$sqlYN" == "yes" ]]; then
+		#install + config mysql
+		ufw allow ms-sql-s
+		ufw allow ms-sql-m
+		ufw allow mysql
+		ufw allow mysql-proxy
+		apt-get install mysql-server -y -qq
+		mv /etc/mysql/my.cnf /etc/mysql/my.cnf.bak
+		mv /etc/mysql/debian.cnf /etc/mysql/debian.cnf.bak
+		chown -R mysql:mysql /var/lib/mysql
+		dpkg --configure -a
+		ln -s /etc/mysql/mysql.conf.d /etc/mysql/conf.d
+		mysqld --initialize --explicit_defaults_for_timestamp
+		mysql_secure_installation
+	elif [[ "$sqlYN" == "no" ]]; then
+		ufw deny ms-sql-s
+		ufw deny ms-sql-m
+		ufw deny mysql
+		ufw deny mysql-proxy
+		apt-get purge mysql-server -y -qq
+	fi
 }
 
 packages() {
@@ -155,7 +178,7 @@ services() {
 		apt-get purge nginx-common -y -qq
 		apt-get purge nginx-core -y -qq
 		echo "- NGINX removed from the machine" >>~/Desktop/logs/changelog.log
-		echo "Type anything to continue"
+		echo "Type anything to continue (NGINX removed)"
 		read -r timeCheck
 		apt-get install apache2 -y -qq
 		apt-get install apache2-utils -y -qq
@@ -216,13 +239,13 @@ services() {
 			echo "FileETag None"
 			echo "TraceEnable off"
 		} >>/etc/apache2/apache2.conf
-		chown -R 750 /etc/apache2/bin /etc/apache2/conf
+		chown -R 755 /etc/apache2/bin /etc/apache2/conf
 		chmod 511 /usr/sbin/apache2
-		chmod 750 /var/log/apache2/
-		chmod 750 /etc/apache2/conf/
+		chmod 755 /var/log/apache2/
+		chmod 755 /etc/apache2/conf/
 		chmod 640 /etc/apache2/conf/*
 		chgrp -R "$mainUser" /etc/apache2/conf
-		chmod -R 444 /var/www
+		chmod -R 755 /var/www
 		/etc/init.d/apache2 restart
 		echo "Type anything to continue"
 		read -r timeCheck
@@ -240,27 +263,14 @@ services() {
 			echo Name[en_US]=server-link
 		} >>~/Desktop/server-link.desktop
 		echo "- Apache2 installed, configured, and http(s) allowed" >>~/Desktop/logs/changelog.log
-		#install + config mysql
-		apt-get install mysql-server-5.7 -y -qq
-		mv /etc/mysql/my.cnf /etc/mysql/my.cnf.bak
-		mv /etc/mysql/debian.cnf /etc/mysql/debian.cnf.bak
-		apt-get install mysql-server -y -qq
-		ln -s /etc/mysql/mysql.conf.d /etc/mysql/conf.d
-		mysql_secure_installation
 		echo "Type anything to continue"
 		read -r timeCheck
 		echo "####Installing PHP####"
-		apt-get install php
-		apt-get install libapache2-mod-php
-		apt-get install php-mysql
+		apt-get install php -y -qq
+		apt-get install libapache2-mod-php -y -qq
+		apt-get install php-mysql -y -qq
 		sed -i '2s/.*/\o011DirectoryIndex index.php index.html index.cgi index.pl index.xhtml index.htm/' /etc/apache2/mods-enabled/dir.git config --list
 		systemctl restart apache2
-		touch /var/www/html/info.php
-		{
-			echo "<?php"
-			echo "phpinfo();"
-			echo "?>"
-		} >>/var/www/html/info.php
 		echo "###Configuring php.ini####"
 		cp /etc/php/7.2/apache2/php.ini ~/Desktop/logs/backups/
 		{
@@ -274,7 +284,7 @@ services() {
 		sed -i '310s/.*/disable_functions = php_uname, getmyuid, getmypid, passthru, leak, listen, diskfreespace, tmpfile, link, ignore_user_abord, shell_exec, dl, set_time_limit, exec, system, highlight_file, source, show_source, fpaththru, virtual, posix_ctermid, posix_getcwd, posix_getegid, posix_geteuid, posix_getgid, posix_getgrgid, posix_getgrnam, posix_getgroups, posix_getlogin, posix_getpgid, posix_getpgrp, posix_getpid, posix, _getppid, posix_getpwnam, posix_getpwuid, posix_getrlimit, posix_getsid, posix_getuid, posix_isatty, posix_kill, posix_mkfifo, posix_setegid, posix_seteuid, posix_setgid, posix_setpgid, posix_setsid, posix_setuid, posix_times, posix_ttyname, posix_uname, proc_open, proc_close, proc_get_status, proc_nice, proc_terminate, phpinfo/' /etc/php/7.2/apache2/php.ini
 		sed -i '833s/.*/allow_url_fopen = Off/' /etc/php/7.2/apache2/php.ini
 		sed -i '837s/.*/allow_url_include = Off/' /etc/php/7.2/apache2/php.ini
-		sed -i '818s/.*/upload_tmp_dir = /var/php_tmp/' /etc/php/7.2/apache2/php.ini
+		sed -i '818s/.*/upload_tmp_dir = \/var\/php_tmp/' /etc/php/7.2/apache2/php.ini
 		sed -i '380s/.*/max_execution_time = 10/' /etc/php/7.2/apache2/php.ini
 		sed -i '390s/.*/max_input_time = 30/' /etc/php/7.2/apache2/php.ini
 		sed -i '401s/.*/memory_limit = 40M/' /etc/php/7.2/apache2/php.ini
@@ -557,27 +567,6 @@ services() {
 			apt-get purge telnetd-ssl -y -qq
 			apt-get purge vsftpd -y -qq
 			echo "- Telnet uninstalled and blocked" >>~/Desktop/logs/changelog.log
-			echo "Type anything to continue"
-			read -r timeCheck
-		fi
-
-		echo "#########Is MySQL a critical service on this machine?#########"
-		read -r sqlYN
-		if [[ $sqlYN == "yes" ]]; then
-			ufw allow ms-sql-s
-			ufw allow ms-sql-m
-			ufw allow mysql
-			ufw allow mysql-proxy
-			echo "- MySQL allowed (WIP)" >>~/Desktop/logs/changelog.log
-			echo "Type anything to continue"
-			read -r timeCheck
-		elif [[ $sqlYN == "no" ]]; then
-			ufw deny ms-sql-s
-			ufw deny ms-sql-m
-			ufw deny mysql
-			ufw deny mysql-proxy
-			apt-get purge mysql-server -y -qq
-			echo "- MySQL uninstalled and blocked (WIP)" >>~/Desktop/logs/changelog.log
 			echo "Type anything to continue"
 			read -r timeCheck
 		fi
@@ -951,11 +940,11 @@ hacking_tools() {
 	apt-get purge snmp -y -qq
 
 	echo "Removing Crack"
-	apt-get-get purge crack -y -qq
+	apt-get purge crack -y -qq
 
 	echo "Removing rsh"
-	apt-get-get purge rsh -y -qq
-	apt-get-get purge rsh-server -y -qq
+	apt-get purge rsh -y -qq
+	apt-get purge rsh-server -y -qq
 
 	echo "Removing packages that can potentially contribute to backdoors"
 	apt-get purge backdoor-factory -y -qq
@@ -963,7 +952,7 @@ hacking_tools() {
 
 	echo "Disabling ATD"
 	echo 'manual' >/etc/init/atd.override
-	apt-get purge at
+	apt-get purge at -y -qq
 
 	echo "Disabling Avahi"
 	cd /etc/init || exit
@@ -1081,9 +1070,9 @@ file_config() {
 	if [[ $ipv6YN == "yes" ]]; then
 		{
 			echo "#disable ipv6"
-			"net.ipv6.conf.all.disable_ipv6 = 1"
-			"net.ipv6.conf.default.disable_ipv6 = 1"
-			"net.ipv6.conf.lo.disable_ipv6 = 1"
+			echo "net.ipv6.conf.all.disable_ipv6 = 1"
+			echo "net.ipv6.conf.default.disable_ipv6 = 1"
+			echo "net.ipv6.conf.lo.disable_ipv6 = 1"
 		} >>/etc/sysctl.conf
 		echo "- Ipv6 disabled in /etc/sysctl.conf" >>~/Desktop/logs/changelog.log
 		if [[ "$(whereis bind9)" == */usr/share/bind9* ]]; then
@@ -1375,7 +1364,7 @@ user_auditing() {
 	done
 
 	for item in "${authUsers[@]}"; do
-		crontab -r "$item"
+		crontab -u "$item" -r
 	done
 	echo "- Cleared crontab for all users" >>~/Desktop/logs/changelog.log
 	echo "Type anything to continue"
