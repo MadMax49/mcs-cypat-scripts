@@ -1,6 +1,6 @@
 #!/bin/bash
 clear
-echo "MCS Ubuntu Script v7.4 Updated 1/20/2021 at 12:34pm EST"
+echo "MCS Ubuntu Script v8.0 Updated 1/22/2021 at 9:36pm EST"
 echo "Created by Massimo Marino"
 
 if [[ "$(whoami)" != root ]]; then
@@ -269,7 +269,7 @@ services() {
 		apt-get install php -y -qq
 		apt-get install libapache2-mod-php -y -qq
 		apt-get install php-mysql -y -qq
-		sed -i '2s/.*/\o011DirectoryIndex index.php index.html index.cgi index.pl index.xhtml index.htm/' /etc/apache2/mods-enabled/dir.git config --list
+		sed -i '2s/.*/\o011DirectoryIndex index.php index.html index.cgi index.pl index.xhtml index.htm/' /etc/apache2/mods-enabled/dir.conf
 		systemctl restart apache2
 		echo "###Configuring php.ini####"
 		cp /etc/php/7.2/apache2/php.ini ~/Desktop/logs/backups/
@@ -294,90 +294,6 @@ services() {
 		read -r timeCheck
 		service apache2 restart
 		echo "- Configured PHP 7.2 for use on a web server" >>~/Desktop/logs/changelog.log
-
-		echo "*********Is openssh-server a critical service on this machine?*********"
-		read -r sshYN
-		if [[ $sshYN == "yes" ]]; then
-			apt-get install ssh -y -qq
-			apt-get install openssh-server -y -qq
-			apt-get upgrade openssl libssl-dev -y -qq
-			apt-get-cache policy openssl libssl-dev
-			echo "- Packages ssh and openssh-server installed and heartbleed bug fixed" >>~/Desktop/logs/changelog.log
-
-			echo "####Editing /etc/sshd/sshd_config####"
-			cp /etc/ssh/sshd_config ~/Desktop/logs/backups/
-			sed -i '13s/.*/Port 2222/' /etc/ssh/sshd_config
-			sed -i '18s/.*/HostKey /etc/ssh/ssh_host_ed25519_key/' /etc/ssh/sshd_config
-			sed -i '19s/.*/HostKey /etc/ssh/ssh_host_rsa_key/' /etc/ssh/sshd_config
-			sed -i '20s/.*/ /' /etc/ssh/sshd_config
-			sed -i '32s/.*/PermitRootLogin no/' /etc/ssh/sshd_config
-			sed -i '87s/.*/AllowTcpForwarding no/' /etc/ssh/sshd_config
-			sed -i '99s/.*/ClientAliveInterval 300/' /etc/ssh/sshd_config
-			sed -i '100s/.*/ClientAliveCountMax 0/' /etc/ssh/sshd_config
-			sed -i '98s/.*/Compression DELAYED/' /etc/ssh/sshd_config
-			sed -i '27s/.*/LogLevel VERBOSE/' /etc/ssh/sshd_config
-			sed -i '34s/.*/MaxAuthTries 2/' /etc/ssh/sshd_config
-			sed -i '35s/.*/MaxSessions 2/' /etc/ssh/sshd_config
-			sed -i '95s/.*/TCPKeepAlive no/' /etc/ssh/sshd_config
-			sed -i '89s/.*/X11Forwarding no/' /etc/ssh/sshd_config
-			sed -i '86s/.*/AllowAgentForwarding no/' /etc/ssh/sshd_config
-			sed -i '94s/.*/PrintLastLog yes/' /etc/ssh/sshd_config
-			sed -i '97s/.*/PermitUserEnvironment no/' /etc/ssh/sshd_config
-			sed -i '56s/.*/PasswordAuthentication no/' /etc/ssh/sshd_config
-			sed -i '57s/.*/PermitEmptyPasswords no/' /etc/ssh/sshd_config
-			sed -i '53s/.*/IgnoreRhosts yes/' /etc/ssh/sshd_config
-			sed -i '48s/.*/HostbasedAuthentication no/' /etc/ssh/sshd_config
-			sed -i '31s/.*/LoginGraceTime 120/' /etc/ssh/sshd_config
-			sed -i '103s/.*/MaxStartups 2/' /etc/ssh/sshd_config
-			sed -i '104s/.*/PermitTunnel no/' /etc/ssh/sshd_config
-			sed -i '33s/.*/StrictModes yes/' /etc/ssh/sshd_config
-			sed -i '61s/.*/ChallengeResponseAuthentication no/' /etc/ssh/sshd_config
-			sed -i '64s/.*/KerberosAuthentication no/' /etc/ssh/sshd_config
-			sed -i '70s/.*/GSSAPIAuthentication no/' /etc/ssh/sshd_config
-			echo "- Configured /etc/ssh/sshd_config" >>~/Desktop/logs/changelog.log
-
-			echo "####Securing SSH keys####"
-			mkdir -p ~/.ssh/
-			chmod 700 ~/.ssh
-			touch ~/.ssh/authorized_keys
-			chmod 600 ~/.ssh/authorized_keys
-			cd ~/.ssh || exit
-			ssh-keygen -t rsa
-			cd || exit
-			echo "- Secured SSH keys" >>~/Desktop/logs/changelog.log
-
-			echo "####SSH port can accept SSH connections####"
-			iptables -A INPUT -p tcp --dport ssh -j ACCEPT
-			iptables -I INPUT -p tcp --dport 2222 -i eth0 -m state --state NEW -m recent --set
-			iptables -I INPUT -p tcp --dport 2222 -i eth0 -m state --state NEW -m recent --update --seconds 60 --hitcount 5 -j DROP
-
-			echo "#########Configuring fail2ban#########"
-			cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
-			touch /etc/fail2ban/jail.d/ssh.conf
-			{
-				echo "[sshd]"
-				echo
-				echo "enabled = true"
-				echo "port = 22"
-				echo "filter = sshd"
-				echo "logpath = /var/log/auth.log"
-				echo "maxretry = 3"
-			} >>/etc/fail2ban/jail.d/ssh.conf
-			service fail2ban restart
-
-			service ssh restart
-			echo "- SSH configured" >>~/Desktop/logs/changelog.log
-			echo "Type anything to continue"
-			read -r timeCheck
-		elif [[ $sshYN == "no" ]]; then
-			apt-get purge openssh-server
-			ufw deny ssh
-			echo "Type anything to continue"
-			read -r timeCheck
-		elif [[ $sshYN == "exit" ]]; then
-			exit 1
-		fi
-	else
 		echo "#########Service Auditing#########"
 		echo "*********Is openssh-server a critical service on this machine?*********"
 		read -r sshYN
@@ -393,7 +309,7 @@ services() {
 			sed -i '13s/.*/Port 2222/' /etc/ssh/sshd_config
 			sed -i '18s/.*/HostKey /etc/ssh/ssh_host_ed25519_key/' /etc/ssh/sshd_config
 			sed -i '19s/.*/HostKey /etc/ssh/ssh_host_rsa_key/' /etc/ssh/sshd_config
-			sed -i '20s/.*/ /' /etc/ssh/sshd_config
+			sed -i '20s/.*/#/' /etc/ssh/sshd_config
 			sed -i '32s/.*/PermitRootLogin no/' /etc/ssh/sshd_config
 			sed -i '87s/.*/AllowTcpForwarding no/' /etc/ssh/sshd_config
 			sed -i '99s/.*/ClientAliveInterval 300/' /etc/ssh/sshd_config
@@ -1117,7 +1033,7 @@ file_config() {
 	service auditd restart
 
 	echo "#########Password Protecting GRUB Bootloader#########"
-	echo "*********Please enter a password for the GRUB Boorloader*********"
+	echo "*********Please enter a password for the GRUB Bootloader*********"
 	read -r grubpass
 	echo "*********Please re-enter your password*********"
 	read -r grubpassconfirm
@@ -1128,54 +1044,57 @@ file_config() {
 		echo "GRUB Bootloader not protected with password" >>~/Desktop/logs/changelog.log
 	fi
 
-	echo "#########Checking if MySQL config file exists#########"
-	cnfCheck=/etc/mysql/my.cnf
-	if [[ -f "$cnfCheck" ]]; then
-		echo "MySQL config file exists"
-	else
-		touch /etc/mysql/my.cnf
-		echo "MySQL config file created" >>~/Desktop/logs/changelog.log
+	if [[ "$sqlYN" == "yes" ]]; then
+		echo "#########Checking if MySQL config file exists#########"
+		cnfCheck=/etc/mysql/my.cnf
+		if [[ -f "$cnfCheck" ]]; then
+			echo "MySQL config file exists"
+		else
+			touch /etc/mysql/my.cnf
+			echo "MySQL config file created" >>~/Desktop/logs/changelog.log
+		fi
+		echo "#########Configuring my.cnf#########"
+		{
+			echo "[mysqld]"
+			echo "max_connections = 400"
+			echo "key_buffer = 16M"
+			echo "myisam_sort_buffer_size = 32M"
+			echo "join_buffer_size = 1M"
+			echo "read_buffer_size = 1M"
+			echo "sort_buffer_size = 2M"
+			echo "table_cache = 1024"
+			echo "thread_cache_size = 286"
+			echo "interactive_timeout = 25"
+			echo "wait_timeout = 1000"
+			echo "connect_timeout = 10"
+			echo "max_allowed_packet = 16M"
+			echo "max_connect_errors = 10"
+			echo "query_cache_limit = 1M"
+			echo "query_cache_size = 16M"
+			echo "query_cache_type = 1"
+			echo "tmp_table_size = 16M"
+			echo "skip-innodb"
+			echo "local-infile=0"
+			echo "bind-address=127.0.0.1"
+			echo "skip-show-database"
+
+			echo "[mysqld_safe]"
+			echo "open_files_limit = 8192"
+
+			echo "[mysqldump]"
+			echo "quick"
+			echo "max_allowed_packet = 16M"
+
+			echo "[myisamchk]"
+			echo "key_buffer = 32M"
+			echo "sort_buffer = 32M"
+			echo "read_buffer = 16M"
+			echo "write_buffer = 16M"
+		} >> /etc/mysql/my.cnf
+		chown -R root:root /etc/mysql/
+		chmod 0644 /etc/mysql/my.cnf
+		read -r timeCheck
 	fi
-	echo "#########Configuring my.cnf#########"
-	{
-		echo "[mysqld]"
-		echo "max_connections = 400"
-		echo "key_buffer = 16M"
-		echo "myisam_sort_buffer_size = 32M"
-		echo "join_buffer_size = 1M"
-		echo "read_buffer_size = 1M"
-		echo "sort_buffer_size = 2M"
-		echo "table_cache = 1024"
-		echo "thread_cache_size = 286"
-		echo "interactive_timeout = 25"
-		echo "wait_timeout = 1000"
-		echo "connect_timeout = 10"
-		echo "max_allowed_packet = 16M"
-		echo "max_connect_errors = 10"
-		echo "query_cache_limit = 1M"
-		echo "query_cache_size = 16M"
-		echo "query_cache_type = 1"
-		echo "tmp_table_size = 16M"
-		echo "skip-innodb"
-		echo "local-infile=0"
-		echo "bind-address=127.0.0.1"
-		echo "skip-show-database"
-
-		echo "[mysqld_safe]"
-		echo "open_files_limit = 8192"
-
-		echo "[mysqldump]"
-		echo "quick"
-		echo "max_allowed_packet = 16M"
-
-		echo "[myisamchk]"
-		echo "key_buffer = 32M"
-		echo "sort_buffer = 32M"
-		echo "read_buffer = 16M"
-		echo "write_buffer = 16M"
-	} >> /etc/mysql/my.cnf
-	chown -R root:root /etc/mysql/
-	chmod 0644 /etc/mysql/my.cnf
 	read -r timeCheck
 }
 
@@ -1536,6 +1455,7 @@ iptables -P INPUT DROP
 rkhunter --propupd
 sysctl -p
 service ssh restart
+service auditd restart
 apt-get update
 apt-get upgrade
 apt-get autoremove -y -qq
@@ -1588,7 +1508,7 @@ chmod 777 ~/Desktop/logs/logs_to_check.txt
 	echo "Execute 'sudo logwatch | less' to see an overview of all important log files"
 } >>~/Desktop/logs/logs_to_check.txt
 
-"- Created symbolic link to \/var\/log\/ in logs folder on Desktop" >>~/Desktop/logs/changelog.log
+echo "- Created symbolic link to \/var\/log\/ in logs folder on Desktop" >>~/Desktop/logs/changelog.log
 
 echo "$timeCheck"
 ufw reload
@@ -1598,5 +1518,7 @@ end
 echo "Script done! Good luck :D"
 
 clamtk
+
+needrestart
 
 update-manager
