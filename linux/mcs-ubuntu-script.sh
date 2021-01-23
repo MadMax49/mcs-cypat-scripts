@@ -1,4 +1,5 @@
 #!/bin/bash
+clear
 echo "MCS Ubuntu Script v7.4 Updated 1/20/2021 at 12:34pm EST"
 echo "Created by Massimo Marino"
 
@@ -8,7 +9,6 @@ if [[ "$(whoami)" != root ]]; then
 fi
 
 first_time_initialize() {
-	echo "#########Unaliasing all#########"
 	\unalias -a
 	echo "What is the username of the main user on this computer?"
 	read -r mainUser
@@ -1127,7 +1127,55 @@ file_config() {
 	else
 		echo "GRUB Bootloader not protected with password" >>~/Desktop/logs/changelog.log
 	fi
-	echo "Type anything to continue"
+
+	echo "#########Checking if MySQL config file exists#########"
+	cnfCheck=/etc/mysql/my.cnf
+	if [[ -f "$cnfCheck" ]]; then
+		echo "MySQL config file exists"
+	else
+		touch /etc/mysql/my.cnf
+		echo "MySQL config file created" >>~/Desktop/logs/changelog.log
+	fi
+	echo "#########Configuring my.cnf#########"
+	{
+		echo "[mysqld]"
+		echo "max_connections = 400"
+		echo "key_buffer = 16M"
+		echo "myisam_sort_buffer_size = 32M"
+		echo "join_buffer_size = 1M"
+		echo "read_buffer_size = 1M"
+		echo "sort_buffer_size = 2M"
+		echo "table_cache = 1024"
+		echo "thread_cache_size = 286"
+		echo "interactive_timeout = 25"
+		echo "wait_timeout = 1000"
+		echo "connect_timeout = 10"
+		echo "max_allowed_packet = 16M"
+		echo "max_connect_errors = 10"
+		echo "query_cache_limit = 1M"
+		echo "query_cache_size = 16M"
+		echo "query_cache_type = 1"
+		echo "tmp_table_size = 16M"
+		echo "skip-innodb"
+		echo "local-infile=0"
+		echo "bind-address=127.0.0.1"
+		echo "skip-show-database"
+
+		echo "[mysqld_safe]"
+		echo "open_files_limit = 8192"
+
+		echo "[mysqldump]"
+		echo "quick"
+		echo "max_allowed_packet = 16M"
+
+		echo "[myisamchk]"
+		echo "key_buffer = 32M"
+		echo "sort_buffer = 32M"
+		echo "read_buffer = 16M"
+		echo "write_buffer = 16M"
+	} >> /etc/mysql/my.cnf
+	chown -R root:root /etc/mysql/
+	chmod 0644 /etc/mysql/my.cnf
 	read -r timeCheck
 }
 
@@ -1540,7 +1588,7 @@ chmod 777 ~/Desktop/logs/logs_to_check.txt
 	echo "Execute 'sudo logwatch | less' to see an overview of all important log files"
 } >>~/Desktop/logs/logs_to_check.txt
 
-"- Created symbolic link to /var/log/ in logs folder on Desktop" >>~/Desktop/logs/changelog.log
+"- Created symbolic link to \/var\/log\/ in logs folder on Desktop" >>~/Desktop/logs/changelog.log
 
 echo "$timeCheck"
 ufw reload
