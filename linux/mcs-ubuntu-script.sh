@@ -749,8 +749,8 @@ general_config() {
 	crontab -r
 	echo "- Crontab backed up and cleared" >>~/Desktop/logs/changelog.log
 
-	echo "#########Enabling unattended upgrades#########"
-	dpkg-reconfigure -plow unattended-upgrades
+	#echo "#########Enabling unattended upgrades#########"
+	#dpkg-reconfigure -plow unattended-upgrades
 
 	echo "#########Configuring swapfile#########"
 	swapon -s
