@@ -1,5 +1,5 @@
 #!/bin/bash
- 
+clear
 echo "MCS Debian Script v2.0 Updated 1/22/2021 at 9:36pm EST"
 echo "Created by Massimo Marino"
 

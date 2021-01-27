@@ -13,7 +13,6 @@ first_time_initialize() {
 	echo "What is the username of the main user on this computer?"
 	read -r mainUser
 	echo "Creating backup folder and backing up important files + boot files + home files"
-	dump 0zf backup.boot /boot
 	zip -r myzipbackup.zip ./* --exclude=access_log --exclude=tmp
 	mkdir -p ~/Desktop/logs
 	chmod 777 ~/Desktop/logs
@@ -53,11 +52,11 @@ first_time_initialize() {
 }
 
 packages() {
-	echo "#########Updating apt-get#########"
+	echo "#########Updating System#########"
 	apt-get update -y -qq
 	apt-get upgrade -y -qq
 	apt-get dist-upgrade -y -qq
-	echo "- Package installer 'apt-get' updated (update, upgrade, dist-upgrade)" >>~/Desktop/logs/changelog.log
+	echo "- System updated (update, upgrade, dist-upgrade)" >>~/Desktop/logs/changelog.log
 
 	echo "#########Installing useful packages#########"
 	echo "#########Firefox (Browser)#########"
@@ -294,399 +293,399 @@ services() {
 		read -r timeCheck
 		service apache2 restart
 		echo "- Configured PHP 7.2 for use on a web server" >>~/Desktop/logs/changelog.log
-		echo "#########Service Auditing#########"
-		echo "*********Is openssh-server a critical service on this machine?*********"
-		read -r sshYN
-		if [[ $sshYN == "yes" ]]; then
-			apt-get install ssh -y -qq
-			apt-get install openssh-server -y -qq
-			apt-get upgrade openssl libssl-dev -y -qq
-			apt-get-cache policy openssl libssl-dev
-			echo "- Packages ssh and openssh-server installed and heartbleed bug fixed" >>~/Desktop/logs/changelog.log
+	fi
+	echo "#########Service Auditing#########"
+	echo "*********Is openssh-server a critical service on this machine?*********"
+	read -r sshYN
+	if [[ $sshYN == "yes" ]]; then
+		apt-get install ssh -y -qq
+		apt-get install openssh-server -y -qq
+		apt-get upgrade openssl libssl-dev -y -qq
+		apt-get-cache policy openssl libssl-dev
+		echo "- Packages ssh and openssh-server installed and heartbleed bug fixed" >>~/Desktop/logs/changelog.log
 
-			echo "####Editing /etc/sshd/sshd_config####"
-			cp /etc/ssh/sshd_config ~/Desktop/logs/backups/
-			sed -i '13s/.*/Port 2222/' /etc/ssh/sshd_config
-			sed -i '18s/.*/HostKey /etc/ssh/ssh_host_ed25519_key/' /etc/ssh/sshd_config
-			sed -i '19s/.*/HostKey /etc/ssh/ssh_host_rsa_key/' /etc/ssh/sshd_config
-			sed -i '20s/.*/#/' /etc/ssh/sshd_config
-			sed -i '32s/.*/PermitRootLogin no/' /etc/ssh/sshd_config
-			sed -i '87s/.*/AllowTcpForwarding no/' /etc/ssh/sshd_config
-			sed -i '99s/.*/ClientAliveInterval 300/' /etc/ssh/sshd_config
-			sed -i '100s/.*/ClientAliveCountMax 0/' /etc/ssh/sshd_config
-			sed -i '98s/.*/Compression DELAYED/' /etc/ssh/sshd_config
-			sed -i '27s/.*/LogLevel VERBOSE/' /etc/ssh/sshd_config
-			sed -i '34s/.*/MaxAuthTries 2/' /etc/ssh/sshd_config
-			sed -i '35s/.*/MaxSessions 2/' /etc/ssh/sshd_config
-			sed -i '95s/.*/TCPKeepAlive no/' /etc/ssh/sshd_config
-			sed -i '89s/.*/X11Forwarding no/' /etc/ssh/sshd_config
-			sed -i '86s/.*/AllowAgentForwarding no/' /etc/ssh/sshd_config
-			sed -i '94s/.*/PrintLastLog yes/' /etc/ssh/sshd_config
-			sed -i '97s/.*/PermitUserEnvironment no/' /etc/ssh/sshd_config
-			sed -i '56s/.*/PasswordAuthentication no/' /etc/ssh/sshd_config
-			sed -i '57s/.*/PermitEmptyPasswords no/' /etc/ssh/sshd_config
-			sed -i '53s/.*/IgnoreRhosts yes/' /etc/ssh/sshd_config
-			sed -i '48s/.*/HostbasedAuthentication no/' /etc/ssh/sshd_config
-			sed -i '31s/.*/LoginGraceTime 120/' /etc/ssh/sshd_config
-			sed -i '103s/.*/MaxStartups 2/' /etc/ssh/sshd_config
-			sed -i '104s/.*/PermitTunnel no/' /etc/ssh/sshd_config
-			sed -i '33s/.*/StrictModes yes/' /etc/ssh/sshd_config
-			sed -i '61s/.*/ChallengeResponseAuthentication no/' /etc/ssh/sshd_config
-			sed -i '64s/.*/KerberosAuthentication no/' /etc/ssh/sshd_config
-			sed -i '70s/.*/GSSAPIAuthentication no/' /etc/ssh/sshd_config
-			echo "- Configured /etc/ssh/sshd_config" >>~/Desktop/logs/changelog.log
+		echo "####Editing /etc/sshd/sshd_config####"
+		cp /etc/ssh/sshd_config ~/Desktop/logs/backups/
+		sed -i '13s/.*/Port 2222/' /etc/ssh/sshd_config
+		sed -i '18s/.*/HostKey /etc/ssh/ssh_host_ed25519_key/' /etc/ssh/sshd_config
+		sed -i '19s/.*/HostKey /etc/ssh/ssh_host_rsa_key/' /etc/ssh/sshd_config
+		sed -i '20s/.*/#/' /etc/ssh/sshd_config
+		sed -i '32s/.*/PermitRootLogin no/' /etc/ssh/sshd_config
+		sed -i '87s/.*/AllowTcpForwarding no/' /etc/ssh/sshd_config
+		sed -i '99s/.*/ClientAliveInterval 300/' /etc/ssh/sshd_config
+		sed -i '100s/.*/ClientAliveCountMax 0/' /etc/ssh/sshd_config
+		sed -i '98s/.*/Compression DELAYED/' /etc/ssh/sshd_config
+		sed -i '27s/.*/LogLevel VERBOSE/' /etc/ssh/sshd_config
+		sed -i '34s/.*/MaxAuthTries 2/' /etc/ssh/sshd_config
+		sed -i '35s/.*/MaxSessions 2/' /etc/ssh/sshd_config
+		sed -i '95s/.*/TCPKeepAlive no/' /etc/ssh/sshd_config
+		sed -i '89s/.*/X11Forwarding no/' /etc/ssh/sshd_config
+		sed -i '86s/.*/AllowAgentForwarding no/' /etc/ssh/sshd_config
+		sed -i '94s/.*/PrintLastLog yes/' /etc/ssh/sshd_config
+		sed -i '97s/.*/PermitUserEnvironment no/' /etc/ssh/sshd_config
+		sed -i '56s/.*/PasswordAuthentication no/' /etc/ssh/sshd_config
+		sed -i '57s/.*/PermitEmptyPasswords no/' /etc/ssh/sshd_config
+		sed -i '53s/.*/IgnoreRhosts yes/' /etc/ssh/sshd_config
+		sed -i '48s/.*/HostbasedAuthentication no/' /etc/ssh/sshd_config
+		sed -i '31s/.*/LoginGraceTime 120/' /etc/ssh/sshd_config
+		sed -i '103s/.*/MaxStartups 2/' /etc/ssh/sshd_config
+		sed -i '104s/.*/PermitTunnel no/' /etc/ssh/sshd_config
+		sed -i '33s/.*/StrictModes yes/' /etc/ssh/sshd_config
+		sed -i '61s/.*/ChallengeResponseAuthentication no/' /etc/ssh/sshd_config
+		sed -i '64s/.*/KerberosAuthentication no/' /etc/ssh/sshd_config
+		sed -i '70s/.*/GSSAPIAuthentication no/' /etc/ssh/sshd_config
+		echo "- Configured /etc/ssh/sshd_config" >>~/Desktop/logs/changelog.log
 
-			echo "####Securing SSH keys####"
-			mkdir -p ~/.ssh/
-			chmod 700 ~/.ssh
-			touch ~/.ssh/authorized_keys
-			chmod 600 ~/.ssh/authorized_keys
-			cd ~/.ssh || exit
-			ssh-keygen -t rsa
-			cd || exit
-			echo "- Secured SSH keys" >>~/Desktop/logs/changelog.log
+		echo "####Securing SSH keys####"
+		mkdir -p ~/.ssh/
+		chmod 700 ~/.ssh
+		touch ~/.ssh/authorized_keys
+		chmod 600 ~/.ssh/authorized_keys
+		cd ~/.ssh || exit
+		ssh-keygen -t rsa
+		cd || exit
+		echo "- Secured SSH keys" >>~/Desktop/logs/changelog.log
 
-			echo "####SSH port can accept SSH connections####"
-			iptables -A INPUT -p tcp --dport ssh -j ACCEPT
-			iptables -I INPUT -p tcp --dport 2222 -i eth0 -m state --state NEW -m recent --set
-			iptables -I INPUT -p tcp --dport 2222 -i eth0 -m state --state NEW -m recent --update --seconds 60 --hitcount 5 -j DROP
+		echo "####SSH port can accept SSH connections####"
+		iptables -A INPUT -p tcp --dport ssh -j ACCEPT
+		iptables -I INPUT -p tcp --dport 2222 -i eth0 -m state --state NEW -m recent --set
+		iptables -I INPUT -p tcp --dport 2222 -i eth0 -m state --state NEW -m recent --update --seconds 60 --hitcount 5 -j DROP
 
-			echo "#########Configuring fail2ban#########"
-			cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
-			touch /etc/fail2ban/jail.d/ssh.conf
-			{
-				echo "[sshd]"
-				echo
-				echo "enabled = true"
-				echo "port = 22"
-				echo "filter = sshd"
-				echo "logpath = /var/log/auth.log"
-				echo "maxretry = 3"
-			} >>/etc/fail2ban/jail.d/ssh.conf
-			service fail2ban restart
+		echo "#########Configuring fail2ban#########"
+		cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
+		touch /etc/fail2ban/jail.d/ssh.conf
+		{
+			echo "[sshd]"
+			echo
+			echo "enabled = true"
+			echo "port = 22"
+			echo "filter = sshd"
+			echo "logpath = /var/log/auth.log"
+			echo "maxretry = 3"
+		} >>/etc/fail2ban/jail.d/ssh.conf
+		service fail2ban restart
 
-			service ssh restart
-			echo "- SSH configured" >>~/Desktop/logs/changelog.log
-			echo "Type anything to continue"
-			read -r timeCheck
-		elif [[ $sshYN == "no" ]]; then
-			apt-get purge openssh-server
-			ufw deny ssh
-			echo "Type anything to continue"
-			read -r timeCheck
-		fi
+		service ssh restart
+		echo "- SSH configured" >>~/Desktop/logs/changelog.log
+		echo "Type anything to continue"
+		read -r timeCheck
+	elif [[ $sshYN == "no" ]]; then
+		apt-get purge openssh-server
+		ufw deny ssh
+		echo "Type anything to continue"
+		read -r timeCheck
+	fi
 
-		echo "*********Is Samba a critical service on this machine?*********"
-		read -r sambaYN
-		if [[ $sambaYN == "yes" ]]; then
-			ufw allow microsoft-ds
-			ufw allow 137/udp
-			ufw allow 138/udp
-			ufw allow 139/tcp
-			ufw allow 445/tcp
-			apt-get install samba -y -qq
-			apt-get install system-config-samba -y -qq
-			apt-get install libpam-winbind -y -qq
-			sed -i '221s/.*/;   guest ok = no/' /etc/samba/smb.conf
-			systemctl restart smbd.service nmbd.service
-			echo "Type anything to continue"
-			read -r timeCheck
-			echo "- Samba installed and allowed" >>~/Desktop/logs/changelog.log
-		elif [[ $sambaYN == "no" ]]; then
-			ufw deny netbios-ns
-			ufw deny netbios-dgm
-			ufw deny netbios-ssn
-			ufw deny microsoft-ds
-			apt-get purge samba -y -qq
-			echo "Type anything to continue"
-			read -r timeCheck
-			echo "- Samba uninstalled and blocked" >>~/Desktop/logs/changelog.log
-		fi
+	echo "*********Is Samba a critical service on this machine?*********"
+	read -r sambaYN
+	if [[ $sambaYN == "yes" ]]; then
+		ufw allow microsoft-ds
+		ufw allow 137/udp
+		ufw allow 138/udp
+		ufw allow 139/tcp
+		ufw allow 445/tcp
+		apt-get install samba -y -qq
+		apt-get install system-config-samba -y -qq
+		apt-get install libpam-winbind -y -qq
+		sed -i '221s/.*/;   guest ok = no/' /etc/samba/smb.conf
+		systemctl restart smbd.service nmbd.service
+		echo "Type anything to continue"
+		read -r timeCheck
+		echo "- Samba installed and allowed" >>~/Desktop/logs/changelog.log
+	elif [[ $sambaYN == "no" ]]; then
+		ufw deny netbios-ns
+		ufw deny netbios-dgm
+		ufw deny netbios-ssn
+		ufw deny microsoft-ds
+		apt-get purge samba -y -qq
+		echo "Type anything to continue"
+		read -r timeCheck
+		echo "- Samba uninstalled and blocked" >>~/Desktop/logs/changelog.log
+	fi
 
-		echo "#########Is FTP a critical service on this machine?#########"
-		read -r ftpYN
-		if [[ $ftpYN == "yes" ]]; then
-			apt-get install vsftpd
-			cp /etc/vsftpd.conf /etc/vsftpd.conf_default
-			cp /etc/vsftpd.conf ~/Desktop/logs/backups/
-			service vsftpd start
-			service vsftpd enable
-			sed -i '25s/.*/anonymous_enable=NO/' /etc/vsftpd.conf
-			sed -i '28s/.*/local_enable=YES/' /etc/vsftpd.conf
-			sed -i '31s/.*/write_enable=YES/' /etc/vsftpd.conf
-			sed -i '35s/.*/local_umask=022/' /etc/vsftpd.conf
-			sed -i '40s/.*/anon_upload_enable=NO/' /etc/vsftpd.conf
-			sed -i '44s/.*/anon_mkdir_write_enable=NO/' /etc/vsftpd.conf
-			sed -i '48s/.*/dirmessage_enable=YES/' /etc/vsftpd.conf
-			openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/private/vsftpd.pem -out /etc/ssl/private/vsftpd.pem
-			sed -i '151s/.*/ssl_enable=YES' /etc/vsftpd.conf
-			sed -i '114s/.*/chroot_local_user=YES/' /etc/vsftpd.conf
-			sed -i '125s/.*/chroot_list_file=/etc/vsftpd.chroot_list/' /etc/vsftpd.conf
-			{
-				echo "rsa_cert_file=/etc/ssl/private/vsftpd.pem"
-				echo "rsa_private_key_file=/etc/ssl/private/vsftpd.pem"
-				echo "allow_anon_ssl=NO"
-				echo "force_local_data_ssl=YES"
-				echo "force_local_logins_ssl=YES"
-				echo "ssl_tlsv1=YES"
-				echo "ssl_sslv2=NO"
-				echo "ssl_sslv3=NO"
-				echo "require_ssl_reuse=NO"
-				echo "ssl_ciphers=HIGH"
-				echo "pasv_min_port=40000"
-				echo "pasv_max_port=50000"
-			} >>/etc/vsftpd.conf
-			mkdir /srv/ftp/new_location
-			usermod –d /srv/ftp/new_location ftp
-			systemctl restart vsftpd.service
-			ufw allow 20/tcp
-			ufw allow 21/tcp
-			ufw allow 40000:50000/tcp
-			ufw allow 990/tcp
-			ufw allow ftp
-			ufw allow sftp
-			ufw allow saft
-			ufw allow ftps-data
-			ufw allow ftps
-			service vsftpd restart
-			echo "- FTP installed and allowed" >>~/Desktop/logs/changelog.log
-			echo "Type anything to continue"
-			read -r timeCheck
-		elif [[ $ftpYN == "no" ]]; then
-			service vsftpd stop
-			ufw deny ftp
-			ufw deny sftp
-			ufw deny saft
-			ufw deny ftps-data
-			ufw deny ftps
-			apt-get purge vsftpd -y -qq
-			echo "- FTP uninstalled and blocked" >>~/Desktop/logs/changelog.log
-			echo "Type anything to continue"
-			read -r timeCheck
-		fi
+	echo "#########Is FTP a critical service on this machine?#########"
+	read -r ftpYN
+	if [[ $ftpYN == "yes" ]]; then
+		apt-get install vsftpd
+		cp /etc/vsftpd.conf /etc/vsftpd.conf_default
+		cp /etc/vsftpd.conf ~/Desktop/logs/backups/
+		service vsftpd start
+		service vsftpd enable
+		sed -i '25s/.*/anonymous_enable=NO/' /etc/vsftpd.conf
+		sed -i '28s/.*/local_enable=YES/' /etc/vsftpd.conf
+		sed -i '31s/.*/write_enable=YES/' /etc/vsftpd.conf
+		sed -i '35s/.*/local_umask=022/' /etc/vsftpd.conf
+		sed -i '40s/.*/anon_upload_enable=NO/' /etc/vsftpd.conf
+		sed -i '44s/.*/anon_mkdir_write_enable=NO/' /etc/vsftpd.conf
+		sed -i '48s/.*/dirmessage_enable=YES/' /etc/vsftpd.conf
+		openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/private/vsftpd.pem -out /etc/ssl/private/vsftpd.pem
+		sed -i '151s/.*/ssl_enable=YES' /etc/vsftpd.conf
+		sed -i '114s/.*/chroot_local_user=YES/' /etc/vsftpd.conf
+		sed -i '125s/.*/chroot_list_file=/etc/vsftpd.chroot_list/' /etc/vsftpd.conf
+		{
+			echo "rsa_cert_file=/etc/ssl/private/vsftpd.pem"
+			echo "rsa_private_key_file=/etc/ssl/private/vsftpd.pem"
+			echo "allow_anon_ssl=NO"
+			echo "force_local_data_ssl=YES"
+			echo "force_local_logins_ssl=YES"
+			echo "ssl_tlsv1=YES"
+			echo "ssl_sslv2=NO"
+			echo "ssl_sslv3=NO"
+			echo "require_ssl_reuse=NO"
+			echo "ssl_ciphers=HIGH"
+			echo "pasv_min_port=40000"
+			echo "pasv_max_port=50000"
+		} >>/etc/vsftpd.conf
+		mkdir /srv/ftp/new_location
+		usermod –d /srv/ftp/new_location ftp
+		systemctl restart vsftpd.service
+		ufw allow 20/tcp
+		ufw allow 21/tcp
+		ufw allow 40000:50000/tcp
+		ufw allow 990/tcp
+		ufw allow ftp
+		ufw allow sftp
+		ufw allow saft
+		ufw allow ftps-data
+		ufw allow ftps
+		service vsftpd restart
+		echo "- FTP installed and allowed" >>~/Desktop/logs/changelog.log
+		echo "Type anything to continue"
+		read -r timeCheck
+	elif [[ $ftpYN == "no" ]]; then
+		service vsftpd stop
+		ufw deny ftp
+		ufw deny sftp
+		ufw deny saft
+		ufw deny ftps-data
+		ufw deny ftps
+		apt-get purge vsftpd -y -qq
+		echo "- FTP uninstalled and blocked" >>~/Desktop/logs/changelog.log
+		echo "Type anything to continue"
+		read -r timeCheck
+	fi
 
-		echo "#########Is Telnet a critical service on this machine?#########"
-		read -r telnetYN
-		if [[ $telnetYN == "yes" ]]; then
-			ufw allow telnet
-			ufw allow rtelnet
-			ufw allow telnets
-			echo "- Telnet allowed" >>~/Desktop/logs/changelog.log
-		elif [[ $telnetYN == "no" ]]; then
-			service telnet stop
-			ufw deny telnet
-			ufw deny rtelnet
-			ufw deny telnets
-			apt-get purge telnet -y -qq
-			apt-get purge telnetd -y -qq
-			apt-get purge inetutils-telnetd -y -qq
-			apt-get purge telnetd-ssl -y -qq
-			apt-get purge vsftpd -y -qq
-			echo "- Telnet uninstalled and blocked" >>~/Desktop/logs/changelog.log
-			echo "Type anything to continue"
-			read -r timeCheck
-		fi
+	echo "#########Is Telnet a critical service on this machine?#########"
+	read -r telnetYN
+	if [[ $telnetYN == "yes" ]]; then
+		ufw allow telnet
+		ufw allow rtelnet
+		ufw allow telnets
+		echo "- Telnet allowed" >>~/Desktop/logs/changelog.log
+	elif [[ $telnetYN == "no" ]]; then
+		service telnet stop
+		ufw deny telnet
+		ufw deny rtelnet
+		ufw deny telnets
+		apt-get purge telnet -y -qq
+		apt-get purge telnetd -y -qq
+		apt-get purge inetutils-telnetd -y -qq
+		apt-get purge telnetd-ssl -y -qq
+		apt-get purge vsftpd -y -qq
+		echo "- Telnet uninstalled and blocked" >>~/Desktop/logs/changelog.log
+		echo "Type anything to continue"
+		read -r timeCheck
+	fi
 
-		echo "#########Is this machine a web server?#########"
-		read -r webYN
-		if [[ $webYN == "yes" ]]; then
-			echo "*********Apache2 or NGINX? (If unsure, choose Apache2) (Case sensitive)*********"
-			read -r webserviceYN
-			if [[ $webserviceYN == "NGINX" ]]; then
-				apt-get purge apache2 -y -qq
-				apt-get purge apache2-bin -y -qq
-				apt-get purge apache2-utils -y -qq
-				apt-get purge libapache2-mod-evasive -y -qq
-				apt-get purge libapache2-mod-security2 -y -qq
-				echo "- Apache2 removed" >>~/Desktop/logs/changelog.log
-				apt-get install nginx -y -qq
-				ufw allow http
-				ufw allow https
-				echo "- NGINX installed" >>~/Desktop/logs/changelog.log
-				echo "Type anything to continue"
-				read -r timeCheck
-			elif [[ $webserviceYN == "Apache2" ]]; then
-				apt-get purge nginx -y -qq
-				apt-get purge nginx-common -y -qq
-				apt-get purge nginx-core -y -qq
-				echo "- NGINX removed from the machine" >>~/Desktop/logs/changelog.log
-				apt-get install apache2 -y -qq
-				apt-get install apache2-utils -y -qq
-				apt-get install libapache2-mod-evasive -y -qq
-				apt-get install libapache2-mod-security2 -y -qq
-				echo "Type anything to continue"
-				read -r timeCheck
-				echo "*********Is PHP used on this web server?*********"
-				read -r phpYN
-				if [[ $phpYN == "yes" ]]; then
-					echo "####Installing PHP 7.2####"
-					apt-get install php7.2 -y -qq
-					echo "###Configuring php.ini####"
-					cp /etc/php/7.2/apache2/php.ini ~/Desktop/logs/backups/
-					{
-						echo "safe_mode = On"
-						"safe_mode_gid = On"
-						"sql.safe_mode=On"
-						"register_globals = Off"
-					} >>/etc/php/7.2/apache2/php.ini
-					sed -i '530s/.*/track_errors = Off/' /etc/php/7.2/apache2/php.ini
-					sed -i '547s/.*/html_errors = Off/' /etc/php/7.2/apache2/php.ini
-					sed -i '310s/.*/disable_functions = php_uname, getmyuid, getmypid, passthru, leak, listen, diskfreespace, tmpfile, link, ignore_user_abord, shell_exec, dl, set_time_limit, exec, system, highlight_file, source, show_source, fpaththru, virtual, posix_ctermid, posix_getcwd, posix_getegid, posix_geteuid, posix_getgid, posix_getgrgid, posix_getgrnam, posix_getgroups, posix_getlogin, posix_getpgid, posix_getpgrp, posix_getpid, posix, _getppid, posix_getpwnam, posix_getpwuid, posix_getrlimit, posix_getsid, posix_getuid, posix_isatty, posix_kill, posix_mkfifo, posix_setegid, posix_seteuid, posix_setgid, posix_setpgid, posix_setsid, posix_setuid, posix_times, posix_ttyname, posix_uname, proc_open, proc_close, proc_get_status, proc_nice, proc_terminate, phpinfo/' /etc/php/7.2/apache2/php.ini
-					sed -i '833s/.*/allow_url_fopen = Off/' /etc/php/7.2/apache2/php.ini
-					sed -i '837s/.*/allow_url_include = Off/' /etc/php/7.2/apache2/php.ini
-					sed -i '818s/.*/upload_tmp_dir = /var/php_tmp/' /etc/php/7.2/apache2/php.ini
-					sed -i '380s/.*/max_execution_time = 10/' /etc/php/7.2/apache2/php.ini
-					sed -i '390s/.*/max_input_time = 30/' /etc/php/7.2/apache2/php.ini
-					sed -i '401s/.*/memory_limit = 40M/' /etc/php/7.2/apache2/php.ini
-					sed -i '669s/.*/post_max_size=1K/' /etc/php/7.2/apache2/php.ini
-					sed -i '1412s/.*/session.cookie_httponly = 1/' /etc/php/7.2/apache2/php.ini
-					service apache2 restart
-					echo "- Configured PHP 7.2 for use on a web server" >>~/Desktop/logs/changelog.log
-					echo "Type anything to continue"
-					read -r timeCheck
-				fi
-
-				ufw allow http
-				ufw allow https
-				systemctl restart apache2
-				echo "####Configuring ufw for web servers####"
-				cp /etc/ufw/before.rules ~/Desktop/logs/backups/
-				sed -i '12s/$/\n/' /etc/ufw/before.rules
-				sed -i '13s/.*/:ufw-http - [0:0]\n/' /etc/ufw/before.rules
-				sed -i '14s/.*/:ufw-http-logdrop - [0:0]/' /etc/ufw/before.rules
-				sed -i '76s/$/\n/' /etc/ufw/before.rules
-				sed -i '77s/.*/### Start HTTP ###\n/' /etc/ufw/before.rules
-				sed -i '78s/.*/\n/' /etc/ufw/before.rules
-				sed -i '79s/.*/# Enter rule\n/' /etc/ufw/before.rules
-				sed -i '80s/.*/-A ufw-before-input -p tcp --dport 80 -j ufw-http\n/' /etc/ufw/before.rules
-				sed -i '81s/.*/-A ufw-before-input -p tcp --dport 443 -j ufw-http\n/' /etc/ufw/before.rules
-				sed -i '82s/.*/\n/' /etc/ufw/before.rules
-				sed -i '83s/.*/# Limit connections per Class C\n/' /etc/ufw/before.rules
-				sed -i '84s/.*/-A ufw-http -p tcp --syn -m connlimit --connlimit-above 50 --connlimit-mask 24 -j ufw-http-logdrop\n/' /etc/ufw/before.rules
-				sed -i '85s/.*/\n/' /etc/ufw/before.rules
-				sed -i '86s/.*/# Limit connections per IP\n/' /etc/ufw/before.rules
-				sed -i '87s/.*/-A ufw-http -m state --state NEW -m recent --name conn_per_ip --set\n/' /etc/ufw/before.rules
-				sed -i '88s/.*/-A ufw-http -m state --state NEW -m recent --name conn_per_ip --update --seconds 10 --hitcount 20 -j ufw-http-logdrop\n/' /etc/ufw/before.rules
-				sed -i '89s/.*/\n/' /etc/ufw/before.rules
-				sed -i '90s/.*/# Limit packets per IP\n/' /etc/ufw/before.rules
-				sed -i '91s/.*/-A ufw-http -m recent --name pack_per_ip --set\n/' /etc/ufw/before.rules
-				sed -i '92s/.*/-A ufw-http -m recent --name pack_per_ip --update --seconds 1 --hitcount 20 -j ufw-http-logdrop\n/' /etc/ufw/before.rules
-				sed -i '93s/.*/\n/' /etc/ufw/before.rules
-				sed -i '94s/.*/# Finally accept\n/' /etc/ufw/before.rules
-				sed -i '95s/.*/-A ufw-http -j ACCEPT\n/' /etc/ufw/before.rules
-				sed -i '96s/.*/\n/' /etc/ufw/before.rules
-				sed -i '97s/.*/# Log\n/' /etc/ufw/before.rules
-				sed -i '98s/.*/-A ufw-http-logdrop -m limit --limit 3\/min --limit-burst 10 -j LOG --log-prefix \"[UFW HTTP DROP] \"\n/' /etc/ufw/before.rules
-				sed -i '99s/.*/-A ufw-http-logdrop -j DROP\n/' /etc/ufw/before.rules
-				sed -i '100s/.*/\n/' /etc/ufw/before.rules
-				sed -i '101s/.*/### End HTTP ###\n/' /etc/ufw/before.rules
-				sed -i '102s/.*/\n/' /etc/ufw/before.rules
-				sed -i '103s/.*/-A INPUT -p icmp -m limit --limit 6\/s --limit-burst 1 -j ACCEPT/' /etc/ufw/before.rules
-				sed -i '104s/.*/-A INPUT -p icmp -j DROP/' /etc/ufw/before.rules
-				service apache2 restart
-				echo "- UFW configured for use on a web server" >>~/Desktop/logs/changelog.log
-				echo "Type anything to continue"
-				read -r timeCheck
-				echo "####Configuring Apache2 config file####"
-				sed -i '92s/.*/Timeout 100/' /etc/apache2/apache2.conf
-				sed -i '98s/.*/KeepAlive On/' /etc/apache2/apache2.conf
-				sed -i '126s/.*/HostnameLookups On/' /etc/apache2/apache2.conf
-				sed -i '105s/.*/MaxKeepAliveRequests 75/' /etc/apache2/apache2.conf
-				{
-					echo "<IfModule mod_headers.c>"
-					"Header always append X-Frame-Options SAMEORIGIN"
-					"</IfModule>"
-					"FileETag None"
-					"TraceEnable off"
-				} >>/etc/apache2/apache2.conf
-				chown -R 750 /etc/apache2/bin /etc/apache2/conf
-				chmod 511 /usr/sbin/apache2
-				chmod 750 /var/log/apache2/
-				chmod 750 /etc/apache2/conf/
-				chmod 640 /etc/apache2/conf/*
-				chgrp -R "$mainUser" /etc/apache2/conf
-				chmod -R 444 /var/www
-				/etc/init.d/apache2 restart
-				echo "- Apache2 installed, configured, and http(s) allowed" >>~/Desktop/logs/changelog.log
-				echo "Type anything to continue"
-				read -r timeCheck
-			fi
-		elif [[ $webYN == "no" ]]; then
-			apt-get purge nginx -y -qq
-			apt-get purge nginx-common -y -qq
-			apt-get purge nginx-core -y -qq
-			echo "- NGINX removed from the machine" >>~/Desktop/logs/changelog.log
-			ufw deny http
-			ufw deny https
+	echo "#########Is this machine a web server?#########"
+	read -r webYN
+	if [[ $webYN == "yes" ]]; then
+		echo "*********Apache2 or NGINX? (If unsure, choose Apache2) (Case sensitive)*********"
+		read -r webserviceYN
+		if [[ $webserviceYN == "NGINX" ]]; then
 			apt-get purge apache2 -y -qq
 			apt-get purge apache2-bin -y -qq
 			apt-get purge apache2-utils -y -qq
 			apt-get purge libapache2-mod-evasive -y -qq
 			apt-get purge libapache2-mod-security2 -y -qq
-			rm -r /var/www/*
-			echo "- Apache2 removed and http(s) blocked" >>~/Desktop/logs/changelog.log
+			echo "- Apache2 removed" >>~/Desktop/logs/changelog.log
+			apt-get install nginx -y -qq
+			ufw allow http
+			ufw allow https
+			echo "- NGINX installed" >>~/Desktop/logs/changelog.log
 			echo "Type anything to continue"
 			read -r timeCheck
-		fi
-
-		echo "*********Is this machine an email server?*********"
-		read -r emailYN
-		if [[ $emailYN == "yes" ]]; then
-			ufw allow smtp
-			ufw allow pop2
-			ufw allow pop3
-			ufw allow imap2
-			ufw allow imaps
-			ufw allow pop3s
-			apt-get install postfix -y -qq
-			usermod -aG mail "$mainUser"
-			usermod -aG mail "$(whoami)"
-
-			echo "#########Starting Postfix#########"
-			cp /usr/share/postfix/main.cf.debian /etc/postfix/main.cf
-			postconf -e disable_vrfy_command=yes
-			service postfix reload
-			chmod 755 /etc/postfix
-			chmod 644 /etc/postfix/*.cf
-			chmod 755 /etc/postfix/postfix-script*
-			chmod 755 /var/spool/postfix
-			chown root:root /var/log/mail*
-			chmod 600 /var/log/mail*
-			service postfix restart
-			echo "- Postfix started" >>~/Desktop/logs/changelog.log
-
-			apt-get install mailutils
-			service postifx restart
+		elif [[ $webserviceYN == "Apache2" ]]; then
+			apt-get purge nginx -y -qq
+			apt-get purge nginx-common -y -qq
+			apt-get purge nginx-core -y -qq
+			echo "- NGINX removed from the machine" >>~/Desktop/logs/changelog.log
+			apt-get install apache2 -y -qq
+			apt-get install apache2-utils -y -qq
+			apt-get install libapache2-mod-evasive -y -qq
+			apt-get install libapache2-mod-security2 -y -qq
 			echo "Type anything to continue"
 			read -r timeCheck
-		elif [[ $emailYN == "no" ]]; then
-			ufw deny smtp
-			ufw deny pop2
-			ufw deny pop3
-			ufw deny imap2
-			ufw deny imaps
-			ufw deny pop3s
-			apt-get purge postfix -y -qq
-			apt-get purge dovecot-* -y -qq
+			echo "*********Is PHP used on this web server?*********"
+			read -r phpYN
+			if [[ $phpYN == "yes" ]]; then
+				echo "####Installing PHP 7.2####"
+				apt-get install php7.2 -y -qq
+				echo "###Configuring php.ini####"
+				cp /etc/php/7.2/apache2/php.ini ~/Desktop/logs/backups/
+				{
+					echo "safe_mode = On"
+					"safe_mode_gid = On"
+					"sql.safe_mode=On"
+					"register_globals = Off"
+				} >>/etc/php/7.2/apache2/php.ini
+				sed -i '530s/.*/track_errors = Off/' /etc/php/7.2/apache2/php.ini
+				sed -i '547s/.*/html_errors = Off/' /etc/php/7.2/apache2/php.ini
+				sed -i '310s/.*/disable_functions = php_uname, getmyuid, getmypid, passthru, leak, listen, diskfreespace, tmpfile, link, ignore_user_abord, shell_exec, dl, set_time_limit, exec, system, highlight_file, source, show_source, fpaththru, virtual, posix_ctermid, posix_getcwd, posix_getegid, posix_geteuid, posix_getgid, posix_getgrgid, posix_getgrnam, posix_getgroups, posix_getlogin, posix_getpgid, posix_getpgrp, posix_getpid, posix, _getppid, posix_getpwnam, posix_getpwuid, posix_getrlimit, posix_getsid, posix_getuid, posix_isatty, posix_kill, posix_mkfifo, posix_setegid, posix_seteuid, posix_setgid, posix_setpgid, posix_setsid, posix_setuid, posix_times, posix_ttyname, posix_uname, proc_open, proc_close, proc_get_status, proc_nice, proc_terminate, phpinfo/' /etc/php/7.2/apache2/php.ini
+				sed -i '833s/.*/allow_url_fopen = Off/' /etc/php/7.2/apache2/php.ini
+				sed -i '837s/.*/allow_url_include = Off/' /etc/php/7.2/apache2/php.ini
+				sed -i '818s/.*/upload_tmp_dir = /var/php_tmp/' /etc/php/7.2/apache2/php.ini
+				sed -i '380s/.*/max_execution_time = 10/' /etc/php/7.2/apache2/php.ini
+				sed -i '390s/.*/max_input_time = 30/' /etc/php/7.2/apache2/php.ini
+				sed -i '401s/.*/memory_limit = 40M/' /etc/php/7.2/apache2/php.ini
+				sed -i '669s/.*/post_max_size=1K/' /etc/php/7.2/apache2/php.ini
+				sed -i '1412s/.*/session.cookie_httponly = 1/' /etc/php/7.2/apache2/php.ini
+				service apache2 restart
+				echo "- Configured PHP 7.2 for use on a web server" >>~/Desktop/logs/changelog.log
+				echo "Type anything to continue"
+				read -r timeCheck
+			fi
+
+			ufw allow http
+			ufw allow https
+			systemctl restart apache2
+			echo "####Configuring ufw for web servers####"
+			cp /etc/ufw/before.rules ~/Desktop/logs/backups/
+			sed -i '12s/$/\n/' /etc/ufw/before.rules
+			sed -i '13s/.*/:ufw-http - [0:0]\n/' /etc/ufw/before.rules
+			sed -i '14s/.*/:ufw-http-logdrop - [0:0]/' /etc/ufw/before.rules
+			sed -i '76s/$/\n/' /etc/ufw/before.rules
+			sed -i '77s/.*/### Start HTTP ###\n/' /etc/ufw/before.rules
+			sed -i '78s/.*/\n/' /etc/ufw/before.rules
+			sed -i '79s/.*/# Enter rule\n/' /etc/ufw/before.rules
+			sed -i '80s/.*/-A ufw-before-input -p tcp --dport 80 -j ufw-http\n/' /etc/ufw/before.rules
+			sed -i '81s/.*/-A ufw-before-input -p tcp --dport 443 -j ufw-http\n/' /etc/ufw/before.rules
+			sed -i '82s/.*/\n/' /etc/ufw/before.rules
+			sed -i '83s/.*/# Limit connections per Class C\n/' /etc/ufw/before.rules
+			sed -i '84s/.*/-A ufw-http -p tcp --syn -m connlimit --connlimit-above 50 --connlimit-mask 24 -j ufw-http-logdrop\n/' /etc/ufw/before.rules
+			sed -i '85s/.*/\n/' /etc/ufw/before.rules
+			sed -i '86s/.*/# Limit connections per IP\n/' /etc/ufw/before.rules
+			sed -i '87s/.*/-A ufw-http -m state --state NEW -m recent --name conn_per_ip --set\n/' /etc/ufw/before.rules
+			sed -i '88s/.*/-A ufw-http -m state --state NEW -m recent --name conn_per_ip --update --seconds 10 --hitcount 20 -j ufw-http-logdrop\n/' /etc/ufw/before.rules
+			sed -i '89s/.*/\n/' /etc/ufw/before.rules
+			sed -i '90s/.*/# Limit packets per IP\n/' /etc/ufw/before.rules
+			sed -i '91s/.*/-A ufw-http -m recent --name pack_per_ip --set\n/' /etc/ufw/before.rules
+			sed -i '92s/.*/-A ufw-http -m recent --name pack_per_ip --update --seconds 1 --hitcount 20 -j ufw-http-logdrop\n/' /etc/ufw/before.rules
+			sed -i '93s/.*/\n/' /etc/ufw/before.rules
+			sed -i '94s/.*/# Finally accept\n/' /etc/ufw/before.rules
+			sed -i '95s/.*/-A ufw-http -j ACCEPT\n/' /etc/ufw/before.rules
+			sed -i '96s/.*/\n/' /etc/ufw/before.rules
+			sed -i '97s/.*/# Log\n/' /etc/ufw/before.rules
+			sed -i '98s/.*/-A ufw-http-logdrop -m limit --limit 3\/min --limit-burst 10 -j LOG --log-prefix \"[UFW HTTP DROP] \"\n/' /etc/ufw/before.rules
+			sed -i '99s/.*/-A ufw-http-logdrop -j DROP\n/' /etc/ufw/before.rules
+			sed -i '100s/.*/\n/' /etc/ufw/before.rules
+			sed -i '101s/.*/### End HTTP ###\n/' /etc/ufw/before.rules
+			sed -i '102s/.*/\n/' /etc/ufw/before.rules
+			sed -i '103s/.*/-A INPUT -p icmp -m limit --limit 6\/s --limit-burst 1 -j ACCEPT/' /etc/ufw/before.rules
+			sed -i '104s/.*/-A INPUT -p icmp -j DROP/' /etc/ufw/before.rules
+			service apache2 restart
+			echo "- UFW configured for use on a web server" >>~/Desktop/logs/changelog.log
 			echo "Type anything to continue"
 			read -r timeCheck
-		fi
-
-		echo "*********Is this machine a DNS server?*********"
-		read -r DNSYN
-		if [[ $DNSYN == "yes" ]]; then
-			apt-get install bind9
-			named-checkzone test.com. /var/cache/bind/db.test
+			echo "####Configuring Apache2 config file####"
+			sed -i '92s/.*/Timeout 100/' /etc/apache2/apache2.conf
+			sed -i '98s/.*/KeepAlive On/' /etc/apache2/apache2.conf
+			sed -i '126s/.*/HostnameLookups On/' /etc/apache2/apache2.conf
+			sed -i '105s/.*/MaxKeepAliveRequests 75/' /etc/apache2/apache2.conf
 			{
-				echo "zone \"test.com.\" {"
-				echo "\o011type master;"
-				echo "\o011file \"db.test\";"
-				echo "};"
-			} >>/etc/bind/named.conf.default-zones
-			systemctl restart bind9
+				echo "<IfModule mod_headers.c>"
+				"Header always append X-Frame-Options SAMEORIGIN"
+				"</IfModule>"
+				"FileETag None"
+				"TraceEnable off"
+			} >>/etc/apache2/apache2.conf
+			chown -R 750 /etc/apache2/bin /etc/apache2/conf
+			chmod 511 /usr/sbin/apache2
+			chmod 750 /var/log/apache2/
+			chmod 750 /etc/apache2/conf/
+			chmod 640 /etc/apache2/conf/*
+			chgrp -R "$mainUser" /etc/apache2/conf
+			chmod -R 444 /var/www
+			/etc/init.d/apache2 restart
+			echo "- Apache2 installed, configured, and http(s) allowed" >>~/Desktop/logs/changelog.log
 			echo "Type anything to continue"
 			read -r timeCheck
 		fi
+	elif [[ $webYN == "no" ]]; then
+		apt-get purge nginx -y -qq
+		apt-get purge nginx-common -y -qq
+		apt-get purge nginx-core -y -qq
+		echo "- NGINX removed from the machine" >>~/Desktop/logs/changelog.log
+		ufw deny http
+		ufw deny https
+		apt-get purge apache2 -y -qq
+		apt-get purge apache2-bin -y -qq
+		apt-get purge apache2-utils -y -qq
+		apt-get purge libapache2-mod-evasive -y -qq
+		apt-get purge libapache2-mod-security2 -y -qq
+		rm -r /var/www/*
+		echo "- Apache2 removed and http(s) blocked" >>~/Desktop/logs/changelog.log
+		echo "Type anything to continue"
+		read -r timeCheck
+	fi
+
+	echo "*********Is this machine an email server?*********"
+	read -r emailYN
+	if [[ $emailYN == "yes" ]]; then
+		ufw allow smtp
+		ufw allow pop2
+		ufw allow pop3
+		ufw allow imap2
+		ufw allow imaps
+		ufw allow pop3s
+		apt-get install postfix -y -qq
+		usermod -aG mail "$mainUser"
+		usermod -aG mail "$(whoami)"
+
+		echo "#########Starting Postfix#########"
+		cp /usr/share/postfix/main.cf.debian /etc/postfix/main.cf
+		postconf -e disable_vrfy_command=yes
+		service postfix reload
+		chmod 755 /etc/postfix
+		chmod 644 /etc/postfix/*.cf
+		chmod 755 /etc/postfix/postfix-script*
+		chmod 755 /var/spool/postfix
+		chown root:root /var/log/mail*
+		chmod 600 /var/log/mail*
+		service postfix restart
+		echo "- Postfix started" >>~/Desktop/logs/changelog.log
+
+		apt-get install mailutils
+		service postifx restart
+		echo "Type anything to continue"
+		read -r timeCheck
+	elif [[ $emailYN == "no" ]]; then
+		ufw deny smtp
+		ufw deny pop2
+		ufw deny pop3
+		ufw deny imap2
+		ufw deny imaps
+		ufw deny pop3s
+		apt-get purge postfix -y -qq
+		apt-get purge dovecot-* -y -qq
+		echo "Type anything to continue"
+		read -r timeCheck
+	fi
+
+	echo "*********Is this machine a DNS server?*********"
+	read -r DNSYN
+	if [[ $DNSYN == "yes" ]]; then
+		apt-get install bind9
+		named-checkzone test.com. /var/cache/bind/db.test
+		{
+			echo "zone \"test.com.\" {"
+			echo "\o011type master;"
+			echo "\o011file \"db.test\";"
+			echo "};"
+		} >>/etc/bind/named.conf.default-zones
+		systemctl restart bind9
+		echo "Type anything to continue"
+		read -r timeCheck
 	fi
 }
 
@@ -1426,10 +1425,6 @@ end() {
 		echo "- 'sudo nmap -v -sS localhost' to check open ports"
 	} >>~/Desktop/to-do.txt
 }
-
-if [[ "$(date)" == *"Sat Jan  23"* ]]; then
-	echo "Happy Competition Day :D! Good luck and don't mess up!"
-fi
 
 echo "Type 'safe' to enter safe mode and anything else to continue"
 read -r safecheck
