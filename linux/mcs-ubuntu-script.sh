@@ -1,6 +1,6 @@
 #!/bin/bash
 clear
-echo "MCS Ubuntu Script v8.0 Updated 1/22/2021 at 9:36pm EST"
+echo "MCS Ubuntu Script v9.0 Updated 1/27/2021 at 9:14pm EST"
 echo "Created by Massimo Marino"
 
 if [[ "$(whoami)" != root ]]; then
@@ -1578,6 +1578,84 @@ second_time_failsafe() {
 
 }
 
+clean () {
+	iptables -P INPUT DROP
+	rkhunter --propupd
+	sysctl -p
+	systemctl daemon-reload
+	update-grub
+	ufw reload
+	service ssh restart
+	service auditd restart
+	apt-get update
+	apt-get upgrade
+	apt-get autoremove -y -qq
+	apt-get autoclean -y -qq
+	apt-get clean -y -qq
+}
+
+audit () {
+	#run rkhunter
+	rkhunter --check --vl --sk
+	cp /var/log/rkhunter.log ~/Desktop/logs
+	chmod 777 ~/Desktop/logs/rkhunter.log
+
+	#run lynis
+	lynis audit system
+	cp /var/log/lynis.log ~/Desktop/logs
+	chmod 777 ~/Desktop/logs/lynis.log
+
+	echo
+	echo "#########Bash Vulnerability Test#########"
+	env i='() { :;}; echo Your system is Bash vulnerable' bash -c "echo Bash vulnerability test"
+	echo "*********Is Bash vulnerable? (Will say 'Your system is bash vulnerable')*********"
+	read -r bashvulnYN
+	if [[ $bashvulnYN == "yes" ]]; then
+		apt-get update && apt-get install --only-upgrade bash
+	fi
+}
+
+end() {
+	echo "#########Installing other packages#########"
+	echo "####PortSentry (Network manager)####"
+	apt-get install portsentry -y -qq
+	echo "####needrestart (check if a restart is needed)####"
+	apt-get install needrestart -y -qq
+
+	echo "#########Creating symbolic link to /var/log/ in logs folder on Desktop#########"
+	ln -s /var/log/ ~/Desktop/logs/servicelogs
+	touch ~/Desktop/logs/logs_to_check.txt
+	chmod 777 ~/Desktop/logs/logs_to_check.txt
+	{
+		echo "Logs to check often:"
+		echo "/var/log/messages - The main system logs or current activity logs are available."
+		echo "/var/log/auth.log - Authentication logs"
+		echo "/var/log/kern.log - Kernel logs"
+		echo "/var/log/cron.log - Crond logs (cron job)"
+		echo "/var/log/maillog - Mail server logs"
+		echo "/var/log/boot.log - System boot log"
+		echo "/var/log/mysqld.log - MySQL database server log file"
+		echo "/var/log/secure - Authentication log"
+		echo "/var/log/ufw.log - Firewall log"
+		echo "/var/log/utmp or /var/log/wtmp - Login records file."
+		echo "Execute 'sudo logwatch | less' to see an overview of all important log files"
+	} >>~/Desktop/logs/logs_to_check.txt
+	echo "- Created symbolic link to \/var\/log\/ in logs folder on Desktop" >>~/Desktop/logs/changelog.log
+
+	touch ~/Desktop/to-do.txt
+	chmod 777 ~/Desktop/to-do.txt
+	{
+		echo "Manual changes:"
+		echo "- Check for backdoors (netstat -anp | grep LISTEN | grep -v STREAM)"
+		echo "- Check for malicious packages that might still be installed (dpkg -l | grep <keyword> (i.e. crack))"
+		echo "- Make sure updates are checked for daily and update Ubuntu according to the ReadMe"
+		echo "- 'sudo nmap -v -sS localhost' to check open ports"
+	} >>~/Desktop/to-do.txt
+
+	echo "$timeCheck"
+	echo "Script done! Good luck :D"
+}
+
 failsafe=~/Desktop/logs/changelog.log
 if [[ -f "$failsafe" ]]; then
 	echo "This script is detected as being run for more than one time"
@@ -1614,18 +1692,6 @@ if [[ -f "$failsafe" ]]; then
 	fi
 fi
 
-end() {
-	touch ~/Desktop/to-do.txt
-	chmod 777 ~/Desktop/to-do.txt
-	{
-		echo "Manual changes:"
-		echo "- Check for backdoors (netstat -anp | grep LISTEN | grep -v STREAM)"
-		echo "- Check for malicious packages that might still be installed (dpkg -l | grep <keyword> (i.e. crack))"
-		echo "- Make sure updates are checked for daily and update Ubuntu according to the ReadMe"
-		echo "- 'sudo nmap -v -sS localhost' to check open ports"
-	} >>~/Desktop/to-do.txt
-}
-
 echo "Type 'safe' to enter safe mode and anything else to continue"
 read -r safecheck
 if [[ $safecheck == "safe" ]]; then
@@ -1634,7 +1700,7 @@ if [[ $safecheck == "safe" ]]; then
 	second_time_failsafe
 fi
 
-#Calls for functions to run through individual portions of the script"
+#Calls for functions to run through individual portions of the script
 first_time_initialize
 packages
 general_config
@@ -1644,75 +1710,9 @@ hacking_tools
 file_config
 user_auditing
 media_files
-
-#reload certain services/packages and clean up machine
-iptables -P INPUT DROP
-rkhunter --propupd
-sysctl -p
-systemctl daemon-reload
-update-grub
-service ssh restart
-service auditd restart
-apt-get update
-apt-get upgrade
-apt-get autoremove -y -qq
-apt-get autoclean -y -qq
-apt-get clean -y -qq
-echo "Type anything to continue"
-read -r timeCheck
-
-#run rkhunter
-rkhunter --check --vl --sk
-cp /var/log/rkhunter.log ~/Desktop/logs
-chmod 777 ~/Desktop/logs/rkhunter.log
-
-#run lynis
-lynis audit system
-cp /var/log/lynis.log ~/Desktop/logs
-chmod 777 ~/Desktop/logs/lynis.log
-
-echo "#########Installing other packages#########"
-echo "####PortSentry (Network manager)####"
-apt-get install portsentry -y -qq
-echo "####needrestart (check if a restart is needed)####"
-apt-get install needrestart -y -qq
-
-echo
-echo "#########Bash Vulnerability Test#########"
-env i='() { :;}; echo Your system is Bash vulnerable' bash -c "echo Bash vulnerability test"
-echo "*********Is Bash vulnerable? (Will say 'Your system is bash vulnerable')*********"
-read -r bashvulnYN
-if [[ $bashvulnYN == "yes" ]]; then
-	apt-get update && apt-get install --only-upgrade bash
-fi
-
-echo "#########Creating symbolic link to /var/log/ in logs folder on Desktop#########"
-ln -s /var/log/ ~/Desktop/logs/servicelogs
-touch ~/Desktop/logs/logs_to_check.txt
-chmod 777 ~/Desktop/logs/logs_to_check.txt
-{
-	echo "Logs to check often:"
-	echo "/var/log/messages - The main system logs or current activity logs are available."
-	echo "/var/log/auth.log - Authentication logs"
-	echo "/var/log/kern.log - Kernel logs"
-	echo "/var/log/cron.log - Crond logs (cron job)"
-	echo "/var/log/maillog - Mail server logs"
-	echo "/var/log/boot.log - System boot log"
-	echo "/var/log/mysqld.log - MySQL database server log file"
-	echo "/var/log/secure - Authentication log"
-	echo "/var/log/ufw.log - Firewall log"
-	echo "/var/log/utmp or /var/log/wtmp - Login records file."
-	echo "Execute 'sudo logwatch | less' to see an overview of all important log files"
-} >>~/Desktop/logs/logs_to_check.txt
-
-echo "- Created symbolic link to \/var\/log\/ in logs folder on Desktop" >>~/Desktop/logs/changelog.log
-
-echo "$timeCheck"
-ufw reload
-
+clean
+audit
 end
-
-echo "Script done! Good luck :D"
 
 clamtk
 
