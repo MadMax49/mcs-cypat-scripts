@@ -65,6 +65,7 @@ packages() {
 	apt-get install rkhunter -y -qq
 	echo "#########AppArmor (Kernel enhancer)#########"
 	apt-get install apparmor -y -qq
+	apt-get install apparmor-utils -y -qq
 	apt-get install apparmor-profiles -y -qq
 	apt-get install apparmor-profiles-extra -y -qq
 	echo "#########IPTables (Network manager/Firewall)#########"
@@ -115,6 +116,8 @@ packages() {
 	apt-get install hardinfo -y -qq
 	echo "#########nmap (network scanner and security monitor)#########"
 	apt-get install nmap -y -qq
+	echo "#########tcpd (traffic manager)#########"
+	apt-get install tcpd -y -qq
 	echo "*********Install VM tools?*********"
 	read -r vmtoolsYN
 	if [[ $vmtoolsYN == "yes" ]]; then
@@ -131,7 +134,7 @@ packages() {
 
 firewall() {
 	echo "#########Configuring firewall (UFW)#########"
-	ufw enable
+	ufw allow proto tcp from any to any port 22
 	ufw deny 1337
 	ufw deny 23
 	ufw deny 2049
@@ -160,9 +163,16 @@ firewall() {
 	ufw deny out 6667/tcp
 	ufw deny out 6668/tcp
 	ufw deny out 6669/tcp
-	ufw default deny
+	ufw default deny incoming
+	ufw default deny outgoing
+	ufw default deny routed
+	ufw allow in on lo
+	ufw deny in from 127.0.0.0/8
+	ufw deny in from ::1
+	ufw allow out on all
 	ufw logging on
 	ufw logging high
+	ufw enable
 	echo "- Firewall configured (Firewall enabled, Ports 1337, 23, 2049, 515, 135, 137, 138, 139, 445, 69, 514, 161, 162, 6660, 6661, 6662, 6663, 6664, 6665, 6666, 6667, 6668, 6669, and 111 denied, Logging on and high)" >>~/Desktop/logs/changelog.log
 	echo "Type anything to continue"
 	read -r timeCheck
@@ -294,7 +304,6 @@ services() {
 		service apache2 restart
 		echo "- Configured PHP 7.2 for use on a web server" >>~/Desktop/logs/changelog.log
 	fi
-	echo "#########Service Auditing#########"
 	echo "*********Is openssh-server a critical service on this machine?*********"
 	read -r sshYN
 	if [[ $sshYN == "yes" ]]; then
@@ -654,9 +663,10 @@ services() {
 		chmod 600 /var/log/mail*
 		service postfix restart
 		echo "- Postfix started" >>~/Desktop/logs/changelog.log
-
+		sed -i '137s/.*/inet_interfaces = loopback-only/' /etc/postfix/main.cf.uname -p
+		service postfix restart 
 		apt-get install mailutils
-		service postifx restart
+		service postfix restart
 		echo "Type anything to continue"
 		read -r timeCheck
 	elif [[ $emailYN == "no" ]]; then
@@ -675,7 +685,7 @@ services() {
 	echo "*********Is this machine a DNS server?*********"
 	read -r DNSYN
 	if [[ $DNSYN == "yes" ]]; then
-		apt-get install bind9
+		apt-get install bind9 -y -qq
 		named-checkzone test.com. /var/cache/bind/db.test
 		{
 			echo "zone \"test.com.\" {"
@@ -686,6 +696,34 @@ services() {
 		systemctl restart bind9
 		echo "Type anything to continue"
 		read -r timeCheck
+	elif [[ $DNSYN == "no" ]]; then
+		systemctl stop bind9
+		apt-get purge bind9 -y -qq
+	fi
+
+	echo "*********Is this machine a proxy server?*********"
+	read -r proxyYN
+	if [[ $proxyYN == "yes" ]]; then
+		apt-get install squid -y -qq
+	elif [[ $proxyYN == "no" ]]; then
+		systemctl --now disable squid
+		apt-get purge squid -y -qq
+	fi
+
+	echo "*********Is this machine an SNMP server?*********"
+	read -r snmpYN
+	if [[ $snmpYN == "yes" ]]; then
+		apt-get install snmpd -y -qq
+	elif [[ $snmpYN == "no" ]]; then
+		apt-get purge snmpd -y -qq
+	fi
+
+	echo "*********Is this machine a CUPS printing server?*********"
+	read -r cupsYN
+	if [[ $cupsYN == "yes" ]]; then
+		apt-get install cups -y -qq
+	elif [[ $cupsYN == "no" ]]; then
+		apt-get purge cups -y -qq
 	fi
 }
 
@@ -768,6 +806,26 @@ general_config() {
 		swapon /swapfile
 		swapon -s
 	fi
+
+	echo "#########Securing sudo#########"
+	echo "Defaults use_pty" >> /etc/sudoers.d/99-snapd.conf
+	if [[ $(grep -Ei '^\s*Defaults\s+logfile=\S+' /etc/sudoers /etc/sudoers.d/*) == "" ]]; then
+		touch /var/log/sudo.log
+		chown root:root /var/log/sudo.log
+		echo "Defaults logfile=\"/var/log/sudo.log\"" >> /etc/sudoers.d/99-snapd.conf
+	fi
+	echo "- Sudo secured (sudo uses pty, log file configured)" >> ~/Desktop/logs/changelog.log
+
+	echo "#########Configuring AppArmor#########"
+	sed -i '11s/.*/GRUB_CMDLINE_LINUX=\"find_preseed=/preseed.cfg auto noprompt priority=critical locale=en_US apparmor=1 security=apparmor\"/' /etc/default/grub
+	aa-enforce /etc/apparmor.d/*
+	echo "- Apparmor configured" >> ~/Desktop/logs/changelog.log
+	
+	echo "#########Setting time correct#########"
+	systemctl start systemd-timesyncd.service
+	timedatectl set-ntp true
+	echo "- Time set to standard" >> ~/Desktop/logs/changelog.log
+
 	echo "Type anything to continue"
 	read -r timeCheck
 }
@@ -861,6 +919,10 @@ hacking_tools() {
 	apt-get purge rsh -y -qq
 	apt-get purge rsh-server -y -qq
 
+	echo "Removing Prelink"
+	prelink -ua
+	apt-get purge prelink -y -qq
+
 	echo "Removing packages that can potentially contribute to backdoors"
 	apt-get purge backdoor-factory -y -qq
 	apt-get purge shellinabox -y -qq
@@ -869,16 +931,11 @@ hacking_tools() {
 	echo 'manual' >/etc/init/atd.override
 	apt-get purge at -y -qq
 
-	echo "Disabling Avahi"
-	cd /etc/init || exit
-	touch avahi-daemon.override
-	echo "manual" >avahi-daemon.override
-	cd || exit
-
 	echo "Disabling Modemmanager"
 	echo "manual" >/etc/init/modemmanager.override
 
 	echo "Disabling Wireless"
+	nmcli radio all off
 	sed -i '1 i\iface wlan0 inet manual' /etc/network/interfaces
 
 	echo "#########Disabling unused compilers#########"
@@ -891,16 +948,105 @@ hacking_tools() {
 	chmod 000 /usr/bin/*c++
 	chmod 000 /usr/bin/*g++
 
+	echo "#########Removing xinetd#########"
+	apt-get purge xinetd -y -qq
+
+	echo "#########Removing openbsd-inetd#########"
+	apt-get purge openbsd-inetd
+
+	echo "#########Removing Talk#########"
+	apt-get purge talk -y -qq
+
+	echo "#########Removing uneeded special services#########"
+	apt purge xserver-xorg*
+	systemctl --now disable avahi-daemon
+	systemctl --now disable isc-dhcp-server #comment if dhcp server
+	systemctl --now disable isc-dhcp-server6
+	systemctl --now disable slapd #comment if ldap server
+	apt-get purge ldap-utils
+	apt-get purge openldap-clients
+	apt-get purge slapd -y -qq
+	systemctl --now disable nfs-server
+	apt-get purge nfs-server -y -qq
+	systemctl --now disable rpcbind
+	apt-get purge rpcbind -y -qq
+	systemctl --now disable rsync
+	apt-get purge rsync -y -qq
+	systemctl --now disable nis
+	apt-get purge nis -y -qq
+
+	echo "#########Removing auto-mounting#########"
+	apt-get purge autofs -y -qq
+
 	echo "#########Cleaning up Packages#########"
 	apt-get autoremove -y -qq
 	apt-get autoclean -y -qq
 	apt-get clean -y -qq
-	echo "- Removed netcat, CeWl, Medusa, Wfuzz, Hashcat, John the Ripper, Hydra, Aircrack-NG, FCrackZIP, LCrack, OphCrack, Pyrit, rarcrack, SipCrack, NFS, VNC, and cleaned up packages" >>~/Desktop/logs/changelog.log
+	echo "- Removed netcat, CeWl, Medusa, autofs, Prelink, Wfuzz, Hashcat, John the Ripper, Hydra, Aircrack-NG, FCrackZIP, LCrack, OphCrack, Pyrit, rarcrack, SipCrack, NFS, VNC, and cleaned up packages" >>~/Desktop/logs/changelog.log
 	echo "Type anything to continue"
 	read -r timeCheck
 }
 
 file_config() {
+
+	echo "#########Configuring hosts files#########"
+	echo "ALL: ALL" >> /etc/hosts.deny
+	chown root:root /etc/hosts.allow
+	chmod 644 /etc/hosts.allow
+	chown root:root /etc/hosts.deny
+	chmod 644 /etc/hosts.deny
+
+	echo "#########Disabling Uncommon Network protocols and file system configurations#########"
+	touch /etc/modprobe.d/dccp.conf  
+	chmod 644 /etc/modprobe.d/dccp.conf  
+	echo "install dccp /bin/true" > /etc/modprobe.d/dccp.conf 
+	touch /etc/modprobe.d/sctp.conf  
+	chmod 644 /etc/modprobe.d/sctp.conf  
+	echo "install sctp /bin/true" > /etc/modprobe.d/sctp.conf 
+	touch /etc/modprobe.d/rds.conf  
+	chmod 644 /etc/modprobe.d/rds.conf  
+	echo "install rds /bin/true" > /etc/modprobe.d/rds.conf
+	touch /etc/modprobe.d/tipc.conf  
+	chmod 644 /etc/modprobe.d/tipc.conf  
+	echo "install tipc /bin/true" > /etc/modprobe.d/tipc.conf      
+	touch /etc/modprobe.d/cramfs.conf  
+	chmod 644 /etc/modprobe.d/cramfs.conf  
+	echo "install cramfs /bin/true" > /etc/modprobe.d/cramfs.conf  
+	rmmod cramfs
+	touch /etc/modprobe.d/freevxfs.conf  
+	chmod 644 /etc/modprobe.d/freevxfs.conf  
+	echo "install freevxfs /bin/true" > /etc/modprobe.d/freevxfs.conf  
+	rmmod freevxfs
+	touch /etc/modprobe.d/jffs2.conf  
+	chmod 644 /etc/modprobe.d/jffs2.conf  
+	echo "install jffs2 /bin/true" > /etc/modprobe.d/jffs2.conf  
+	rmmod jffs2
+	touch /etc/modprobe.d/hfs.conf  
+	chmod 644 /etc/modprobe.d/hfs.conf  
+	echo "install hfs /bin/true" > /etc/modprobe.d/hfs.conf  
+	rmmod hfs
+	touch /etc/modprobe.d/hfsplus.conf  
+	chmod 644 /etc/modprobe.d/hfsplus.conf  
+	echo "install hfsplus /bin/true" > /etc/modprobe.d/hfsplus.conf  
+	rmmod hfsplus
+	touch /etc/modprobe.d/squashfs.conf  
+	chmod 644 /etc/modprobe.d/squashfs.conf  
+	echo "install squashfs /bin/true" > /etc/modprobe.d/squashfs.conf  
+	rmmod squashfs
+	touch /etc/modprobe.d/udf.conf  
+	chmod 644 /etc/modprobe.d/udf.conf  
+	echo "install udf /bin/true" > /etc/modprobe.d/udf.conf  
+	rmmod udf
+	touch /etc/modprobe.d/vfat.conf  
+	chmod 644 /etc/modprobe.d/vfat.conf  
+	echo "install vfat /bin/true" > /etc/modprobe.d/vfat.conf  
+	rmmod vfat
+	touch /etc/modprobe.d/usb-storage.conf  
+	chmod 644 /etc/modprobe.d/usb-storage.conf  
+	echo "install usb-storage /bin/true" > /etc/modprobe.d/usb-storage.conf  
+	rmmod usb-storage
+	echo "- dccp, sctp, rds, tipc network protocols disabled" >> ~/Desktop/logs/changelog.log
+	echo "- cramfs, freevxfs, jffs2, hfs, hfsplus, squashfs, udf, and vfat filesystems disabled" >> ~/Desktop/logs/changelog.log
 
 	echo "#########Disabling IRQ Balance#########"
 	echo "ENABLED=\"0\"" >>/etc/default/irqbalance
@@ -946,8 +1092,26 @@ file_config() {
 	echo "#########Securing Shared Memory#########"
 	cp /etc/fstab ~/Desktop/logs/backups/
 	echo "tmpfs\o011\o011/run/shm\o011tmpfs\o011defaults,noexec,nosuid 0       0" >>/etc/fstab
-	mount -a
 	echo "- Shared memory secured in  /etc/fstab" >>~/Desktop/logs/changelog.log
+
+	echo "########Creating /tmp partition#########"
+	echo "tmpfs\o011 /tmp\o011\o011 tmpfs\o011 defaults,rw,nosuid,nodev,noexec,relatime 0\o011 0">> /etc/fstab
+	touch /etc/systemd/system/tmp.mount 
+	chmod 644 /etc/systemd/system/tmp.mount
+	cp /run/systemd/generator/tmp.mount /etc/systemd/system/tmp.mount
+	{
+		echo "[Install]"
+		echo "WantedBy=local-fs.target"
+	} >> /etc/systemd/system/tmp.mount
+	systemctl unmask tmp.mount
+	systemctl enable tmp.mount
+	echo "- /tmp partition created and enabled" >> ~/Desktop/logs/changelog.log
+
+	echo "#########Setting 'sticky bits'#########"
+	if [[ $(df --local -P | awk '{if (NR!=1) print $6}' | xargs -I '{}' find '{}' -xdev -type d \( -perm -0002 -a ! -perm -1000 \) 2>/dev/null) != "" ]]; then
+		df --local -P | awk '{if (NR!=1) print $6}' | xargs -I '{}' find '{}' -xdev -type d \( -perm -0002 -a ! -perm -1000 \) 2>/dev/null | xargs -I '{}' chmod a+t '{}'
+	fi
+	echo "- Sticky bits set for /tmp" >> ~/Desktop/logs/changelog.log
 
 	echo "#########Managing file permissions for /etc/securetty#########"
 	chown root:root /etc/securetty
@@ -978,6 +1142,17 @@ file_config() {
 	sed -i '68s/.*/kernel.sysrq=0/' /etc/sysctl.conf
 	sed -i '76s/.*/fs.protected_hardlinks=1/' /etc/sysctl.conf
 	sed -i '77s/.*/fs.protected_symlinks=1/' /etc/sysctl.conf
+	{
+		echo "kernel.randomize_va_space = 2"
+		echo "net.ipv4.conf.default.accept_source_route = 0"
+		echo "net.ipv6.conf.default.accept_source_route = 0"
+		echo "net.ipv4.conf.default.accept_redirects = 0"
+		echo "net.ipv6.conf.default.accept_redirects = 0"
+		echo "net.ipv4.conf.default.secure_redirects = 0"
+		echo "net.ipv4.conf.all.log_martians = 1"
+		echo "net.ipv6.conf.all.accept_ra = 0"
+		echo "net.ipv6.conf.default.accept_ra = 0"
+	} >> /etc/sysctl.conf
 	echo "Type anything to continue"
 	read -r timeCheck
 	echo "*********Should IPv6 be disabled?*********"
@@ -1032,16 +1207,22 @@ file_config() {
 	service auditd restart
 
 	echo "#########Password Protecting GRUB Bootloader#########"
-	echo "*********Please enter a password for the GRUB Bootloader*********"
-	read -r grubpass
-	echo "*********Please re-enter your password*********"
-	read -r grubpassconfirm
-	if [[ $grubpass == "$grubpassconfirm" ]]; then
-		echo "password $grubpass" >>/etc/grub.conf
-		echo "GRUB Bootloader password protected" >>~/Desktop/logs/changelog.log
-	else
-		echo "GRUB Bootloader not protected with password" >>~/Desktop/logs/changelog.log
-	fi
+	grub-mkpasswd-pbkdf2
+	chown root:root /boot/grub/grub.cfg
+	chmod og-rwx /boot/grub/grub.cfg
+	echo "*********Please enter the hashed password below*********"
+	read -r grubHash
+	{
+		echo "set superusers=\"root\""
+		echo "password_pbkdf2 root $grubHash"
+	} >> /etc/grub.d/40_custom
+	sed -i '34s/.*/CLASS=\"--class gnu-linux --class gnu --class os --unrestricted\"/' /etc/grub.d/10_linux
+	update-grub
+	echo "- Password set for GRUB Bootloader and GRUB updated" >> ~/Desktop/logs/changelog.log
+
+	echo "#########Setting password for root user#########"
+	passwd root
+	echo "- Password set for root user" >> ~/Desktop/logs/changelog.log
 
 	if [[ "$sqlYN" == "yes" ]]; then
 		echo "#########Checking if MySQL config file exists#########"
@@ -1092,9 +1273,28 @@ file_config() {
 		} >> /etc/mysql/my.cnf
 		chown -R root:root /etc/mysql/
 		chmod 0644 /etc/mysql/my.cnf
-		read -r timeCheck
 	fi
-	read -r timeCheck
+
+	echo "########Configuring Warning Messages and Permissions#########"
+	echo "Authorized uses only. All activity may be monitored and reported." > /etc/issue
+	echo "Authorized uses only. All activity may be monitored and reported." > /etc/issue.net
+	chown root:root /etc/update-motd.d/*
+	chmod u-x,go-wx /etc/update-motd.d/*
+	chown root:root /etc/issue
+	chmod u-x,go-wx /etc/issue
+	chown root:root /etc/issue.net
+	chmod u-x,go-wx /etc/issue.net
+	sed -i '25s/.*/[org\/gnome\/login-screen]/' /etc/gdm3/greeter.dconf-defaults
+	sed -i '28s/.*/banner-message-enable=true\n/' /etc/gdm3/greeter.dconf-defaults
+	sed -i '29s/.*/banner-message-text='\''Authorized uses only. All activity may be monitored and reported.'\''\n/' /etc/gdm3/greeter.dconf-defaults
+	echo "- Warning messages configured so that all references to the OS are removed" >> ~/Desktop/logs/changelog.log
+
+	echo "########Restricting Core Dumps#########"
+	sed -i '45s/.*/*\o011\o011 hard\o011 core\o011\o011 0/' /etc/security/limits.conf
+	echo "fs.suid_dumpable = 0" >> /etc/sysctl.conf
+	echo "- Core dumps restricted" >> ~/Desktop/logs/changelog.log
+
+
 }
 
 media_files() {
@@ -1449,6 +1649,8 @@ media_files
 iptables -P INPUT DROP
 rkhunter --propupd
 sysctl -p
+systemctl daemon-reload
+update-grub
 service ssh restart
 service auditd restart
 apt-get update
