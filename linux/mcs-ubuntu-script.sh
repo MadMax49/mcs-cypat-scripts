@@ -1,6 +1,6 @@
 #!/bin/bash
 clear
-echo "MCS Ubuntu Script v9.0 Updated 1/27/2021 at 9:14pm EST"
+echo "MCS Ubuntu Script v9.2 Updated 1/29/2021 at 12:21am EST"
 echo "Created by Massimo Marino"
 
 if [[ "$(whoami)" != root ]]; then
@@ -134,7 +134,7 @@ packages() {
 
 firewall() {
 	echo "#########Configuring firewall (UFW)#########"
-	ufw allow proto tcp from any to any port 22
+	#ufw allow proto tcp from any to any port 22
 	ufw deny 1337
 	ufw deny 23
 	ufw deny 2049
@@ -166,10 +166,10 @@ firewall() {
 	ufw default deny incoming
 	ufw default deny outgoing
 	ufw default deny routed
-	ufw allow in on lo
-	ufw deny in from 127.0.0.0/8
-	ufw deny in from ::1
-	ufw allow out on all
+	# ufw allow in on lo
+	# ufw deny in from 127.0.0.0/8
+	# ufw deny in from ::1
+	# ufw allow out on all
 	ufw logging on
 	ufw logging high
 	ufw enable
@@ -396,7 +396,7 @@ services() {
 		apt-get install samba -y -qq
 		apt-get install system-config-samba -y -qq
 		apt-get install libpam-winbind -y -qq
-		sed -i '221s/.*/;   guest ok = no/' /etc/samba/smb.conf
+		sed -i '221s/.*/\;   guest ok = no/' /etc/samba/smb.conf
 		systemctl restart smbd.service nmbd.service
 		echo "Type anything to continue"
 		read -r timeCheck
@@ -534,16 +534,16 @@ services() {
 				cp /etc/php/7.2/apache2/php.ini ~/Desktop/logs/backups/
 				{
 					echo "safe_mode = On"
-					"safe_mode_gid = On"
-					"sql.safe_mode=On"
-					"register_globals = Off"
+					echo "safe_mode_gid = On"
+					echo "sql.safe_mode=On"
+					echo "register_globals = Off"
 				} >>/etc/php/7.2/apache2/php.ini
 				sed -i '530s/.*/track_errors = Off/' /etc/php/7.2/apache2/php.ini
 				sed -i '547s/.*/html_errors = Off/' /etc/php/7.2/apache2/php.ini
 				sed -i '310s/.*/disable_functions = php_uname, getmyuid, getmypid, passthru, leak, listen, diskfreespace, tmpfile, link, ignore_user_abord, shell_exec, dl, set_time_limit, exec, system, highlight_file, source, show_source, fpaththru, virtual, posix_ctermid, posix_getcwd, posix_getegid, posix_geteuid, posix_getgid, posix_getgrgid, posix_getgrnam, posix_getgroups, posix_getlogin, posix_getpgid, posix_getpgrp, posix_getpid, posix, _getppid, posix_getpwnam, posix_getpwuid, posix_getrlimit, posix_getsid, posix_getuid, posix_isatty, posix_kill, posix_mkfifo, posix_setegid, posix_seteuid, posix_setgid, posix_setpgid, posix_setsid, posix_setuid, posix_times, posix_ttyname, posix_uname, proc_open, proc_close, proc_get_status, proc_nice, proc_terminate, phpinfo/' /etc/php/7.2/apache2/php.ini
 				sed -i '833s/.*/allow_url_fopen = Off/' /etc/php/7.2/apache2/php.ini
 				sed -i '837s/.*/allow_url_include = Off/' /etc/php/7.2/apache2/php.ini
-				sed -i '818s/.*/upload_tmp_dir = /var/php_tmp/' /etc/php/7.2/apache2/php.ini
+				sed -i '818s/.*/upload_tmp_dir = \/var\/php_tmp\/' /etc/php/7.2/apache2/php.ini
 				sed -i '380s/.*/max_execution_time = 10/' /etc/php/7.2/apache2/php.ini
 				sed -i '390s/.*/max_input_time = 30/' /etc/php/7.2/apache2/php.ini
 				sed -i '401s/.*/memory_limit = 40M/' /etc/php/7.2/apache2/php.ini
@@ -603,10 +603,10 @@ services() {
 			sed -i '105s/.*/MaxKeepAliveRequests 75/' /etc/apache2/apache2.conf
 			{
 				echo "<IfModule mod_headers.c>"
-				"Header always append X-Frame-Options SAMEORIGIN"
-				"</IfModule>"
-				"FileETag None"
-				"TraceEnable off"
+				echo "Header always append X-Frame-Options SAMEORIGIN"
+				echo "</IfModule>"
+				echo "FileETag None"
+				echo "TraceEnable off"
 			} >>/etc/apache2/apache2.conf
 			chown -R 750 /etc/apache2/bin /etc/apache2/conf
 			chmod 511 /usr/sbin/apache2
@@ -756,7 +756,7 @@ general_config() {
 	chmod 664 /etc/group
 	chmod 0700 /etc/cups*
 	chmod 0700 /etc/rc*
-	chmod 0700 /etc/init.d*
+	#chmod 0700 /etc/init.d*
 	chmod 0755 /etc/profile
 	chmod 0700 /etc/hosts.allow
 	chmod 0700 /etc/sysctl.conf
@@ -808,16 +808,16 @@ general_config() {
 	fi
 
 	echo "#########Securing sudo#########"
-	echo "Defaults use_pty" >> /etc/sudoers.d/99-snapd.conf
-	if [[ $(grep -Ei '^\s*Defaults\s+logfile=\S+' /etc/sudoers /etc/sudoers.d/*) == "" ]]; then
-		touch /var/log/sudo.log
-		chown root:root /var/log/sudo.log
-		echo "Defaults logfile=\"/var/log/sudo.log\"" >> /etc/sudoers.d/99-snapd.conf
-	fi
+	# echo "Defaults use_pty" >> /etc/sudoers.d/99-snapd.conf
+	# if [[ $(grep -Ei '^\s*Defaults\s+logfile=\S+' /etc/sudoers /etc/sudoers.d/*) == "" ]]; then
+	# 	touch /var/log/sudo.log
+	# 	chown root:root /var/log/sudo.log
+	# 	echo "Defaults logfile=\"/var/log/sudo.log\"" >> /etc/sudoers.d/99-snapd.conf
+	# fi
 	echo "- Sudo secured (sudo uses pty, log file configured)" >> ~/Desktop/logs/changelog.log
 
 	echo "#########Configuring AppArmor#########"
-	sed -i '11s/.*/GRUB_CMDLINE_LINUX=\"find_preseed=/preseed.cfg auto noprompt priority=critical locale=en_US apparmor=1 security=apparmor\"/' /etc/default/grub
+	sed -i '11s/.*/GRUB_CMDLINE_LINUX=\"find_preseed=\/preseed.cfg auto noprompt priority=critical locale=en_US apparmor=1 security=apparmor\"/' /etc/default/grub
 	aa-enforce /etc/apparmor.d/*
 	echo "- Apparmor configured" >> ~/Desktop/logs/changelog.log
 	
@@ -1091,21 +1091,21 @@ file_config() {
 
 	echo "#########Securing Shared Memory#########"
 	cp /etc/fstab ~/Desktop/logs/backups/
-	echo "tmpfs\o011\o011/run/shm\o011tmpfs\o011defaults,noexec,nosuid 0       0" >>/etc/fstab
-	echo "- Shared memory secured in  /etc/fstab" >>~/Desktop/logs/changelog.log
+	echo "tmpfs /run/shm tmpfs defaults,noexec,nosuid 0 0" >>/etc/fstab
+	echo "- Shared memory secured in /etc/fstab" >>~/Desktop/logs/changelog.log
 
-	echo "########Creating /tmp partition#########"
-	echo "tmpfs\o011 /tmp\o011\o011 tmpfs\o011 defaults,rw,nosuid,nodev,noexec,relatime 0\o011 0">> /etc/fstab
-	touch /etc/systemd/system/tmp.mount 
-	chmod 644 /etc/systemd/system/tmp.mount
-	cp /run/systemd/generator/tmp.mount /etc/systemd/system/tmp.mount
-	{
-		echo "[Install]"
-		echo "WantedBy=local-fs.target"
-	} >> /etc/systemd/system/tmp.mount
-	systemctl unmask tmp.mount
-	systemctl enable tmp.mount
-	echo "- /tmp partition created and enabled" >> ~/Desktop/logs/changelog.log
+	# echo "########Creating /tmp partition#########"
+	# echo "tmpfs\o011 /tmp\o011\o011 tmpfs\o011 defaults,rw,nosuid,nodev,noexec,relatime 0\o011 0">> /etc/fstab
+	# touch /etc/systemd/system/tmp.mount 
+	# chmod 644 /etc/systemd/system/tmp.mount
+	# cp /run/systemd/generator/tmp.mount /etc/systemd/system/tmp.mount
+	# {
+	# 	echo "[Install]"
+	# 	echo "WantedBy=local-fs.target"
+	# } >> /etc/systemd/system/tmp.mount
+	# systemctl unmask tmp.mount
+	# systemctl enable tmp.mount
+	# echo "- /tmp partition created and enabled" >> ~/Desktop/logs/changelog.log
 
 	echo "#########Setting 'sticky bits'#########"
 	if [[ $(df --local -P | awk '{if (NR!=1) print $6}' | xargs -I '{}' find '{}' -xdev -type d \( -perm -0002 -a ! -perm -1000 \) 2>/dev/null) != "" ]]; then
