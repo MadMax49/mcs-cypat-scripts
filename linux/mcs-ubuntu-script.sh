@@ -1,6 +1,6 @@
 #!/bin/bash
 clear
-echo "MCS Ubuntu Script v9.2 Updated 1/29/2021 at 12:21am EST"
+echo "MCS Ubuntu Script v10.0 Updated 2/7/2021 at 1:41am EST"
 echo "Created by Massimo Marino"
 
 if [[ "$(whoami)" != root ]]; then
@@ -48,6 +48,7 @@ first_time_initialize() {
 		ufw deny mysql
 		ufw deny mysql-proxy
 		apt-get purge mysql-server -y -qq
+		apt-get purge mysql-client -y -qq
 	fi
 }
 
@@ -118,6 +119,8 @@ packages() {
 	apt-get install nmap -y -qq
 	echo "#########tcpd (traffic manager)#########"
 	apt-get install tcpd -y -qq
+	echo "#########cURL (website thing)#########"
+	apt-get install curl -y -qq
 	echo "*********Install VM tools?*********"
 	read -r vmtoolsYN
 	if [[ $vmtoolsYN == "yes" ]]; then
@@ -127,14 +130,13 @@ packages() {
 		exit 1
 	fi
 	apt-get install --reinstall coreutils -y -qq
-	echo "- Packages firefox, aide, arpwatch, unzip, zip, dos2unix, unattended-upgrades, debsecan, debsums, fail2ban, libpam-tmpdir, apt-get-listchanges, apt-get-show-versions, debian-goodies, apparmor, rkhunter, chkrootkit, iptables, portsentry, lynis, ufw, gufw, libpam-cracklib, auditd, tree, clamav, and clamtk installed; coreutils reinstalled" >>~/Desktop/logs/changelog.log
+	echo "- Packages firefox, aide, curl, arpwatch, unzip, zip, dos2unix, unattended-upgrades, debsecan, debsums, fail2ban, libpam-tmpdir, apt-get-listchanges, apt-get-show-versions, debian-goodies, apparmor, rkhunter, chkrootkit, iptables, portsentry, lynis, ufw, gufw, libpam-cracklib, auditd, tree, clamav, and clamtk installed; coreutils reinstalled" >>~/Desktop/logs/changelog.log
 	echo "Type anything to continue"
 	read -r timeCheck
 }
 
 firewall() {
 	echo "#########Configuring firewall (UFW)#########"
-	#ufw allow proto tcp from any to any port 22
 	ufw deny 1337
 	ufw deny 23
 	ufw deny 2049
@@ -166,10 +168,6 @@ firewall() {
 	ufw default deny incoming
 	ufw default deny outgoing
 	ufw default deny routed
-	# ufw allow in on lo
-	# ufw deny in from 127.0.0.0/8
-	# ufw deny in from ::1
-	# ufw allow out on all
 	ufw logging on
 	ufw logging high
 	ufw enable
@@ -199,61 +197,19 @@ services() {
 		systemctl restart apache2
 		echo "####Configuring ufw for web servers####"
 		cp /etc/ufw/before.rules ~/Desktop/logs/backups/
-		sed -i '12s/$/\n/' /etc/ufw/before.rules
-		sed -i '13s/.*/:ufw-http - [0:0]\n/' /etc/ufw/before.rules
-		sed -i '14s/.*/:ufw-http-logdrop - [0:0]/' /etc/ufw/before.rules
-		sed -i '76s/$/\n/' /etc/ufw/before.rules
-		sed -i '77s/.*/### Start HTTP ###\n/' /etc/ufw/before.rules
-		sed -i '78s/.*/\n/' /etc/ufw/before.rules
-		sed -i '79s/.*/# Enter rule\n/' /etc/ufw/before.rules
-		sed -i '80s/.*/-A ufw-before-input -p tcp --dport 80 -j ufw-http\n/' /etc/ufw/before.rules
-		sed -i '81s/.*/-A ufw-before-input -p tcp --dport 443 -j ufw-http\n/' /etc/ufw/before.rules
-		sed -i '82s/.*/\n/' /etc/ufw/before.rules
-		sed -i '83s/.*/# Limit connections per Class C\n/' /etc/ufw/before.rules
-		sed -i '84s/.*/-A ufw-http -p tcp --syn -m connlimit --connlimit-above 50 --connlimit-mask 24 -j ufw-http-logdrop\n/' /etc/ufw/before.rules
-		sed -i '85s/.*/\n/' /etc/ufw/before.rules
-		sed -i '86s/.*/# Limit connections per IP\n/' /etc/ufw/before.rules
-		sed -i '87s/.*/-A ufw-http -m state --state NEW -m recent --name conn_per_ip --set\n/' /etc/ufw/before.rules
-		sed -i '88s/.*/-A ufw-http -m state --state NEW -m recent --name conn_per_ip --update --seconds 10 --hitcount 20 -j ufw-http-logdrop\n/' /etc/ufw/before.rules
-		sed -i '89s/.*/\n/' /etc/ufw/before.rules
-		sed -i '90s/.*/# Limit packets per IP\n/' /etc/ufw/before.rules
-		sed -i '91s/.*/-A ufw-http -m recent --name pack_per_ip --set\n/' /etc/ufw/before.rules
-		sed -i '92s/.*/-A ufw-http -m recent --name pack_per_ip --update --seconds 1 --hitcount 20 -j ufw-http-logdrop\n/' /etc/ufw/before.rules
-		sed -i '93s/.*/\n/' /etc/ufw/before.rules
-		sed -i '94s/.*/# Finally accept\n/' /etc/ufw/before.rules
-		sed -i '95s/.*/-A ufw-http -j ACCEPT\n/' /etc/ufw/before.rules
-		sed -i '96s/.*/\n/' /etc/ufw/before.rules
-		sed -i '97s/.*/# Log\n/' /etc/ufw/before.rules
-		sed -i '98s/.*/-A ufw-http-logdrop -m limit --limit 3\/min --limit-burst 10 -j LOG --log-prefix \"[UFW HTTP DROP] \"\n/' /etc/ufw/before.rules
-		sed -i '99s/.*/-A ufw-http-logdrop -j DROP\n/' /etc/ufw/before.rules
-		sed -i '100s/.*/\n/' /etc/ufw/before.rules
-		sed -i '101s/.*/### End HTTP ###\n/' /etc/ufw/before.rules
-		sed -i '102s/.*/\n/' /etc/ufw/before.rules
-		sed -i '103s/.*/-A INPUT -p icmp -m limit --limit 6\/s --limit-burst 1 -j ACCEPT\n/' /etc/ufw/before.rules
-		sed -i '104s/.*/-A INPUT -p icmp -j DROP/' /etc/ufw/before.rules
+		rm /etc/ufw/before.rules
+		cp ~/Desktop/linux/before.rules /etc/ufw
 		service apache2 restart
 		echo "- UFW configured for use on a web server" >>~/Desktop/logs/changelog.log
 		echo "Type anything to continue"
 		read -r timeCheck
 
 		echo "####Configuring Apache2 config file####"
-		sed -i '92s/.*/Timeout 100/' /etc/apache2/apache2.conf
-		sed -i '98s/.*/KeepAlive On/' /etc/apache2/apache2.conf
-		sed -i '126s/.*/HostnameLookups On/' /etc/apache2/apache2.conf
-		sed -i '105s/.*/MaxKeepAliveRequests 75/' /etc/apache2/apache2.conf
-		{
-			echo "<IfModule mod_headers.c>"
-			echo "Header always append X-Frame-Options SAMEORIGIN"
-			echo "</IfModule>"
-			echo "FileETag None"
-			echo "TraceEnable off"
-		} >>/etc/apache2/apache2.conf
-		chown -R 755 /etc/apache2/bin /etc/apache2/conf
+		cp /etc/apache2/apache2.conf ~/Desktop/logs/backups
+		rm /etc/apache2/apache2.conf  
+		cp ~/Desktop/linux/apache2.conf /etc/apache2
 		chmod 511 /usr/sbin/apache2
 		chmod 755 /var/log/apache2/
-		chmod 755 /etc/apache2/conf/
-		chmod 640 /etc/apache2/conf/*
-		chgrp -R "$mainUser" /etc/apache2/conf
 		chmod -R 755 /var/www
 		/etc/init.d/apache2 restart
 		echo "Type anything to continue"
@@ -278,27 +234,14 @@ services() {
 		apt-get install php -y -qq
 		apt-get install libapache2-mod-php -y -qq
 		apt-get install php-mysql -y -qq
-		sed -i '2s/.*/\o011DirectoryIndex index.php index.html index.cgi index.pl index.xhtml index.htm/' /etc/apache2/mods-enabled/dir.conf
+		cp /etc/apache2/mods-enabled/dir.conf ~/Desktop/logs/backups
+		rm /etc/apache2/mods-enabled/dir.conf
+		cp ~/Desktop/linux/dir.conf /etc/apache2/mods-enabled
 		systemctl restart apache2
 		echo "###Configuring php.ini####"
 		cp /etc/php/7.2/apache2/php.ini ~/Desktop/logs/backups/
-		{
-			echo "safe_mode = On"
-			echo "safe_mode_gid = On"
-			echo "sql.safe_mode=On"
-			echo "register_globals = Off"
-		} >>/etc/php/7.2/apache2/php.ini
-		sed -i '530s/.*/track_errors = Off/' /etc/php/7.2/apache2/php.ini
-		sed -i '547s/.*/html_errors = Off/' /etc/php/7.2/apache2/php.ini
-		sed -i '310s/.*/disable_functions = php_uname, getmyuid, getmypid, passthru, leak, listen, diskfreespace, tmpfile, link, ignore_user_abord, shell_exec, dl, set_time_limit, exec, system, highlight_file, source, show_source, fpaththru, virtual, posix_ctermid, posix_getcwd, posix_getegid, posix_geteuid, posix_getgid, posix_getgrgid, posix_getgrnam, posix_getgroups, posix_getlogin, posix_getpgid, posix_getpgrp, posix_getpid, posix, _getppid, posix_getpwnam, posix_getpwuid, posix_getrlimit, posix_getsid, posix_getuid, posix_isatty, posix_kill, posix_mkfifo, posix_setegid, posix_seteuid, posix_setgid, posix_setpgid, posix_setsid, posix_setuid, posix_times, posix_ttyname, posix_uname, proc_open, proc_close, proc_get_status, proc_nice, proc_terminate, phpinfo/' /etc/php/7.2/apache2/php.ini
-		sed -i '833s/.*/allow_url_fopen = Off/' /etc/php/7.2/apache2/php.ini
-		sed -i '837s/.*/allow_url_include = Off/' /etc/php/7.2/apache2/php.ini
-		sed -i '818s/.*/upload_tmp_dir = \/var\/php_tmp/' /etc/php/7.2/apache2/php.ini
-		sed -i '380s/.*/max_execution_time = 10/' /etc/php/7.2/apache2/php.ini
-		sed -i '390s/.*/max_input_time = 30/' /etc/php/7.2/apache2/php.ini
-		sed -i '401s/.*/memory_limit = 40M/' /etc/php/7.2/apache2/php.ini
-		sed -i '669s/.*/post_max_size=1K/' /etc/php/7.2/apache2/php.ini
-		sed -i '1412s/.*/session.cookie_httponly = 1/' /etc/php/7.2/apache2/php.ini
+		rm /etc/php/7.2/apache2/php.ini 
+		cp ~/Desktop/linux/php.ini /etc/php/7.2/apache2
 		echo "Type anything to continue"
 		read -r timeCheck
 		service apache2 restart
@@ -315,34 +258,8 @@ services() {
 
 		echo "####Editing /etc/sshd/sshd_config####"
 		cp /etc/ssh/sshd_config ~/Desktop/logs/backups/
-		sed -i '13s/.*/Port 2222/' /etc/ssh/sshd_config
-		sed -i '18s/.*/HostKey /etc/ssh/ssh_host_ed25519_key/' /etc/ssh/sshd_config
-		sed -i '19s/.*/HostKey /etc/ssh/ssh_host_rsa_key/' /etc/ssh/sshd_config
-		sed -i '20s/.*/#/' /etc/ssh/sshd_config
-		sed -i '32s/.*/PermitRootLogin no/' /etc/ssh/sshd_config
-		sed -i '87s/.*/AllowTcpForwarding no/' /etc/ssh/sshd_config
-		sed -i '99s/.*/ClientAliveInterval 300/' /etc/ssh/sshd_config
-		sed -i '100s/.*/ClientAliveCountMax 0/' /etc/ssh/sshd_config
-		sed -i '98s/.*/Compression DELAYED/' /etc/ssh/sshd_config
-		sed -i '27s/.*/LogLevel VERBOSE/' /etc/ssh/sshd_config
-		sed -i '34s/.*/MaxAuthTries 2/' /etc/ssh/sshd_config
-		sed -i '35s/.*/MaxSessions 2/' /etc/ssh/sshd_config
-		sed -i '95s/.*/TCPKeepAlive no/' /etc/ssh/sshd_config
-		sed -i '89s/.*/X11Forwarding no/' /etc/ssh/sshd_config
-		sed -i '86s/.*/AllowAgentForwarding no/' /etc/ssh/sshd_config
-		sed -i '94s/.*/PrintLastLog yes/' /etc/ssh/sshd_config
-		sed -i '97s/.*/PermitUserEnvironment no/' /etc/ssh/sshd_config
-		sed -i '56s/.*/PasswordAuthentication no/' /etc/ssh/sshd_config
-		sed -i '57s/.*/PermitEmptyPasswords no/' /etc/ssh/sshd_config
-		sed -i '53s/.*/IgnoreRhosts yes/' /etc/ssh/sshd_config
-		sed -i '48s/.*/HostbasedAuthentication no/' /etc/ssh/sshd_config
-		sed -i '31s/.*/LoginGraceTime 120/' /etc/ssh/sshd_config
-		sed -i '103s/.*/MaxStartups 2/' /etc/ssh/sshd_config
-		sed -i '104s/.*/PermitTunnel no/' /etc/ssh/sshd_config
-		sed -i '33s/.*/StrictModes yes/' /etc/ssh/sshd_config
-		sed -i '61s/.*/ChallengeResponseAuthentication no/' /etc/ssh/sshd_config
-		sed -i '64s/.*/KerberosAuthentication no/' /etc/ssh/sshd_config
-		sed -i '70s/.*/GSSAPIAuthentication no/' /etc/ssh/sshd_config
+		rm /etc/ssh/sshd_config 
+		cp ~/Desktop/linux/sshd_config /etc/ssh
 		echo "- Configured /etc/ssh/sshd_config" >>~/Desktop/logs/changelog.log
 
 		echo "####Securing SSH keys####"
@@ -396,7 +313,6 @@ services() {
 		apt-get install samba -y -qq
 		apt-get install system-config-samba -y -qq
 		apt-get install libpam-winbind -y -qq
-		sed -i '221s/.*/\;   guest ok = no/' /etc/samba/smb.conf
 		systemctl restart smbd.service nmbd.service
 		echo "Type anything to continue"
 		read -r timeCheck
@@ -420,31 +336,9 @@ services() {
 		cp /etc/vsftpd.conf ~/Desktop/logs/backups/
 		service vsftpd start
 		service vsftpd enable
-		sed -i '25s/.*/anonymous_enable=NO/' /etc/vsftpd.conf
-		sed -i '28s/.*/local_enable=YES/' /etc/vsftpd.conf
-		sed -i '31s/.*/write_enable=YES/' /etc/vsftpd.conf
-		sed -i '35s/.*/local_umask=022/' /etc/vsftpd.conf
-		sed -i '40s/.*/anon_upload_enable=NO/' /etc/vsftpd.conf
-		sed -i '44s/.*/anon_mkdir_write_enable=NO/' /etc/vsftpd.conf
-		sed -i '48s/.*/dirmessage_enable=YES/' /etc/vsftpd.conf
 		openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/private/vsftpd.pem -out /etc/ssl/private/vsftpd.pem
-		sed -i '151s/.*/ssl_enable=YES' /etc/vsftpd.conf
-		sed -i '114s/.*/chroot_local_user=YES/' /etc/vsftpd.conf
-		sed -i '125s/.*/chroot_list_file=/etc/vsftpd.chroot_list/' /etc/vsftpd.conf
-		{
-			echo "rsa_cert_file=/etc/ssl/private/vsftpd.pem"
-			echo "rsa_private_key_file=/etc/ssl/private/vsftpd.pem"
-			echo "allow_anon_ssl=NO"
-			echo "force_local_data_ssl=YES"
-			echo "force_local_logins_ssl=YES"
-			echo "ssl_tlsv1=YES"
-			echo "ssl_sslv2=NO"
-			echo "ssl_sslv3=NO"
-			echo "require_ssl_reuse=NO"
-			echo "ssl_ciphers=HIGH"
-			echo "pasv_min_port=40000"
-			echo "pasv_max_port=50000"
-		} >>/etc/vsftpd.conf
+		rm /etc/vsftpd.conf  
+		cp ~/Desktop/linux/vsftpd.conf /etc
 		mkdir /srv/ftp/new_location
 		usermod –d /srv/ftp/new_location ftp
 		systemctl restart vsftpd.service
@@ -532,23 +426,8 @@ services() {
 				apt-get install php7.2 -y -qq
 				echo "###Configuring php.ini####"
 				cp /etc/php/7.2/apache2/php.ini ~/Desktop/logs/backups/
-				{
-					echo "safe_mode = On"
-					echo "safe_mode_gid = On"
-					echo "sql.safe_mode=On"
-					echo "register_globals = Off"
-				} >>/etc/php/7.2/apache2/php.ini
-				sed -i '530s/.*/track_errors = Off/' /etc/php/7.2/apache2/php.ini
-				sed -i '547s/.*/html_errors = Off/' /etc/php/7.2/apache2/php.ini
-				sed -i '310s/.*/disable_functions = php_uname, getmyuid, getmypid, passthru, leak, listen, diskfreespace, tmpfile, link, ignore_user_abord, shell_exec, dl, set_time_limit, exec, system, highlight_file, source, show_source, fpaththru, virtual, posix_ctermid, posix_getcwd, posix_getegid, posix_geteuid, posix_getgid, posix_getgrgid, posix_getgrnam, posix_getgroups, posix_getlogin, posix_getpgid, posix_getpgrp, posix_getpid, posix, _getppid, posix_getpwnam, posix_getpwuid, posix_getrlimit, posix_getsid, posix_getuid, posix_isatty, posix_kill, posix_mkfifo, posix_setegid, posix_seteuid, posix_setgid, posix_setpgid, posix_setsid, posix_setuid, posix_times, posix_ttyname, posix_uname, proc_open, proc_close, proc_get_status, proc_nice, proc_terminate, phpinfo/' /etc/php/7.2/apache2/php.ini
-				sed -i '833s/.*/allow_url_fopen = Off/' /etc/php/7.2/apache2/php.ini
-				sed -i '837s/.*/allow_url_include = Off/' /etc/php/7.2/apache2/php.ini
-				sed -i '818s/.*/upload_tmp_dir = \/var\/php_tmp\/' /etc/php/7.2/apache2/php.ini
-				sed -i '380s/.*/max_execution_time = 10/' /etc/php/7.2/apache2/php.ini
-				sed -i '390s/.*/max_input_time = 30/' /etc/php/7.2/apache2/php.ini
-				sed -i '401s/.*/memory_limit = 40M/' /etc/php/7.2/apache2/php.ini
-				sed -i '669s/.*/post_max_size=1K/' /etc/php/7.2/apache2/php.ini
-				sed -i '1412s/.*/session.cookie_httponly = 1/' /etc/php/7.2/apache2/php.ini
+				rm /etc/php/7.2/apache2/php.ini   
+				cp ~/Desktop/linux/php.ini /etc/php/7.2/apache2  
 				service apache2 restart
 				echo "- Configured PHP 7.2 for use on a web server" >>~/Desktop/logs/changelog.log
 				echo "Type anything to continue"
@@ -560,60 +439,10 @@ services() {
 			systemctl restart apache2
 			echo "####Configuring ufw for web servers####"
 			cp /etc/ufw/before.rules ~/Desktop/logs/backups/
-			sed -i '12s/$/\n/' /etc/ufw/before.rules
-			sed -i '13s/.*/:ufw-http - [0:0]\n/' /etc/ufw/before.rules
-			sed -i '14s/.*/:ufw-http-logdrop - [0:0]/' /etc/ufw/before.rules
-			sed -i '76s/$/\n/' /etc/ufw/before.rules
-			sed -i '77s/.*/### Start HTTP ###\n/' /etc/ufw/before.rules
-			sed -i '78s/.*/\n/' /etc/ufw/before.rules
-			sed -i '79s/.*/# Enter rule\n/' /etc/ufw/before.rules
-			sed -i '80s/.*/-A ufw-before-input -p tcp --dport 80 -j ufw-http\n/' /etc/ufw/before.rules
-			sed -i '81s/.*/-A ufw-before-input -p tcp --dport 443 -j ufw-http\n/' /etc/ufw/before.rules
-			sed -i '82s/.*/\n/' /etc/ufw/before.rules
-			sed -i '83s/.*/# Limit connections per Class C\n/' /etc/ufw/before.rules
-			sed -i '84s/.*/-A ufw-http -p tcp --syn -m connlimit --connlimit-above 50 --connlimit-mask 24 -j ufw-http-logdrop\n/' /etc/ufw/before.rules
-			sed -i '85s/.*/\n/' /etc/ufw/before.rules
-			sed -i '86s/.*/# Limit connections per IP\n/' /etc/ufw/before.rules
-			sed -i '87s/.*/-A ufw-http -m state --state NEW -m recent --name conn_per_ip --set\n/' /etc/ufw/before.rules
-			sed -i '88s/.*/-A ufw-http -m state --state NEW -m recent --name conn_per_ip --update --seconds 10 --hitcount 20 -j ufw-http-logdrop\n/' /etc/ufw/before.rules
-			sed -i '89s/.*/\n/' /etc/ufw/before.rules
-			sed -i '90s/.*/# Limit packets per IP\n/' /etc/ufw/before.rules
-			sed -i '91s/.*/-A ufw-http -m recent --name pack_per_ip --set\n/' /etc/ufw/before.rules
-			sed -i '92s/.*/-A ufw-http -m recent --name pack_per_ip --update --seconds 1 --hitcount 20 -j ufw-http-logdrop\n/' /etc/ufw/before.rules
-			sed -i '93s/.*/\n/' /etc/ufw/before.rules
-			sed -i '94s/.*/# Finally accept\n/' /etc/ufw/before.rules
-			sed -i '95s/.*/-A ufw-http -j ACCEPT\n/' /etc/ufw/before.rules
-			sed -i '96s/.*/\n/' /etc/ufw/before.rules
-			sed -i '97s/.*/# Log\n/' /etc/ufw/before.rules
-			sed -i '98s/.*/-A ufw-http-logdrop -m limit --limit 3\/min --limit-burst 10 -j LOG --log-prefix \"[UFW HTTP DROP] \"\n/' /etc/ufw/before.rules
-			sed -i '99s/.*/-A ufw-http-logdrop -j DROP\n/' /etc/ufw/before.rules
-			sed -i '100s/.*/\n/' /etc/ufw/before.rules
-			sed -i '101s/.*/### End HTTP ###\n/' /etc/ufw/before.rules
-			sed -i '102s/.*/\n/' /etc/ufw/before.rules
-			sed -i '103s/.*/-A INPUT -p icmp -m limit --limit 6\/s --limit-burst 1 -j ACCEPT/' /etc/ufw/before.rules
-			sed -i '104s/.*/-A INPUT -p icmp -j DROP/' /etc/ufw/before.rules
-			service apache2 restart
-			echo "- UFW configured for use on a web server" >>~/Desktop/logs/changelog.log
-			echo "Type anything to continue"
-			read -r timeCheck
-			echo "####Configuring Apache2 config file####"
-			sed -i '92s/.*/Timeout 100/' /etc/apache2/apache2.conf
-			sed -i '98s/.*/KeepAlive On/' /etc/apache2/apache2.conf
-			sed -i '126s/.*/HostnameLookups On/' /etc/apache2/apache2.conf
-			sed -i '105s/.*/MaxKeepAliveRequests 75/' /etc/apache2/apache2.conf
-			{
-				echo "<IfModule mod_headers.c>"
-				echo "Header always append X-Frame-Options SAMEORIGIN"
-				echo "</IfModule>"
-				echo "FileETag None"
-				echo "TraceEnable off"
-			} >>/etc/apache2/apache2.conf
-			chown -R 750 /etc/apache2/bin /etc/apache2/conf
+			rm /etc/ufw/before.rules
+			cp ~/Desktop/linux/before.rules /etc/ufw
 			chmod 511 /usr/sbin/apache2
 			chmod 750 /var/log/apache2/
-			chmod 750 /etc/apache2/conf/
-			chmod 640 /etc/apache2/conf/*
-			chgrp -R "$mainUser" /etc/apache2/conf
 			chmod -R 444 /var/www
 			/etc/init.d/apache2 restart
 			echo "- Apache2 installed, configured, and http(s) allowed" >>~/Desktop/logs/changelog.log
@@ -936,7 +765,8 @@ hacking_tools() {
 
 	echo "Disabling Wireless"
 	nmcli radio all off
-	sed -i '1 i\iface wlan0 inet manual' /etc/network/interfaces
+	echo "iface wlan0 inet manual" >> /etc/network/interfaces
+	service network-manager restart
 
 	echo "#########Disabling unused compilers#########"
 	chmod 000 /usr/bin/byacc
@@ -1052,66 +882,49 @@ file_config() {
 	echo "ENABLED=\"0\"" >>/etc/default/irqbalance
 
 	echo "#########Disallowing guest account#########"
-	cp /usr/share/lightdm/lightdm.conf.d/50-ubuntu.conf ~/Desktop/logs/backups/
-	sed -i '2s/$/\n/' /usr/share/lightdm/lightdm.conf.d/50-ubuntu.conf
-	sed -i '3s/.*/allow-guest=false/' /usr/share/lightdm/lightdm.conf.d/50-ubuntu.conf
+	lightdmdir=/etc/lightdm
+	lightdmconf=/etc/lightdm/lightdm.conf
+	if [[ -f ${lightdmdir} ]]; then
+		if [[ -f ${lightdmconf} ]]; then
+			cp /etc/lightdm/lightdm.conf ~/Desktop/logs/backups 
+			echo "allow-guest=false" >> /etc/lightdm/lightdm.conf   
+		else
+			touch /etc/lightdm/lightdm.conf  
+			echo "allow-guest=false" >> /etc/lightdm/lightdm.conf 
+		fi
+	else
+		cp /usr/share/lightdm/lightdm.conf.d/50-ubuntu.conf ~/Desktop/logs/backups/
+		echo "allow-guest=false" >> /usr/share/lightdm/lightdm.conf.d/50-ubuntu.conf
+	fi
 	echo "- Disabled guest account" >>~/Desktop/logs/changelog.log
 
 	echo "#########Securing /etc/rc.local#########"
 	echo >/etc/rc.local
-	echo "exit 0" >>/etc/rc.local
+	echo "exit 0" >/etc/rc.local
 	echo "- /etc/rc.local secured" >>~/Desktop/logs/changelog.log
 
 	echo "#########Editing /etc/login.defs#########"
 	cp /etc/login.defs ~/Desktop/logs/backups/
-	sed -i '160s/.*/PASS_MAX_DAYS\o01130/' /etc/login.defs
-	sed -i '161s/.*/PASS_MIN_DAYS\o0117/' /etc/login.defs
-	sed -i '162s/.*/PASS_WARN_AGE\o01114/' /etc/login.defs
-	sed -i '151s/.*/UMASK\o011\o011027/' /etc/login.defs
+	rm /etc/login.defs
+	cp ~/Desktop/linux/login.defs /etc 
 	echo "- /etc/login.defs configured (Min days 7, Max days 30, Warn age 14, umask higher perms)" >>~/Desktop/logs/changelog.log
 
 	echo "#########Editing /etc/pam.d/common-password#########"
 	cp /etc/pam.d/common-password ~/Desktop/logs/backups/
-	sed -i '26s/.*/password\o011[success=1 default=ignore]\o011pam_unix.so obscure pam_unix.so obscure use_authtok try_first_pass remember=5 minlen=8/' /etc/pam.d/common-password
-	sed -i '25s/.*/password\o011requisite\o011\o011\o011pam_cracklib.so retry=3 minlen=8 difok=3 ucredit=-1 lcredit=-1 dcredit=-1 ocredit=-1/' /etc/pam.d/common-password
+	rm /etc/pam.d/common-password
+	cp ~/Desktop/linux/common-password /etc/pam.d
 	echo "- /etc/pam.d/common-password edited (remember=5, minlen=8, complexity requirements)" >>~/Desktop/logs/changelog.log
-
-	echo "#########Setting up a cronjob to remove failed login attempts from the main user#########"
-	touch ~/removefails.sh
-	chmod 777 ~/removefails.sh
-	echo "#!/bin/bash" >~/removefails.sh
-	echo "pam_tally2 --user=$mainUser --reset" >>~/Desktop/removefails.sh
-	echo "- Script to clear logins set up, just add a cronjob to the crontab to run it every 10 minutes" >>~/Desktop/logs/changelog.log
 
 	echo "#########Setting account lockout policy#########"
 	cp /etc/pam.d/common-auth ~/Desktop/logs/backups/
-	sed -i '16s/$/\n/' /etc/pam.d/common-auth
-	sed -i '17s/.*/auth\o011required\o011\o011\o011pam_tally2.so onerr=fail deny=5 unlock_time=600 audit/' /etc/pam.d/common-auth
+	rm /etc/pam.d/common-auth
+	cp ~/Desktop/linux/common-auth /etc/pam.d
 	echo "- Account lockout policy set in /etc/pam.d/common-auth" >>~/Desktop/logs/changelog.log
 
 	echo "#########Securing Shared Memory#########"
 	cp /etc/fstab ~/Desktop/logs/backups/
 	echo "tmpfs /run/shm tmpfs defaults,noexec,nosuid 0 0" >>/etc/fstab
 	echo "- Shared memory secured in /etc/fstab" >>~/Desktop/logs/changelog.log
-
-	# echo "########Creating /tmp partition#########"
-	# echo "tmpfs\o011 /tmp\o011\o011 tmpfs\o011 defaults,rw,nosuid,nodev,noexec,relatime 0\o011 0">> /etc/fstab
-	# touch /etc/systemd/system/tmp.mount 
-	# chmod 644 /etc/systemd/system/tmp.mount
-	# cp /run/systemd/generator/tmp.mount /etc/systemd/system/tmp.mount
-	# {
-	# 	echo "[Install]"
-	# 	echo "WantedBy=local-fs.target"
-	# } >> /etc/systemd/system/tmp.mount
-	# systemctl unmask tmp.mount
-	# systemctl enable tmp.mount
-	# echo "- /tmp partition created and enabled" >> ~/Desktop/logs/changelog.log
-
-	echo "#########Setting 'sticky bits'#########"
-	if [[ $(df --local -P | awk '{if (NR!=1) print $6}' | xargs -I '{}' find '{}' -xdev -type d \( -perm -0002 -a ! -perm -1000 \) 2>/dev/null) != "" ]]; then
-		df --local -P | awk '{if (NR!=1) print $6}' | xargs -I '{}' find '{}' -xdev -type d \( -perm -0002 -a ! -perm -1000 \) 2>/dev/null | xargs -I '{}' chmod a+t '{}'
-	fi
-	echo "- Sticky bits set for /tmp" >> ~/Desktop/logs/changelog.log
 
 	echo "#########Managing file permissions for /etc/securetty#########"
 	chown root:root /etc/securetty
@@ -1120,39 +933,15 @@ file_config() {
 
 	echo "#########Configuring rkhunter to allow checking for updates#########"
 	cp /etc/rkhunter.conf ~/Desktop/logs/backups
-	sed -i '107s/.*/UPDATE_MIRRORS=1/' /etc/rkhunter.conf
-	sed -i '122s/.*/MIRRORS_MODE=0/' /etc/rkhunter.conf
-	sed -i '1189s/.*/WEB_CMD=""/' /etc/rkhunter.conf
-	sed -i '440s/.*/PKGMGR=DPKG/' /etc/rkhunter.conf
+	rm /etc/rkhunter.conf  
+	cp ~/Desktop/linux/rkhunter.conf /etc  
+	rkhunter --update
 	echo "- Configured /etc/rkhunter.conf to allow for checking for updates" >>~/Desktop/logs/changelog.log
 
 	echo "#########Configuring /etc/sysctl.conf#########"
 	cp /etc/sysctl.conf ~/Desktop/logs/backups/
-	sed -i '28s/.*/net.ipv4.ip_forward=0/' /etc/sysctl.conf
-	sed -i '19s/.*/net.ipv4.conf.default.rp_filter=1/' /etc/sysctl.conf
-	sed -i '20s/.*/net.ipv4.conf.all.rp_filter=1/' /etc/sysctl.conf
-	sed -i '55s/.*/net.ipv4.conf.all.accept_source_route = 0/' /etc/sysctl.conf
-	sed -i '56s/.*/net.ipv6.conf.all.accept_source_route = 0/' /etc/sysctl.conf
-	sed -i '52s/.*/net.ipv4.conf.all.send_redirects = 0/' /etc/sysctl.conf
-	sed -i '25s/.*/net.ipv4.tcp_syncookies=1/' /etc/sysctl.conf
-	sed -i '44s/.*/net.ipv4.conf.all.accept_redirects = 0/' /etc/sysctl.conf
-	sed -i '45s/.*/net.ipv6.conf.all.accept_redirects = 0/' /etc/sysctl.conf
-	sed -i '49s/.*/net.ipv4.conf.all.secure_redirects = 0/' /etc/sysctl.conf
-	sed -i '59s/.*/net.ipv4.conf.all.log_martians = 1/' /etc/sysctl.conf
-	sed -i '68s/.*/kernel.sysrq=0/' /etc/sysctl.conf
-	sed -i '76s/.*/fs.protected_hardlinks=1/' /etc/sysctl.conf
-	sed -i '77s/.*/fs.protected_symlinks=1/' /etc/sysctl.conf
-	{
-		echo "kernel.randomize_va_space = 2"
-		echo "net.ipv4.conf.default.accept_source_route = 0"
-		echo "net.ipv6.conf.default.accept_source_route = 0"
-		echo "net.ipv4.conf.default.accept_redirects = 0"
-		echo "net.ipv6.conf.default.accept_redirects = 0"
-		echo "net.ipv4.conf.default.secure_redirects = 0"
-		echo "net.ipv4.conf.all.log_martians = 1"
-		echo "net.ipv6.conf.all.accept_ra = 0"
-		echo "net.ipv6.conf.default.accept_ra = 0"
-	} >> /etc/sysctl.conf
+	rm /etc/sysctl.conf  
+	cp ~/Desktop/linux/sysctl.conf /etc  
 	echo "Type anything to continue"
 	read -r timeCheck
 	echo "*********Should IPv6 be disabled?*********"
@@ -1284,16 +1073,14 @@ file_config() {
 	chmod u-x,go-wx /etc/issue
 	chown root:root /etc/issue.net
 	chmod u-x,go-wx /etc/issue.net
-	sed -i '25s/.*/[org\/gnome\/login-screen]/' /etc/gdm3/greeter.dconf-defaults
-	sed -i '28s/.*/banner-message-enable=true\n/' /etc/gdm3/greeter.dconf-defaults
+	#sed -i '25s/.*/[org\/gnome\/login-screen]/' /etc/gdm3/greeter.dconf-defaults
+	#sed -i '28s/.*/banner-message-enable=true\n/' /etc/gdm3/greeter.dconf-defaults
 	sed -i '29s/.*/banner-message-text='\''Authorized uses only. All activity may be monitored and reported.'\''\n/' /etc/gdm3/greeter.dconf-defaults
 	echo "- Warning messages configured so that all references to the OS are removed" >> ~/Desktop/logs/changelog.log
 
 	echo "########Restricting Core Dumps#########"
 	sed -i '45s/.*/*\o011\o011 hard\o011 core\o011\o011 0/' /etc/security/limits.conf
-	echo "fs.suid_dumpable = 0" >> /etc/sysctl.conf
 	echo "- Core dumps restricted" >> ~/Desktop/logs/changelog.log
-
 
 }
 
@@ -1434,6 +1221,14 @@ media_files() {
 user_auditing() {
 	touch ~/Desktop/logs/userchangelog.log
 	chmod 777 ~/Desktop/logs/userchangelog.log
+
+	auto_get_users() {
+		#curl gets authorized users test
+		touch ~/readme.txt
+		echo "*********Please input the link to the README*********"
+		read -r readmelink
+		curl "${readmelink}" -o ~/readme.txt
+	}
 
 	echo "*********Please enter a list of all authorized *administrators* on the machine (as stated on the README) separated by spaces*********"
 	read -r authAdminList
@@ -1617,8 +1412,6 @@ audit () {
 
 end() {
 	echo "#########Installing other packages#########"
-	echo "####PortSentry (Network manager)####"
-	apt-get install portsentry -y -qq
 	echo "####needrestart (check if a restart is needed)####"
 	apt-get install needrestart -y -qq
 
@@ -1703,12 +1496,12 @@ fi
 #Calls for functions to run through individual portions of the script
 first_time_initialize
 packages
-general_config
-firewall
-services
-hacking_tools
-file_config
 user_auditing
+hacking_tools
+general_config
+services
+file_config
+firewall
 media_files
 clean
 audit
