@@ -81,11 +81,13 @@ packages() {
 	apt-get install clamav-daemon -y -qq
 	apt-get install clamav -y -qq
 	apt-get install clamtk -y -qq
-	echo "#########Libpam (password complexity enforcers)#########"
+	echo "#########Libpam (password complexity enforcers and other cool things)#########"
 	apt-get install libpam-cracklib -y -qq
 	apt-get install libpam-tmpdir -y -qq
+	apt-get install libpam-pkcs11 -y -qq
 	echo "#########Auditd (auditer)#########"
 	apt-get install auditd -y -qq
+	apt-get install audispd-plugins -y -qq
 	echo "#########Tree (view all files on machine)#########"
 	apt-get install tree -y -qq
 	echo "#########APT (APT package installer enchancements)#########"
@@ -206,7 +208,7 @@ services() {
 
 		echo "####Configuring Apache2 config file####"
 		cp /etc/apache2/apache2.conf ~/Desktop/logs/backups
-		rm /etc/apache2/apache2.conf  
+		rm /etc/apache2/apache2.conf
 		cp ~/Desktop/linux/apache2.conf /etc/apache2
 		chmod 511 /usr/sbin/apache2
 		chmod 755 /var/log/apache2/
@@ -240,26 +242,37 @@ services() {
 		systemctl restart apache2
 		echo "###Configuring php.ini####"
 		cp /etc/php/7.2/apache2/php.ini ~/Desktop/logs/backups/
-		rm /etc/php/7.2/apache2/php.ini 
+		rm /etc/php/7.2/apache2/php.ini
 		cp ~/Desktop/linux/php.ini /etc/php/7.2/apache2
 		echo "Type anything to continue"
 		read -r timeCheck
 		service apache2 restart
 		echo "- Configured PHP 7.2 for use on a web server" >>~/Desktop/logs/changelog.log
 	fi
-	echo "*********Is openssh-server a critical service on this machine?*********"
+
+	echo "*********Is SSH a critical service on this machine?*********"
 	read -r sshYN
 	if [[ $sshYN == "yes" ]]; then
 		apt-get install ssh -y -qq
-		apt-get install openssh-server -y -qq
+		echo "**********Is openssh-server a critical service on this machine?*********"
+		read -r opensshYN
+		if [[ $opensshYN == "yes" ]]; then
+			apt-get install openssh-server -y -qq
+		fi
 		apt-get upgrade openssl libssl-dev -y -qq
-		apt-get-cache policy openssl libssl-dev
+		apt-cache policy openssl libssl-dev
 		echo "- Packages ssh and openssh-server installed and heartbleed bug fixed" >>~/Desktop/logs/changelog.log
 
 		echo "####Editing /etc/sshd/sshd_config####"
 		cp /etc/ssh/sshd_config ~/Desktop/logs/backups/
-		rm /etc/ssh/sshd_config 
+		rm /etc/ssh/sshd_config
 		cp ~/Desktop/linux/sshd_config /etc/ssh
+		chown root:root /etc/ssh/sshd_config
+		chmod og-rwx /etc/ssh/sshd_config
+		find /etc/ssh -xdev -type f -name 'ssh_host_*_key' -exec chown root:root {} \;
+		find /etc/ssh -xdev -type f -name 'ssh_host_*_key' -exec chmod 0600 {} \;
+		find /etc/ssh -xdev -type f -name 'ssh_host_*_key.pub' -exec chmod 0644 {} \;
+		find /etc/ssh -xdev -type f -name 'ssh_host_*_key.pub' -exec chown root:root {} \;
 		echo "- Configured /etc/ssh/sshd_config" >>~/Desktop/logs/changelog.log
 
 		echo "####Securing SSH keys####"
@@ -337,7 +350,7 @@ services() {
 		service vsftpd start
 		service vsftpd enable
 		openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/private/vsftpd.pem -out /etc/ssl/private/vsftpd.pem
-		rm /etc/vsftpd.conf  
+		rm /etc/vsftpd.conf
 		cp ~/Desktop/linux/vsftpd.conf /etc
 		mkdir /srv/ftp/new_location
 		usermod –d /srv/ftp/new_location ftp
@@ -426,8 +439,8 @@ services() {
 				apt-get install php7.2 -y -qq
 				echo "###Configuring php.ini####"
 				cp /etc/php/7.2/apache2/php.ini ~/Desktop/logs/backups/
-				rm /etc/php/7.2/apache2/php.ini   
-				cp ~/Desktop/linux/php.ini /etc/php/7.2/apache2  
+				rm /etc/php/7.2/apache2/php.ini
+				cp ~/Desktop/linux/php.ini /etc/php/7.2/apache2
 				service apache2 restart
 				echo "- Configured PHP 7.2 for use on a web server" >>~/Desktop/logs/changelog.log
 				echo "Type anything to continue"
@@ -493,7 +506,7 @@ services() {
 		service postfix restart
 		echo "- Postfix started" >>~/Desktop/logs/changelog.log
 		sed -i '137s/.*/inet_interfaces = loopback-only/' /etc/postfix/main.cf.uname -p
-		service postfix restart 
+		service postfix restart
 		apt-get install mailutils
 		service postfix restart
 		echo "Type anything to continue"
@@ -570,8 +583,53 @@ general_config() {
 	echo "- Denied outside packets" >>~/Desktop/logs/changelog.log
 
 	echo "#########Enabling auditing#########"
+	service auditd start
 	auditctl -e 1
+	sed -i '11s/.*/GRUB_CMDLINE_LINUX=\"find_preseed=\/preseed.cfg auto noprompt priority=critical locale=en_US apparmor=1 security=apparmor audit=1 audit_backlog_limit=8192\"/' /etc/default/grub
+	update-grub
+	cp /etc/audit/auditd.conf ~/Desktop/logs/backups
+	rm /etc/audit/auditd.conf
+	cp ~/Desktop/linux/auditd.conf /etc/audit
+	cp ~/Desktop/linux/audit_rules/time-change.rules /etc/audit/rules.d
+	cp ~/Desktop/linux/audit_rules/identity.rules /etc/audit/rules.d
+	cp ~/Desktop/linux/audit_rules/system-locale.rules /etc/audit/rules.d
+	cp ~/Desktop/linux/audit_rules/MAC-policy.rules /etc/audit/rules.d
+	cp ~/Desktop/linux/audit_rules/logins.rules /etc/audit/rules.d
+	cp ~/Desktop/linux/audit_rules/session.rules /etc/audit/rules.d
+	cp ~/Desktop/linux/audit_rules/perm_mod.rules /etc/audit/rules.d
+	cp ~/Desktop/linux/audit_rules/access.rules /etc/audit/rules.d
+	cp ~/Desktop/linux/audit_rules/mounts.rules /etc/audit/rules.d
+	cp ~/Desktop/linux/audit_rules/delete.rules /etc/audit/rules.d
+	cp ~/Desktop/linux/audit_rules/scope.rules /etc/audit/rules.d
+	cp ~/Desktop/linux/audit_rules/actions.rules /etc/audit/rules.d
+	cp ~/Desktop/linux/audit_rules/modules.rules /etc/audit/rules.d
+	cp ~/Desktop/linux/audit_rules/99-finalize.rules /etc/audit/rules.d
 	echo "- Auditing enabled with auditd (can be configured in /etc/audit/auditd.conf)" >>~/Desktop/logs/changelog.log
+
+	echo "#########Configuring cron#########"
+	chown root:root /etc/crontab
+	chmod og-rwx /etc/crontab
+	chown root:root /etc/cron.hourly
+	chmod og-rwx /etc/cron.hourly
+	chown root:root /etc/cron.daily
+	chmod og-rwx /etc/cron.daily
+	chown root:root /etc/cron.weekly
+	chmod og-rwx /etc/cron.weekly
+	chown root:root /etc/cron.monthly
+	chmod og-rwx /etc/cron.monthly
+	chown root:root /etc/cron.d
+	chmod og-rwx /etc/cron.d
+	rm /etc/cron.deny
+	rm /etc/at.deny
+	touch /etc/cron.allow
+	touch /etc/at.allow
+	chmod o-rwx /etc/cron.allow
+	chmod g-wx /etc/cron.allow
+	chmod o-rwx /etc/at.allow
+	chmod g-wx /etc/at.allow
+	chown root:root /etc/cron.allow
+	chown root:root /etc/at.allow
+	echo "- Cron permissions configured" >>~/Desktop/logs/changelog.log
 
 	echo "#########Disabling reboot with Ctrl-Alt-Del#########"
 	systemctl mask ctrl-alt-del.target
@@ -580,9 +638,19 @@ general_config() {
 
 	echo "#########Securing important files with chmod#########"
 	chmod -R 644 /var/log
-	chmod 664 /etc/passwd
-	chmod 664 /etc/shadow
-	chmod 664 /etc/group
+	chown root:root /etc/passwd
+	chmod u-x,go-wx /etc/passwd
+	chown root:root /etc/passwd-
+	chmod u-x,go-rwx /etc/passwd
+	chown root:root /etc/gshadow-
+	chown root:shadow /etc/gshadow
+	chmod o-rwx,g-wx /etc/gshadow
+	chmod o-rwx,g-wx /etc/shadow
+	chown root:shadow /etc/shadow
+	chown root:shadow /etc/shadow-
+	chmod u-x,go-rwx /etc/shadow-
+	chown root:root /etc/group
+	chmod 644 /etc/group
 	chmod 0700 /etc/cups*
 	chmod 0700 /etc/rc*
 	#chmod 0700 /etc/init.d*
@@ -636,24 +704,14 @@ general_config() {
 		swapon -s
 	fi
 
-	echo "#########Securing sudo#########"
-	# echo "Defaults use_pty" >> /etc/sudoers.d/99-snapd.conf
-	# if [[ $(grep -Ei '^\s*Defaults\s+logfile=\S+' /etc/sudoers /etc/sudoers.d/*) == "" ]]; then
-	# 	touch /var/log/sudo.log
-	# 	chown root:root /var/log/sudo.log
-	# 	echo "Defaults logfile=\"/var/log/sudo.log\"" >> /etc/sudoers.d/99-snapd.conf
-	# fi
-	echo "- Sudo secured (sudo uses pty, log file configured)" >> ~/Desktop/logs/changelog.log
-
 	echo "#########Configuring AppArmor#########"
-	sed -i '11s/.*/GRUB_CMDLINE_LINUX=\"find_preseed=\/preseed.cfg auto noprompt priority=critical locale=en_US apparmor=1 security=apparmor\"/' /etc/default/grub
 	aa-enforce /etc/apparmor.d/*
 	echo "- Apparmor configured" >> ~/Desktop/logs/changelog.log
-	
+
 	echo "#########Setting time correct#########"
 	systemctl start systemd-timesyncd.service
 	timedatectl set-ntp true
-	echo "- Time set to standard" >> ~/Desktop/logs/changelog.log
+	echo "- Time set to standard" >>~/Desktop/logs/changelog.log
 
 	echo "Type anything to continue"
 	read -r timeCheck
@@ -744,9 +802,12 @@ hacking_tools() {
 	echo "Removing Crack"
 	apt-get purge crack -y -qq
 
-	echo "Removing rsh"
+	echo "Removing rsh-server"
 	apt-get purge rsh -y -qq
 	apt-get purge rsh-server -y -qq
+
+	echo "Removing NIS"
+	apt-get purge nis -y -qq
 
 	echo "Removing Prelink"
 	prelink -ua
@@ -765,7 +826,7 @@ hacking_tools() {
 
 	echo "Disabling Wireless"
 	nmcli radio all off
-	echo "iface wlan0 inet manual" >> /etc/network/interfaces
+	echo "iface wlan0 inet manual" >>/etc/network/interfaces
 	service network-manager restart
 
 	echo "#########Disabling unused compilers#########"
@@ -802,8 +863,6 @@ hacking_tools() {
 	apt-get purge rpcbind -y -qq
 	systemctl --now disable rsync
 	apt-get purge rsync -y -qq
-	systemctl --now disable nis
-	apt-get purge nis -y -qq
 
 	echo "#########Removing auto-mounting#########"
 	apt-get purge autofs -y -qq
@@ -820,63 +879,63 @@ hacking_tools() {
 file_config() {
 
 	echo "#########Configuring hosts files#########"
-	echo "ALL: ALL" >> /etc/hosts.deny
+	echo "ALL: ALL" >>/etc/hosts.deny
 	chown root:root /etc/hosts.allow
 	chmod 644 /etc/hosts.allow
 	chown root:root /etc/hosts.deny
 	chmod 644 /etc/hosts.deny
 
 	echo "#########Disabling Uncommon Network protocols and file system configurations#########"
-	touch /etc/modprobe.d/dccp.conf  
-	chmod 644 /etc/modprobe.d/dccp.conf  
-	echo "install dccp /bin/true" > /etc/modprobe.d/dccp.conf 
-	touch /etc/modprobe.d/sctp.conf  
-	chmod 644 /etc/modprobe.d/sctp.conf  
-	echo "install sctp /bin/true" > /etc/modprobe.d/sctp.conf 
-	touch /etc/modprobe.d/rds.conf  
-	chmod 644 /etc/modprobe.d/rds.conf  
-	echo "install rds /bin/true" > /etc/modprobe.d/rds.conf
-	touch /etc/modprobe.d/tipc.conf  
-	chmod 644 /etc/modprobe.d/tipc.conf  
-	echo "install tipc /bin/true" > /etc/modprobe.d/tipc.conf      
-	touch /etc/modprobe.d/cramfs.conf  
-	chmod 644 /etc/modprobe.d/cramfs.conf  
-	echo "install cramfs /bin/true" > /etc/modprobe.d/cramfs.conf  
+	touch /etc/modprobe.d/dccp.conf
+	chmod 644 /etc/modprobe.d/dccp.conf
+	echo "install dccp /bin/true" >/etc/modprobe.d/dccp.conf
+	touch /etc/modprobe.d/sctp.conf
+	chmod 644 /etc/modprobe.d/sctp.conf
+	echo "install sctp /bin/true" >/etc/modprobe.d/sctp.conf
+	touch /etc/modprobe.d/rds.conf
+	chmod 644 /etc/modprobe.d/rds.conf
+	echo "install rds /bin/true" >/etc/modprobe.d/rds.conf
+	touch /etc/modprobe.d/tipc.conf
+	chmod 644 /etc/modprobe.d/tipc.conf
+	echo "install tipc /bin/true" >/etc/modprobe.d/tipc.conf
+	touch /etc/modprobe.d/cramfs.conf
+	chmod 644 /etc/modprobe.d/cramfs.conf
+	echo "install cramfs /bin/true" >/etc/modprobe.d/cramfs.conf
 	rmmod cramfs
-	touch /etc/modprobe.d/freevxfs.conf  
-	chmod 644 /etc/modprobe.d/freevxfs.conf  
-	echo "install freevxfs /bin/true" > /etc/modprobe.d/freevxfs.conf  
+	touch /etc/modprobe.d/freevxfs.conf
+	chmod 644 /etc/modprobe.d/freevxfs.conf
+	echo "install freevxfs /bin/true" >/etc/modprobe.d/freevxfs.conf
 	rmmod freevxfs
-	touch /etc/modprobe.d/jffs2.conf  
-	chmod 644 /etc/modprobe.d/jffs2.conf  
-	echo "install jffs2 /bin/true" > /etc/modprobe.d/jffs2.conf  
+	touch /etc/modprobe.d/jffs2.conf
+	chmod 644 /etc/modprobe.d/jffs2.conf
+	echo "install jffs2 /bin/true" >/etc/modprobe.d/jffs2.conf
 	rmmod jffs2
-	touch /etc/modprobe.d/hfs.conf  
-	chmod 644 /etc/modprobe.d/hfs.conf  
-	echo "install hfs /bin/true" > /etc/modprobe.d/hfs.conf  
+	touch /etc/modprobe.d/hfs.conf
+	chmod 644 /etc/modprobe.d/hfs.conf
+	echo "install hfs /bin/true" >/etc/modprobe.d/hfs.conf
 	rmmod hfs
-	touch /etc/modprobe.d/hfsplus.conf  
-	chmod 644 /etc/modprobe.d/hfsplus.conf  
-	echo "install hfsplus /bin/true" > /etc/modprobe.d/hfsplus.conf  
+	touch /etc/modprobe.d/hfsplus.conf
+	chmod 644 /etc/modprobe.d/hfsplus.conf
+	echo "install hfsplus /bin/true" >/etc/modprobe.d/hfsplus.conf
 	rmmod hfsplus
-	touch /etc/modprobe.d/squashfs.conf  
-	chmod 644 /etc/modprobe.d/squashfs.conf  
-	echo "install squashfs /bin/true" > /etc/modprobe.d/squashfs.conf  
+	touch /etc/modprobe.d/squashfs.conf
+	chmod 644 /etc/modprobe.d/squashfs.conf
+	echo "install squashfs /bin/true" >/etc/modprobe.d/squashfs.conf
 	rmmod squashfs
-	touch /etc/modprobe.d/udf.conf  
-	chmod 644 /etc/modprobe.d/udf.conf  
-	echo "install udf /bin/true" > /etc/modprobe.d/udf.conf  
+	touch /etc/modprobe.d/udf.conf
+	chmod 644 /etc/modprobe.d/udf.conf
+	echo "install udf /bin/true" >/etc/modprobe.d/udf.conf
 	rmmod udf
-	touch /etc/modprobe.d/vfat.conf  
-	chmod 644 /etc/modprobe.d/vfat.conf  
-	echo "install vfat /bin/true" > /etc/modprobe.d/vfat.conf  
+	touch /etc/modprobe.d/vfat.conf
+	chmod 644 /etc/modprobe.d/vfat.conf
+	echo "install vfat /bin/true" >/etc/modprobe.d/vfat.conf
 	rmmod vfat
-	touch /etc/modprobe.d/usb-storage.conf  
-	chmod 644 /etc/modprobe.d/usb-storage.conf  
-	echo "install usb-storage /bin/true" > /etc/modprobe.d/usb-storage.conf  
+	touch /etc/modprobe.d/usb-storage.conf
+	chmod 644 /etc/modprobe.d/usb-storage.conf
+	echo "install usb-storage /bin/true" >/etc/modprobe.d/usb-storage.conf
 	rmmod usb-storage
-	echo "- dccp, sctp, rds, tipc network protocols disabled" >> ~/Desktop/logs/changelog.log
-	echo "- cramfs, freevxfs, jffs2, hfs, hfsplus, squashfs, udf, and vfat filesystems disabled" >> ~/Desktop/logs/changelog.log
+	echo "- dccp, sctp, rds, tipc network protocols disabled" >>~/Desktop/logs/changelog.log
+	echo "- cramfs, freevxfs, jffs2, hfs, hfsplus, squashfs, udf, and vfat filesystems disabled" >>~/Desktop/logs/changelog.log
 
 	echo "#########Disabling IRQ Balance#########"
 	echo "ENABLED=\"0\"" >>/etc/default/irqbalance
@@ -886,15 +945,15 @@ file_config() {
 	lightdmconf=/etc/lightdm/lightdm.conf
 	if [[ -f ${lightdmdir} ]]; then
 		if [[ -f ${lightdmconf} ]]; then
-			cp /etc/lightdm/lightdm.conf ~/Desktop/logs/backups 
-			echo "allow-guest=false" >> /etc/lightdm/lightdm.conf   
+			cp /etc/lightdm/lightdm.conf ~/Desktop/logs/backups
+			echo "allow-guest=false" >>/etc/lightdm/lightdm.conf
 		else
-			touch /etc/lightdm/lightdm.conf  
-			echo "allow-guest=false" >> /etc/lightdm/lightdm.conf 
+			touch /etc/lightdm/lightdm.conf
+			echo "allow-guest=false" >>/etc/lightdm/lightdm.conf
 		fi
 	else
 		cp /usr/share/lightdm/lightdm.conf.d/50-ubuntu.conf ~/Desktop/logs/backups/
-		echo "allow-guest=false" >> /usr/share/lightdm/lightdm.conf.d/50-ubuntu.conf
+		echo "allow-guest=false" >>/usr/share/lightdm/lightdm.conf.d/50-ubuntu.conf
 	fi
 	echo "- Disabled guest account" >>~/Desktop/logs/changelog.log
 
@@ -906,7 +965,7 @@ file_config() {
 	echo "#########Editing /etc/login.defs#########"
 	cp /etc/login.defs ~/Desktop/logs/backups/
 	rm /etc/login.defs
-	cp ~/Desktop/linux/login.defs /etc 
+	cp ~/Desktop/linux/login.defs /etc
 	echo "- /etc/login.defs configured (Min days 7, Max days 30, Warn age 14, umask higher perms)" >>~/Desktop/logs/changelog.log
 
 	echo "#########Editing /etc/pam.d/common-password#########"
@@ -921,6 +980,12 @@ file_config() {
 	cp ~/Desktop/linux/common-auth /etc/pam.d
 	echo "- Account lockout policy set in /etc/pam.d/common-auth" >>~/Desktop/logs/changelog.log
 
+	echo "#########Editing /etc/pam.d/common-account#########"
+	cp /etc/pam.d/common-account ~/Desktop/logs/backups/
+	rm /etc/pam.d/common-account
+	cp ~/Desktop/linux/common-account /etc/pam.d
+	echo "- /etc/pam.d/common-auth editing to require pam_tally2" >>~/Desktop/logs/changelog.log
+
 	echo "#########Securing Shared Memory#########"
 	cp /etc/fstab ~/Desktop/logs/backups/
 	echo "tmpfs /run/shm tmpfs defaults,noexec,nosuid 0 0" >>/etc/fstab
@@ -933,15 +998,15 @@ file_config() {
 
 	echo "#########Configuring rkhunter to allow checking for updates#########"
 	cp /etc/rkhunter.conf ~/Desktop/logs/backups
-	rm /etc/rkhunter.conf  
-	cp ~/Desktop/linux/rkhunter.conf /etc  
+	rm /etc/rkhunter.conf
+	cp ~/Desktop/linux/rkhunter.conf /etc
 	rkhunter --update
 	echo "- Configured /etc/rkhunter.conf to allow for checking for updates" >>~/Desktop/logs/changelog.log
 
 	echo "#########Configuring /etc/sysctl.conf#########"
 	cp /etc/sysctl.conf ~/Desktop/logs/backups/
-	rm /etc/sysctl.conf  
-	cp ~/Desktop/linux/sysctl.conf /etc  
+	rm /etc/sysctl.conf
+	cp ~/Desktop/linux/sysctl.conf /etc
 	echo "Type anything to continue"
 	read -r timeCheck
 	echo "*********Should IPv6 be disabled?*********"
@@ -1004,15 +1069,19 @@ file_config() {
 	{
 		echo "set superusers=\"root\""
 		echo "password_pbkdf2 root $grubHash"
-	} >> /etc/grub.d/40_custom
+	} >>/etc/grub.d/40_custom
 	sed -i '34s/.*/CLASS=\"--class gnu-linux --class gnu --class os --unrestricted\"/' /etc/grub.d/10_linux
 	update-grub
-	echo "- Password set for GRUB Bootloader and GRUB updated" >> ~/Desktop/logs/changelog.log
+	echo "- Password set for GRUB Bootloader and GRUB updated" >>~/Desktop/logs/changelog.log
 
 	echo "#########Setting password for root user#########"
 	passwd root
-	echo "- Password set for root user" >> ~/Desktop/logs/changelog.log
+	echo "- Password set for root user" >>~/Desktop/logs/changelog.log
 
+	echo "#########Configuring PKI-based authentication#########"
+	cp ~/Desktop/linux/pam_pkcs11.conf /etc/pam_pkcs11
+	echo "- pam_pkcs11 configured" >>~/Desktop/logs/changelog.log
+	
 	if [[ "$sqlYN" == "yes" ]]; then
 		echo "#########Checking if MySQL config file exists#########"
 		cnfCheck=/etc/mysql/my.cnf
@@ -1030,7 +1099,7 @@ file_config() {
 			echo "myisam_sort_buffer_size = 32M"
 			echo "join_buffer_size = 1M"
 			echo "read_buffer_size = 1M"
-			echo "sort_buffer_size = 2M"
+			echo "sort_buffer_size = 2M"	
 			echo "table_cache = 1024"
 			echo "thread_cache_size = 286"
 			echo "interactive_timeout = 25"
@@ -1059,14 +1128,14 @@ file_config() {
 			echo "sort_buffer = 32M"
 			echo "read_buffer = 16M"
 			echo "write_buffer = 16M"
-		} >> /etc/mysql/my.cnf
+		} >>/etc/mysql/my.cnf
 		chown -R root:root /etc/mysql/
 		chmod 0644 /etc/mysql/my.cnf
 	fi
 
 	echo "########Configuring Warning Messages and Permissions#########"
-	echo "Authorized uses only. All activity may be monitored and reported." > /etc/issue
-	echo "Authorized uses only. All activity may be monitored and reported." > /etc/issue.net
+	echo "Authorized uses only. All activity may be monitored and reported." >/etc/issue
+	echo "Authorized uses only. All activity may be monitored and reported." >/etc/issue.net
 	chown root:root /etc/update-motd.d/*
 	chmod u-x,go-wx /etc/update-motd.d/*
 	chown root:root /etc/issue
@@ -1076,11 +1145,11 @@ file_config() {
 	#sed -i '25s/.*/[org\/gnome\/login-screen]/' /etc/gdm3/greeter.dconf-defaults
 	#sed -i '28s/.*/banner-message-enable=true\n/' /etc/gdm3/greeter.dconf-defaults
 	sed -i '29s/.*/banner-message-text='\''Authorized uses only. All activity may be monitored and reported.'\''\n/' /etc/gdm3/greeter.dconf-defaults
-	echo "- Warning messages configured so that all references to the OS are removed" >> ~/Desktop/logs/changelog.log
+	echo "- Warning messages configured so that all references to the OS are removed" >>~/Desktop/logs/changelog.log
 
 	echo "########Restricting Core Dumps#########"
 	sed -i '45s/.*/*\o011\o011 hard\o011 core\o011\o011 0/' /etc/security/limits.conf
-	echo "- Core dumps restricted" >> ~/Desktop/logs/changelog.log
+	echo "- Core dumps restricted" >>~/Desktop/logs/changelog.log
 
 }
 
@@ -1324,12 +1393,32 @@ user_auditing() {
 		echo "${thing%%:*}" >>~/Desktop/logs/userchangelog.log
 	done
 
+	allUserList=$(cut -d ':' -f1 /etc/passwd | tr '\n' ' ')
+	IFS=' ' read -r -a allUsers <<<"$allUserList"
+	echo >>~/Desktop/logs/userchangelog.log
+	echo "All current users on the machine (make sure all users that look like normal users are authorized)" >>~/Desktop/logs/userchangelog.log
+	for thing in "${allUsers[@]}"; do  
+		echo "$thing" >>~/Desktop/logs/userchangelog.log
+	done
+
 	for item in "${authUsers[@]}"; do
 		crontab -u "$item" -r
 	done
 	echo "- Cleared crontab for all users" >>~/Desktop/logs/changelog.log
 	echo "Type anything to continue"
 	read -r timeCheck
+
+	useradd -D -f 30
+	for item in "${authUsers[@]}"; do
+		chage --inactive 30 "$item"
+	done
+	echo "- Account inactivity policy set" >>~/Desktop/logs/changelog.log
+
+	echo "#########Securing System Users#########"
+	awk -F: '($1!="root" && $1!="sync" && $1!="shutdown" && $1!="halt" && $1!~/^\+/ && $3<'"$(awk '/^\s*UID_MIN/{print $2}' /etc/login.defs)"' && $7!="'"$(which nologin)"'" && $7!="/bin/false") {print $1}' /etc/passwd | while read -r user; do usermod -s "$(which nologin)" "$user"; done
+	awk -F: '($1!="root" && $1!~/^\+/ && $3<'"$(awk '/^\s*UID_MIN/{print $2}' /etc/login.defs)"') {print $1}' /etc/passwd | xargs -I '{}' passwd -S '{}' | awk '($2!="L" && $2!="LK") {print $1}' | while read -r user; do usermod -L "$user"; done
+	usermod -g 0 root
+	echo "- System Users secured" >>~/Desktop/logs/changelog.log
 
 }
 
@@ -1373,7 +1462,7 @@ second_time_failsafe() {
 
 }
 
-clean () {
+clean() {
 	iptables -P INPUT DROP
 	rkhunter --propupd
 	sysctl -p
@@ -1389,7 +1478,7 @@ clean () {
 	apt-get clean -y -qq
 }
 
-audit () {
+audit() {
 	#run rkhunter
 	rkhunter --check --vl --sk
 	cp /var/log/rkhunter.log ~/Desktop/logs
