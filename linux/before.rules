@@ -7,7 +7,6 @@
 #   ufw-before-output
 #   ufw-before-forward
 #
-
 # Don't delete these required lines, otherwise there will be errors
 *filter
 :ufw-before-input - [0:0]

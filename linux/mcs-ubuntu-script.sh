@@ -8,6 +8,10 @@ if [[ "$(whoami)" != root ]]; then
 	exit 1
 fi
 
+# Current problems: 
+# - Internet lost at end of script
+# - Unable to log in at end of script (PAM)
+
 first_time_initialize() {
 	\unalias -a
 	echo "What is the username of the main user on this computer?"
@@ -93,8 +97,8 @@ packages() {
 	echo "#########APT (APT package installer enchancements)#########"
 	apt-get install apt-listchanges -y -qq
 	apt-get install apt-show-versions -y -qq
-	echo "#########Debian-Goodies (package assistant)#########"
-	apt-get install debian-goodies -y -qq
+	# echo "#########Debian-Goodies (package assistant)#########"
+	# apt-get install debian-goodies -y -qq
 	echo "#########Debsecan (package vulnerability reporter)#########"
 	apt-get install debsecan -y -qq
 	echo "#########Debsums (package verifier)#########"
@@ -144,31 +148,8 @@ firewall() {
 	ufw deny 2049
 	ufw deny 515
 	ufw deny 111
-	ufw deny out 135/tcp
-	ufw deny out 135/udp
-	ufw deny out 137/tcp
-	ufw deny out 137/udp
-	ufw deny out 138/tcp
-	ufw deny out 138/udp
-	ufw deny out 139/tcp
-	ufw deny out 139/udp
-	ufw deny out 445/tcp
-	ufw deny out 69/udp
-	ufw deny out 514/udp
-	ufw deny out 161/udp
-	ufw deny out 162/udp
-	ufw deny out 6660/tcp
-	ufw deny out 6661/tcp
-	ufw deny out 6662/tcp
-	ufw deny out 6663/tcp
-	ufw deny out 6664/tcp
-	ufw deny out 6665/tcp
-	ufw deny out 6666/tcp
-	ufw deny out 6667/tcp
-	ufw deny out 6668/tcp
-	ufw deny out 6669/tcp
 	ufw default deny incoming
-	ufw default deny outgoing
+	#ufw default deny outgoing
 	ufw default deny routed
 	ufw logging on
 	ufw logging high
@@ -197,12 +178,12 @@ services() {
 		ufw allow http
 		ufw allow https
 		systemctl restart apache2
-		echo "####Configuring ufw for web servers####"
+		# echo "####Configuring ufw for web servers####"
 		cp /etc/ufw/before.rules ~/Desktop/logs/backups/
-		rm /etc/ufw/before.rules
-		cp ~/Desktop/linux/before.rules /etc/ufw
+		# rm /etc/ufw/before.rules
+		# cp ~/Desktop/linux/before.rules /etc/ufw
 		service apache2 restart
-		echo "- UFW configured for use on a web server" >>~/Desktop/logs/changelog.log
+		# echo "- UFW configured for use on a web server" >>~/Desktop/logs/changelog.log
 		echo "Type anything to continue"
 		read -r timeCheck
 
@@ -513,12 +494,11 @@ services() {
 		read -r timeCheck
 	elif [[ $emailYN == "no" ]]; then
 		ufw deny smtp
-		ufw deny pop2
 		ufw deny pop3
 		ufw deny imap2
 		ufw deny imaps
 		ufw deny pop3s
-		apt-get purge postfix -y -qq
+		#apt-get purge postfix -y -qq
 		apt-get purge dovecot-* -y -qq
 		echo "Type anything to continue"
 		read -r timeCheck
@@ -541,6 +521,57 @@ services() {
 	elif [[ $DNSYN == "no" ]]; then
 		systemctl stop bind9
 		apt-get purge bind9 -y -qq
+	fi
+
+	if [[ "$sqlYN" == "yes" ]]; then
+		echo "#########Checking if MySQL config file exists#########"
+		cnfCheck=/etc/mysql/my.cnf
+		if [[ -f "$cnfCheck" ]]; then
+			echo "MySQL config file exists"
+		else
+			touch /etc/mysql/my.cnf
+			echo "MySQL config file created" >>~/Desktop/logs/changelog.log
+		fi
+		echo "#########Configuring my.cnf#########"
+		{
+			echo "[mysqld]"
+			echo "max_connections = 400"
+			echo "key_buffer = 16M"
+			echo "myisam_sort_buffer_size = 32M"
+			echo "join_buffer_size = 1M"
+			echo "read_buffer_size = 1M"
+			echo "sort_buffer_size = 2M"
+			echo "table_cache = 1024"
+			echo "thread_cache_size = 286"
+			echo "interactive_timeout = 25"
+			echo "wait_timeout = 1000"
+			echo "connect_timeout = 10"
+			echo "max_allowed_packet = 16M"
+			echo "max_connect_errors = 10"
+			echo "query_cache_limit = 1M"
+			echo "query_cache_size = 16M"
+			echo "query_cache_type = 1"
+			echo "tmp_table_size = 16M"
+			echo "skip-innodb"
+			echo "local-infile=0"
+			echo "bind-address=127.0.0.1"
+			echo "skip-show-database"
+
+			echo "[mysqld_safe]"
+			echo "open_files_limit = 8192"
+
+			echo "[mysqldump]"
+			echo "quick"
+			echo "max_allowed_packet = 16M"
+
+			echo "[myisamchk]"
+			echo "key_buffer = 32M"
+			echo "sort_buffer = 32M"
+			echo "read_buffer = 16M"
+			echo "write_buffer = 16M"
+		} >>/etc/mysql/my.cnf
+		chown -R root:root /etc/mysql/
+		chmod 644 /etc/mysql/my.cnf
 	fi
 
 	echo "*********Is this machine a proxy server?*********"
@@ -575,12 +606,12 @@ general_config() {
 	read -r lockRootYN
 	if [[ $lockRootYN == yes ]]; then
 		passwd -l root
-		echo "- Root account locked. Use 'usermod -U root' to unlock it (but good luck without root)"
+		echo "- Root account locked. Use 'passwd -u root' to unlock it" >>~/Desktop/logs/changelog.log
 	fi
 
-	echo "#########Denying outside packets#########"
-	iptables -A INPUT -p all -s localhost -i eth0 -j DROP
-	echo "- Denied outside packets" >>~/Desktop/logs/changelog.log
+	# echo "#########Denying outside packets#########"
+	# iptables -A INPUT -p all -s localhost -i eth0 -j DROP
+	# echo "- Denied outside packets" >>~/Desktop/logs/changelog.log
 
 	echo "#########Enabling auditing#########"
 	service auditd start
@@ -608,25 +639,23 @@ general_config() {
 
 	echo "#########Configuring cron#########"
 	chown root:root /etc/crontab
-	chmod og-rwx /etc/crontab
+	chmod 644 /etc/crontab
 	chown root:root /etc/cron.hourly
-	chmod og-rwx /etc/cron.hourly
+	chmod 644 /etc/cron.hourly
 	chown root:root /etc/cron.daily
-	chmod og-rwx /etc/cron.daily
+	chmod 644 /etc/cron.daily
 	chown root:root /etc/cron.weekly
-	chmod og-rwx /etc/cron.weekly
+	chmod 644 /etc/cron.weekly
 	chown root:root /etc/cron.monthly
-	chmod og-rwx /etc/cron.monthly
+	chmod 644 /etc/cron.monthly
 	chown root:root /etc/cron.d
-	chmod og-rwx /etc/cron.d
+	chmod 644 /etc/cron.d
 	rm /etc/cron.deny
 	rm /etc/at.deny
 	touch /etc/cron.allow
 	touch /etc/at.allow
-	chmod o-rwx /etc/cron.allow
-	chmod g-wx /etc/cron.allow
-	chmod o-rwx /etc/at.allow
-	chmod g-wx /etc/at.allow
+	chmod 644 /etc/cron.allow
+	chmod 644 /etc/at.allow
 	chown root:root /etc/cron.allow
 	chown root:root /etc/at.allow
 	echo "- Cron permissions configured" >>~/Desktop/logs/changelog.log
@@ -639,16 +668,9 @@ general_config() {
 	echo "#########Securing important files with chmod#########"
 	chmod -R 644 /var/log
 	chown root:root /etc/passwd
-	chmod u-x,go-wx /etc/passwd
-	chown root:root /etc/passwd-
-	chmod u-x,go-rwx /etc/passwd
-	chown root:root /etc/gshadow-
-	chown root:shadow /etc/gshadow
-	chmod o-rwx,g-wx /etc/gshadow
-	chmod o-rwx,g-wx /etc/shadow
-	chown root:shadow /etc/shadow
-	chown root:shadow /etc/shadow-
-	chmod u-x,go-rwx /etc/shadow-
+	chmod 644 /etc/passwd
+	chmod 644 /etc/gshadow
+	chmod 644 /etc/shadow
 	chown root:root /etc/group
 	chmod 644 /etc/group
 	chmod 0700 /etc/cups*
@@ -677,11 +699,11 @@ general_config() {
 	arpwatch
 	echo "- Arpwatch started" >>~/Desktop/logs/changelog.log
 
-	echo "#########Backing up and clearing crontab#########"
-	touch ~/Desktop/logs/backups/crontab-backup
-	crontab -l >~/Desktop/logs/backups/crontab-backup
-	crontab -r
-	echo "- Crontab backed up and cleared" >>~/Desktop/logs/changelog.log
+	# echo "#########Backing up and clearing crontab#########"
+	# touch ~/Desktop/logs/backups/crontab-backup
+	# crontab -l >~/Desktop/logs/backups/crontab-backup
+	# crontab -r
+	# echo "- Crontab backed up and cleared" >>~/Desktop/logs/changelog.log
 
 	#echo "#########Enabling unattended upgrades#########"
 	#dpkg-reconfigure -plow unattended-upgrades
@@ -706,7 +728,7 @@ general_config() {
 
 	echo "#########Configuring AppArmor#########"
 	aa-enforce /etc/apparmor.d/*
-	echo "- Apparmor configured" >> ~/Desktop/logs/changelog.log
+	echo "- Apparmor configured" >>~/Desktop/logs/changelog.log
 
 	echo "#########Setting time correct#########"
 	systemctl start systemd-timesyncd.service
@@ -735,7 +757,6 @@ hacking_tools() {
 	echo "####Removing John the Ripper####"
 	apt-get purge john -y -qq
 	apt-get purge john-data -y -qq
-	apt-get purge johnny -y -qq
 
 	echo "Removing Hydra"
 	apt-get purge hydra -y -qq
@@ -781,7 +802,6 @@ hacking_tools() {
 	echo "Removing Hashcat"
 	apt-get purge hashcat -y -qq
 	apt-get purge hashcat-data -y -qq
-	apt-get purge hash-identifier -y -qq
 
 	echo "Removing CeWl"
 	apt-get purge cewl -y -qq
@@ -794,7 +814,6 @@ hacking_tools() {
 
 	echo "Removing SQLMap"
 	apt-get purge sqlmap -y -qq
-	apt-get purge sqldict -y -qq
 
 	echo "Removing SNMP"
 	apt-get purge snmp -y -qq
@@ -803,7 +822,6 @@ hacking_tools() {
 	apt-get purge crack -y -qq
 
 	echo "Removing rsh-server"
-	apt-get purge rsh -y -qq
 	apt-get purge rsh-server -y -qq
 
 	echo "Removing NIS"
@@ -825,9 +843,9 @@ hacking_tools() {
 	echo "manual" >/etc/init/modemmanager.override
 
 	echo "Disabling Wireless"
-	nmcli radio all off
-	echo "iface wlan0 inet manual" >>/etc/network/interfaces
-	service network-manager restart
+	#nmcli radio all off
+	#echo "iface wlan0 inet manual" >>/etc/network/interfaces
+	#service network-manager restart
 
 	echo "#########Disabling unused compilers#########"
 	chmod 000 /usr/bin/byacc
@@ -843,19 +861,18 @@ hacking_tools() {
 	apt-get purge xinetd -y -qq
 
 	echo "#########Removing openbsd-inetd#########"
-	apt-get purge openbsd-inetd
+	apt-get purge openbsd-inetd -y -qq
 
 	echo "#########Removing Talk#########"
 	apt-get purge talk -y -qq
 
 	echo "#########Removing uneeded special services#########"
-	apt purge xserver-xorg*
+	#apt-get purge xserver-xorg* -y -qq
 	systemctl --now disable avahi-daemon
 	systemctl --now disable isc-dhcp-server #comment if dhcp server
 	systemctl --now disable isc-dhcp-server6
 	systemctl --now disable slapd #comment if ldap server
-	apt-get purge ldap-utils
-	apt-get purge openldap-clients
+	apt-get purge ldap-utils -y -qq
 	apt-get purge slapd -y -qq
 	systemctl --now disable nfs-server
 	apt-get purge nfs-server -y -qq
@@ -962,29 +979,33 @@ file_config() {
 	echo "exit 0" >/etc/rc.local
 	echo "- /etc/rc.local secured" >>~/Desktop/logs/changelog.log
 
+	# not problem 
 	echo "#########Editing /etc/login.defs#########"
 	cp /etc/login.defs ~/Desktop/logs/backups/
 	rm /etc/login.defs
 	cp ~/Desktop/linux/login.defs /etc
 	echo "- /etc/login.defs configured (Min days 7, Max days 30, Warn age 14, umask higher perms)" >>~/Desktop/logs/changelog.log
 
+	# not problem
 	echo "#########Editing /etc/pam.d/common-password#########"
 	cp /etc/pam.d/common-password ~/Desktop/logs/backups/
 	rm /etc/pam.d/common-password
 	cp ~/Desktop/linux/common-password /etc/pam.d
 	echo "- /etc/pam.d/common-password edited (remember=5, minlen=8, complexity requirements)" >>~/Desktop/logs/changelog.log
 
-	echo "#########Setting account lockout policy#########"
-	cp /etc/pam.d/common-auth ~/Desktop/logs/backups/
-	rm /etc/pam.d/common-auth
-	cp ~/Desktop/linux/common-auth /etc/pam.d
-	echo "- Account lockout policy set in /etc/pam.d/common-auth" >>~/Desktop/logs/changelog.log
+	# problem?
+	# echo "#########Setting account lockout policy#########"
+	# cp /etc/pam.d/common-auth ~/Desktop/logs/backups/
+	# rm /etc/pam.d/common-auth
+	# cp ~/Desktop/linux/common-auth /etc/pam.d
+	# echo "- Account lockout policy set in /etc/pam.d/common-auth" >>~/Desktop/logs/changelog.log
 
-	echo "#########Editing /etc/pam.d/common-account#########"
-	cp /etc/pam.d/common-account ~/Desktop/logs/backups/
-	rm /etc/pam.d/common-account
-	cp ~/Desktop/linux/common-account /etc/pam.d
-	echo "- /etc/pam.d/common-auth editing to require pam_tally2" >>~/Desktop/logs/changelog.log
+	# ?
+	# echo "#########Editing /etc/pam.d/common-account#########"
+	# cp /etc/pam.d/common-account ~/Desktop/logs/backups/
+	# rm /etc/pam.d/common-account
+	# cp ~/Desktop/linux/common-account /etc/pam.d
+	# echo "- /etc/pam.d/common-auth editing to require pam_tally2" >>~/Desktop/logs/changelog.log
 
 	echo "#########Securing Shared Memory#########"
 	cp /etc/fstab ~/Desktop/logs/backups/
@@ -996,12 +1017,12 @@ file_config() {
 	chmod 0600 /etc/securetty
 	echo "- /etc/securetty may only be accessed by root" >>~/Desktop/logs/changelog.log
 
-	echo "#########Configuring rkhunter to allow checking for updates#########"
-	cp /etc/rkhunter.conf ~/Desktop/logs/backups
-	rm /etc/rkhunter.conf
-	cp ~/Desktop/linux/rkhunter.conf /etc
-	rkhunter --update
-	echo "- Configured /etc/rkhunter.conf to allow for checking for updates" >>~/Desktop/logs/changelog.log
+	# echo "#########Configuring rkhunter to allow checking for updates#########"
+	# cp /etc/rkhunter.conf ~/Desktop/logs/backups
+	# rm /etc/rkhunter.conf
+	# cp ~/Desktop/linux/rkhunter.conf /etc/rkhunter.conf
+	# rkhunter --update
+	# echo "- Configured /etc/rkhunter.conf to allow for checking for updates" >>~/Desktop/logs/changelog.log
 
 	echo "#########Configuring /etc/sysctl.conf#########"
 	cp /etc/sysctl.conf ~/Desktop/logs/backups/
@@ -1032,7 +1053,6 @@ file_config() {
 	echo "- /etc/sysctl.conf configured" >>~/Desktop/logs/changelog.log
 
 	echo "#########Configuring Auditd#########"
-	echo >/etc/audit/rules.d/audit.rules
 	{
 		echo "# first of all, reset the rules (delete all)"
 		echo "-D"
@@ -1058,94 +1078,43 @@ file_config() {
 		echo "# lock the audit configuration to prevent any modification of this file."
 		echo "-e 2"
 	} >>/etc/audit/rules.d/audit.rules
-	service auditd restart
+	#service auditd restart
 
-	echo "#########Password Protecting GRUB Bootloader#########"
-	grub-mkpasswd-pbkdf2
-	chown root:root /boot/grub/grub.cfg
-	chmod og-rwx /boot/grub/grub.cfg
-	echo "*********Please enter the hashed password below*********"
-	read -r grubHash
-	{
-		echo "set superusers=\"root\""
-		echo "password_pbkdf2 root $grubHash"
-	} >>/etc/grub.d/40_custom
-	sed -i '34s/.*/CLASS=\"--class gnu-linux --class gnu --class os --unrestricted\"/' /etc/grub.d/10_linux
-	update-grub
-	echo "- Password set for GRUB Bootloader and GRUB updated" >>~/Desktop/logs/changelog.log
+	# echo "#########Password Protecting GRUB Bootloader#########"
+	# grub-mkpasswd-pbkdf2
+	# chown root:root /boot/grub/grub.cfg
+	# chmod og-rwx /boot/grub/grub.cfg
+	# echo "*********Please enter the hashed password below*********"
+	# read -r grubHash
+	# {
+	# 	echo "set superusers=\"root\""
+	# 	echo "password_pbkdf2 root $grubHash"
+	# } >>/etc/grub.d/40_custom
+	# sed -i '34s/.*/CLASS=\"--class gnu-linux --class gnu --class os --unrestricted\"/' /etc/grub.d/10_linux
+	# update-grub
+	# echo "- Password set for Bootloader and GRUB updated" >>~/Desktop/logs/changelog.log
 
-	echo "#########Setting password for root user#########"
-	passwd root
-	echo "- Password set for root user" >>~/Desktop/logs/changelog.log
+	# echo "#########Setting password for root user#########"
+	# passwd root
+	# echo "- Password set for root user" >>~/Desktop/logs/changelog.log
 
 	echo "#########Configuring PKI-based authentication#########"
 	cp ~/Desktop/linux/pam_pkcs11.conf /etc/pam_pkcs11
 	echo "- pam_pkcs11 configured" >>~/Desktop/logs/changelog.log
-	
-	if [[ "$sqlYN" == "yes" ]]; then
-		echo "#########Checking if MySQL config file exists#########"
-		cnfCheck=/etc/mysql/my.cnf
-		if [[ -f "$cnfCheck" ]]; then
-			echo "MySQL config file exists"
-		else
-			touch /etc/mysql/my.cnf
-			echo "MySQL config file created" >>~/Desktop/logs/changelog.log
-		fi
-		echo "#########Configuring my.cnf#########"
-		{
-			echo "[mysqld]"
-			echo "max_connections = 400"
-			echo "key_buffer = 16M"
-			echo "myisam_sort_buffer_size = 32M"
-			echo "join_buffer_size = 1M"
-			echo "read_buffer_size = 1M"
-			echo "sort_buffer_size = 2M"	
-			echo "table_cache = 1024"
-			echo "thread_cache_size = 286"
-			echo "interactive_timeout = 25"
-			echo "wait_timeout = 1000"
-			echo "connect_timeout = 10"
-			echo "max_allowed_packet = 16M"
-			echo "max_connect_errors = 10"
-			echo "query_cache_limit = 1M"
-			echo "query_cache_size = 16M"
-			echo "query_cache_type = 1"
-			echo "tmp_table_size = 16M"
-			echo "skip-innodb"
-			echo "local-infile=0"
-			echo "bind-address=127.0.0.1"
-			echo "skip-show-database"
 
-			echo "[mysqld_safe]"
-			echo "open_files_limit = 8192"
-
-			echo "[mysqldump]"
-			echo "quick"
-			echo "max_allowed_packet = 16M"
-
-			echo "[myisamchk]"
-			echo "key_buffer = 32M"
-			echo "sort_buffer = 32M"
-			echo "read_buffer = 16M"
-			echo "write_buffer = 16M"
-		} >>/etc/mysql/my.cnf
-		chown -R root:root /etc/mysql/
-		chmod 0644 /etc/mysql/my.cnf
-	fi
-
-	echo "########Configuring Warning Messages and Permissions#########"
-	echo "Authorized uses only. All activity may be monitored and reported." >/etc/issue
-	echo "Authorized uses only. All activity may be monitored and reported." >/etc/issue.net
-	chown root:root /etc/update-motd.d/*
-	chmod u-x,go-wx /etc/update-motd.d/*
-	chown root:root /etc/issue
-	chmod u-x,go-wx /etc/issue
-	chown root:root /etc/issue.net
-	chmod u-x,go-wx /etc/issue.net
-	#sed -i '25s/.*/[org\/gnome\/login-screen]/' /etc/gdm3/greeter.dconf-defaults
-	#sed -i '28s/.*/banner-message-enable=true\n/' /etc/gdm3/greeter.dconf-defaults
-	sed -i '29s/.*/banner-message-text='\''Authorized uses only. All activity may be monitored and reported.'\''\n/' /etc/gdm3/greeter.dconf-defaults
-	echo "- Warning messages configured so that all references to the OS are removed" >>~/Desktop/logs/changelog.log
+	# echo "########Configuring Warning Messages and Permissions#########"
+	# echo "Authorized uses only. All activity may be monitored and reported." >/etc/issue
+	# echo "Authorized uses only. All activity may be monitored and reported." >/etc/issue.net
+	# chown root:root /etc/update-motd.d/*
+	# chmod u-x,go-wx /etc/update-motd.d/*
+	# chown root:root /etc/issue
+	# chmod u-x,go-wx /etc/issue
+	# chown root:root /etc/issue.net
+	# chmod u-x,go-wx /etc/issue.net
+	# #sed -i '25s/.*/[org\/gnome\/login-screen]/' /etc/gdm3/greeter.dconf-defaults
+	# #sed -i '28s/.*/banner-message-enable=true\n/' /etc/gdm3/greeter.dconf-defaults
+	# sed -i '29s/.*/banner-message-text='\''Authorized uses only. All activity may be monitored and reported.'\''\n/' /etc/gdm3/greeter.dconf-defaults
+	# echo "- Warning messages configured so that all references to the OS are removed" >>~/Desktop/logs/changelog.log
 
 	echo "########Restricting Core Dumps#########"
 	sed -i '45s/.*/*\o011\o011 hard\o011 core\o011\o011 0/' /etc/security/limits.conf
@@ -1397,7 +1366,7 @@ user_auditing() {
 	IFS=' ' read -r -a allUsers <<<"$allUserList"
 	echo >>~/Desktop/logs/userchangelog.log
 	echo "All current users on the machine (make sure all users that look like normal users are authorized)" >>~/Desktop/logs/userchangelog.log
-	for thing in "${allUsers[@]}"; do  
+	for thing in "${allUsers[@]}"; do
 		echo "$thing" >>~/Desktop/logs/userchangelog.log
 	done
 
@@ -1413,12 +1382,6 @@ user_auditing() {
 		chage --inactive 30 "$item"
 	done
 	echo "- Account inactivity policy set" >>~/Desktop/logs/changelog.log
-
-	echo "#########Securing System Users#########"
-	awk -F: '($1!="root" && $1!="sync" && $1!="shutdown" && $1!="halt" && $1!~/^\+/ && $3<'"$(awk '/^\s*UID_MIN/{print $2}' /etc/login.defs)"' && $7!="'"$(which nologin)"'" && $7!="/bin/false") {print $1}' /etc/passwd | while read -r user; do usermod -s "$(which nologin)" "$user"; done
-	awk -F: '($1!="root" && $1!~/^\+/ && $3<'"$(awk '/^\s*UID_MIN/{print $2}' /etc/login.defs)"') {print $1}' /etc/passwd | xargs -I '{}' passwd -S '{}' | awk '($2!="L" && $2!="LK") {print $1}' | while read -r user; do usermod -L "$user"; done
-	usermod -g 0 root
-	echo "- System Users secured" >>~/Desktop/logs/changelog.log
 
 }
 
@@ -1463,14 +1426,13 @@ second_time_failsafe() {
 }
 
 clean() {
-	iptables -P INPUT DROP
 	rkhunter --propupd
 	sysctl -p
 	systemctl daemon-reload
 	update-grub
 	ufw reload
 	service ssh restart
-	service auditd restart
+	#service auditd restart
 	apt-get update
 	apt-get upgrade
 	apt-get autoremove -y -qq
@@ -1597,7 +1559,7 @@ audit
 end
 
 clamtk
-
+	
 needrestart
 
 update-manager
