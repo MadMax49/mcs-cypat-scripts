@@ -1102,19 +1102,19 @@ file_config() {
 	cp ~/Desktop/linux/pam_pkcs11.conf /etc/pam_pkcs11
 	echo "- pam_pkcs11 configured" >>~/Desktop/logs/changelog.log
 
-	# echo "########Configuring Warning Messages and Permissions#########"
-	# echo "Authorized uses only. All activity may be monitored and reported." >/etc/issue
-	# echo "Authorized uses only. All activity may be monitored and reported." >/etc/issue.net
-	# chown root:root /etc/update-motd.d/*
-	# chmod u-x,go-wx /etc/update-motd.d/*
-	# chown root:root /etc/issue
-	# chmod u-x,go-wx /etc/issue
-	# chown root:root /etc/issue.net
-	# chmod u-x,go-wx /etc/issue.net
-	# #sed -i '25s/.*/[org\/gnome\/login-screen]/' /etc/gdm3/greeter.dconf-defaults
-	# #sed -i '28s/.*/banner-message-enable=true\n/' /etc/gdm3/greeter.dconf-defaults
-	# sed -i '29s/.*/banner-message-text='\''Authorized uses only. All activity may be monitored and reported.'\''\n/' /etc/gdm3/greeter.dconf-defaults
-	# echo "- Warning messages configured so that all references to the OS are removed" >>~/Desktop/logs/changelog.log
+	echo "########Configuring Warning Messages and Permissions#########"
+	echo "Authorized uses only. All activity may be monitored and reported." >/etc/issue
+	echo "Authorized uses only. All activity may be monitored and reported." >/etc/issue.net
+	chown root:root /etc/update-motd.d/*
+	chmod u-x,go-wx /etc/update-motd.d/*
+	chown root:root /etc/issue
+	chmod u-x,go-wx /etc/issue
+	chown root:root /etc/issue.net
+	chmod u-x,go-wx /etc/issue.net
+	#sed -i '25s/.*/[org\/gnome\/login-screen]/' /etc/gdm3/greeter.dconf-defaults
+	#sed -i '28s/.*/banner-message-enable=true\n/' /etc/gdm3/greeter.dconf-defaults
+	sed -i '29s/.*/banner-message-text='\''Authorized uses only. All activity may be monitored and reported.'\''\n/' /etc/gdm3/greeter.dconf-defaults
+	echo "- Warning messages configured so that all references to the OS are removed" >>~/Desktop/logs/changelog.log
 
 	echo "########Restricting Core Dumps#########"
 	sed -i '45s/.*/*\o011\o011 hard\o011 core\o011\o011 0/' /etc/security/limits.conf
