@@ -9,6 +9,7 @@ fi
 
 declare -a services
 islamp="no"
+homeDir = "/home/$username/"
 
 init() {
   \unalias -a
@@ -83,7 +84,7 @@ services() {
 		apt-get purge nginx -y -qq
 		apt-get purge nginx-common -y -qq
 		apt-get purge nginx-core -y -qq
-		echo "- NGINX removed from the machine" >>~/Desktop/logs/changelog.log
+		echo "- NGINX removed from the machine" >>${homeDir}/Desktop/logs/changelog.log
 		apt-get install apache2 -y -qq
 		apt-get install apache2-utils -y -qq
 		apt-get install libapache2-mod-evasive -y -qq
@@ -93,22 +94,22 @@ services() {
 		ufw allow https
 		systemctl restart apache2
 		# echo "####Configuring ufw for web servers####"
-		cp /etc/ufw/before.rules ~/Desktop/logs/backups/
+		cp /etc/ufw/before.rules ${homeDir}/Desktop/logs/backups/
 		# rm /etc/ufw/before.rules
-		# cp ~/Desktop/linux/before.rules /etc/ufw
+		# cp ${homeDir}/Desktop/linux/before.rules /etc/ufw
 		service apache2 restart
-		# echo "- UFW configured for use on a web server" >>~/Desktop/logs/changelog.log
+		# echo "- UFW configured for use on a web server" >>${homeDir}/Desktop/logs/changelog.log
 
 		echo "####Configuring Apache2 config file####"
-		cp /etc/apache2/apache2.conf ~/Desktop/logs/backups
+		cp /etc/apache2/apache2.conf ${homeDir}/Desktop/logs/backups
 		rm /etc/apache2/apache2.conf
-		cp ~/Desktop/linux/apache2.conf /etc/apache2
+		cp ${homeDir}/Desktop/linux/apache2.conf /etc/apache2
 		chmod 511 /usr/sbin/apache2
 		chmod 755 /var/log/apache2/
 		chmod -R 755 /var/www
 		/etc/init.d/apache2 restart
-		touch ~/Desktop/server-link.desktop
-		chmod 777 ~/Desktop/server-link.desktop
+		touch ${homeDir}/Desktop/server-link.desktop
+		chmod 777 ${homeDir}/Desktop/server-link.desktop
 		{
 			echo [Desktop Entry]
 			echo Encoding=UTF-8
@@ -117,22 +118,22 @@ services() {
 			echo URL="http://localhost/"
 			echo Icon=text-html
 			echo Name[en_US]=server-link
-		} >>~/Desktop/server-link.desktop
-		echo "- Apache2 installed, configured, and http(s) allowed" >>~/Desktop/logs/changelog.log
+		} >>${homeDir}/Desktop/server-link.desktop
+		echo "- Apache2 installed, configured, and http(s) allowed" >>${homeDir}/Desktop/logs/changelog.log
 		echo "####Installing PHP####"
 		apt-get install php -y -qq
 		apt-get install libapache2-mod-php -y -qq
 		apt-get install php-mysql -y -qq
-		cp /etc/apache2/mods-enabled/dir.conf ~/Desktop/logs/backups
+		cp /etc/apache2/mods-enabled/dir.conf ${homeDir}/Desktop/logs/backups
 		rm /etc/apache2/mods-enabled/dir.conf
-		cp ~/Desktop/linux/dir.conf /etc/apache2/mods-enabled
+		cp ${homeDir}/Desktop/linux/dir.conf /etc/apache2/mods-enabled
 		systemctl restart apache2
 		echo "###Configuring php.ini####"
-		cp /etc/php/7.2/apache2/php.ini ~/Desktop/logs/backups/
+		cp /etc/php/7.2/apache2/php.ini ${homeDir}/Desktop/logs/backups/
 		rm /etc/php/7.2/apache2/php.ini
-		cp ~/Desktop/linux/php.ini /etc/php/7.2/apache2
+		cp ${homeDir}/Desktop/linux/php.ini /etc/php/7.2/apache2
 		service apache2 restart
-		echo "- Configured PHP 7.2 for use on a web server" >>~/Desktop/logs/changelog.log
+		echo "- Configured PHP 7.2 for use on a web server" >>${homeDir}/Desktop/logs/changelog.log
     islamp='yes'
 	fi
 
@@ -141,33 +142,33 @@ services() {
 		apt-get install openssh-server -y -qq
 		apt-get upgrade openssl libssl-dev -y -qq
 		apt-cache policy openssl libssl-dev
-		echo "- Packages ssh and openssh-server installed and heartbleed bug fixed" >>~/Desktop/logs/changelog.log
+		echo "- Packages ssh and openssh-server installed and heartbleed bug fixed" >>${homeDir}/Desktop/logs/changelog.log
 
 		echo "####Editing /etc/sshd/sshd_config####"
-		cp /etc/ssh/sshd_config ~/Desktop/logs/backups/
+		cp /etc/ssh/sshd_config ${homeDir}/Desktop/logs/backups/
 		rm /etc/ssh/sshd_config
-		cp ~/Desktop/linux/sshd_config /etc/ssh
+		cp ${homeDir}/Desktop/linux/sshd_config /etc/ssh
 		chown root:root /etc/ssh/sshd_config
 		chmod og-rwx /etc/ssh/sshd_config
 		find /etc/ssh -xdev -type f -name 'ssh_host_*_key' -exec chown root:root {} \;
 		find /etc/ssh -xdev -type f -name 'ssh_host_*_key' -exec chmod 0600 {} \;
 		find /etc/ssh -xdev -type f -name 'ssh_host_*_key.pub' -exec chmod 0644 {} \;
 		find /etc/ssh -xdev -type f -name 'ssh_host_*_key.pub' -exec chown root:root {} \;
-		echo "- Configured /etc/ssh/sshd_config" >>~/Desktop/logs/changelog.log
+		echo "- Configured /etc/ssh/sshd_config" >>${homeDir}/Desktop/logs/changelog.log
 
 		echo "####Securing SSH keys####"
-		mkdir -p ~/.ssh/
-		chmod 700 ~/.ssh
-		chmod 600 ~/.ssh/authorized_keys
+		mkdir -p ${homeDir}/.ssh/
+		chmod 700 ${homeDir}/.ssh
+		chmod 600 ${homeDir}/.ssh/authorized_keys
 		ssh-keygen -t rsa
-    chmod 600 ~/.ssh/id_rsa
-		echo "- Secured SSH keys" >>~/Desktop/logs/changelog.log
+    chmod 600 ${homeDir}/.ssh/id_rsa
+		echo "- Secured SSH keys" >>${homeDir}/Desktop/logs/changelog.log
 
 		echo "####SSH port can accept SSH connections####"
 		ufw allow 22
 
 		service ssh restart
-		echo "- SSH configured" >>~/Desktop/logs/changelog.log
+		echo "- SSH configured" >>${homeDir}/Desktop/logs/changelog.log
 	else
 		apt-get purge openssh-server
 		ufw deny ssh
@@ -183,25 +184,25 @@ services() {
 		apt-get install system-config-samba -y -qq
 		apt-get install libpam-winbind -y -qq
 		systemctl restart smbd.service nmbd.service
-		echo "- Samba installed and allowed" >>~/Desktop/logs/changelog.log
+		echo "- Samba installed and allowed" >>${homeDir}/Desktop/logs/changelog.log
 	else
 		ufw deny netbios-ns
 		ufw deny netbios-dgm
 		ufw deny netbios-ssn
 		ufw deny microsoft-ds
 		apt-get purge samba -y -qq
-		echo "- Samba uninstalled and blocked" >>~/Desktop/logs/changelog.log
+		echo "- Samba uninstalled and blocked" >>${homeDir}/Desktop/logs/changelog.log
 	fi
 
 	if [[ ${services[*]} =~ 'vsftpd' ]]; then
 		apt-get install vsftpd
 		cp /etc/vsftpd.conf /etc/vsftpd.conf_default
-		cp /etc/vsftpd.conf ~/Desktop/logs/backups/
+		cp /etc/vsftpd.conf ${homeDir}/Desktop/logs/backups/
 		service vsftpd start
 		service vsftpd enable
 		openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/private/vsftpd.pem -out /etc/ssl/private/vsftpd.pem
 		rm /etc/vsftpd.conf
-		cp ~/Desktop/linux/vsftpd.conf /etc
+		cp ${homeDir}/Desktop/linux/vsftpd.conf /etc
 		mkdir /srv/ftp/new_location
 		usermod –d /srv/ftp/new_location ftp
 		systemctl restart vsftpd.service
@@ -215,7 +216,7 @@ services() {
 		ufw allow ftps-data
 		ufw allow ftps
 		service vsftpd restart
-		echo "- FTP installed and allowed" >>~/Desktop/logs/changelog.log
+		echo "- FTP installed and allowed" >>${homeDir}/Desktop/logs/changelog.log
 	else
 		service vsftpd stop
 		ufw deny ftp
@@ -224,7 +225,7 @@ services() {
 		ufw deny ftps-data
 		ufw deny ftps
 		apt-get purge vsftpd -y -qq
-		echo "- FTP uninstalled and blocked" >>~/Desktop/logs/changelog.log
+		echo "- FTP uninstalled and blocked" >>${homeDir}/Desktop/logs/changelog.log
 	fi
 
 	service telnet stop
@@ -243,16 +244,16 @@ services() {
 			apt-get purge apache2-utils -y -qq
 			apt-get purge libapache2-mod-evasive -y -qq
 			apt-get purge libapache2-mod-security2 -y -qq
-			echo "- Apache2 removed" >>~/Desktop/logs/changelog.log
+			echo "- Apache2 removed" >>${homeDir}/Desktop/logs/changelog.log
 			apt-get install nginx -y -qq
 			ufw allow http
 			ufw allow https
-			echo "- NGINX installed" >>~/Desktop/logs/changelog.log
+			echo "- NGINX installed" >>${homeDir}/Desktop/logs/changelog.log
 		elif [[ ${services[*]} =~ 'apache' ]]; then
 			apt-get purge nginx -y -qq
 			apt-get purge nginx-common -y -qq
 			apt-get purge nginx-core -y -qq
-			echo "- NGINX removed from the machine" >>~/Desktop/logs/changelog.log
+			echo "- NGINX removed from the machine" >>${homeDir}/Desktop/logs/changelog.log
 			apt-get install apache2 -y -qq
 			apt-get install apache2-utils -y -qq
 			apt-get install libapache2-mod-evasive -y -qq
@@ -265,13 +266,13 @@ services() {
 			chmod 750 /var/log/apache2/
 			chmod -R 444 /var/www
 			/etc/init.d/apache2 restart
-			echo "- Apache2 installed, configured, and http(s) allowed" >>~/Desktop/logs/changelog.log
+			echo "- Apache2 installed, configured, and http(s) allowed" >>${homeDir}/Desktop/logs/changelog.log
 		fi
 	elif [[ $islamp == 'no' ]]; then
 		apt-get purge nginx -y -qq
 		apt-get purge nginx-common -y -qq
 		apt-get purge nginx-core -y -qq
-		echo "- NGINX removed from the machine" >>~/Desktop/logs/changelog.log
+		echo "- NGINX removed from the machine" >>${homeDir}/Desktop/logs/changelog.log
 		ufw deny http
 		ufw deny https
 		apt-get purge apache2 -y -qq
@@ -280,7 +281,7 @@ services() {
 		apt-get purge libapache2-mod-evasive -y -qq
 		apt-get purge libapache2-mod-security2 -y -qq
 		rm -r /var/www/*
-		echo "- Apache2 removed and http(s) blocked" >>~/Desktop/logs/changelog.log
+		echo "- Apache2 removed and http(s) blocked" >>${homeDir}/Desktop/logs/changelog.log
 	fi
 
   ufw deny smtp
@@ -325,7 +326,7 @@ services() {
 			echo "MySQL config file exists"
 		else
 			touch /etc/mysql/my.cnf
-			echo "MySQL config file created" >>~/Desktop/logs/changelog.log
+			echo "MySQL config file created" >>${homeDir}/Desktop/logs/changelog.log
 		fi
 		echo "#########Configuring my.cnf#########"
 		{
@@ -469,7 +470,7 @@ general_config() {
 	lightdmconf=/etc/lightdm/lightdm.conf
 	if [[ -f ${lightdmdir} ]]; then
 		if [[ -f ${lightdmconf} ]]; then
-			cp /etc/lightdm/lightdm.conf ~/Desktop/logs/backups
+			cp /etc/lightdm/lightdm.conf ${homeDir}/Desktop/logs/backups
 			echo "allow-guest=false" >>/etc/lightdm/lightdm.conf
 		else
 			touch /etc/lightdm/lightdm.conf
@@ -481,32 +482,32 @@ general_config() {
 	echo "exit 0" >/etc/rc.local
 
   # LOGIN DEFS
-  cp /etc/login.defs ~/Desktop/logs/backups/
-	cp ~/Desktop/linux/login.defs /etc/login.defs
+  cp /etc/login.defs ${homeDir}/Desktop/logs/backups/
+	cp ${homeDir}/Desktop/linux/login.defs /etc/login.defs
 
   # COMMON PASSWORD
-  cp /etc/pam.d/common-password ~/Desktop/logs/backups/
-	cp ~/Desktop/linux/common-password /etc/pam.d/common-password
+  cp /etc/pam.d/common-password ${homeDir}/Desktop/logs/backups/
+	cp ${homeDir}/Desktop/linux/common-password /etc/pam.d/common-password
 
   # lockout bad
-	# cp /etc/pam.d/common-auth ~/Desktop/logs/backups/
-	# cp ~/Desktop/linux/common-auth /etc/pam.d/common-auth
+	# cp /etc/pam.d/common-auth ${homeDir}/Desktop/logs/backups/
+	# cp ${homeDir}/Desktop/linux/common-auth /etc/pam.d/common-auth
 
 	# account even worse
-	# cp /etc/pam.d/common-account ~/Desktop/logs/backups/
-	# cp ~/Desktop/linux/common-account /etc/pam.d/common-account
+	# cp /etc/pam.d/common-account ${homeDir}/Desktop/logs/backups/
+	# cp ${homeDir}/Desktop/linux/common-account /etc/pam.d/common-account
 
   # SYSCTL!!!!
-  cp /etc/sysctl.conf ~/Desktop/logs/backups/
-	cp ~/Desktop/linux/sysctl.conf /etc/sysctl.conf
+  cp /etc/sysctl.conf ${homeDir}/Desktop/logs/backups/
+	cp ${homeDir}/Desktop/linux/sysctl.conf /etc/sysctl.conf
 
-  cp /etc/fstab ~/Desktop/logs/backups/
+  cp /etc/fstab ${homeDir}/Desktop/logs/backups/
 	echo "tmpfs /run/shm tmpfs defaults,noexec,nosuid 0 0" >>/etc/fstab
 
   chown root:root /etc/securetty
 	chmod 0600 /etc/securetty
 
-  cp ~/Desktop/linux/pam_pkcs11.conf /etc/pam_pkcs11/pam_pkcs11.conf
+  cp ${homeDir}/Desktop/linux/pam_pkcs11.conf /etc/pam_pkcs11/pam_pkcs11.conf
 
   echo "Authorized uses only. All activity may be monitored and reported." >/etc/issue
 	echo "Authorized uses only. All activity may be monitored and reported." >/etc/issue.net
@@ -579,8 +580,8 @@ hacking_tools() {
 media_files() {
 
 	echo "#########Logging the fire directories of media files on the machine#########"
-	touch ~/Desktop/logs/media_files.log
-	chmod 777 ~/Desktop/logs/media_files.log
+	touch ${homeDir}/Desktop/logs/media_files.log
+	chmod 777 ${homeDir}/Desktop/logs/media_files.log
 	{
 		echo "Most common types of media files:"
 		find / -name "*.midi"
@@ -705,12 +706,12 @@ media_files() {
 		find / -name "*.im1"
 		find / -name "*.jpe"
 
-	} >>~/Desktop/logs/media_files.log
+	} >>${homeDir}/Desktop/logs/media_files.log
 }
 
 parse_readme() {
-  touch ~/Desktop/logs/userchangelog.log
-	chmod 777 ~/Desktop/logs/userchangelog.log
+  touch ${homeDir}/Desktop/logs/userchangelog.log
+	chmod 777 ${homeDir}/Desktop/logs/userchangelog.log
   echo "Please enter the link to the README"
   read -r link
   adminsList=$(python3 scraper.py $link admins)
@@ -719,13 +720,13 @@ parse_readme() {
   IFS=';' read -r -a users <<< "$usersList"
   servicesList=$(python3 scraper.py $link services)
   IFS=';' read -r -a services <<< "$servicesList"
-  echo "Authorized Administrators supposed to be on the system:" >>~/Desktop/logs/userchangelog.log
+  echo "Authorized Administrators supposed to be on the system:" >>${homeDir}/Desktop/logs/userchangelog.log
   for item in "${admins[@]}"; do
-		echo "$item" >>~/Desktop/logs/userchangelog.log
+		echo "$item" >>${homeDir}/Desktop/logs/userchangelog.log
 	done
-  echo "Authorized Standard Users supposed to be on the system:" >>~/Desktop/logs/userchangelog.log
+  echo "Authorized Standard Users supposed to be on the system:" >>${homeDir}/Desktop/logs/userchangelog.log
   for item in "${users[@]}"; do
-		echo "$item" >>~/Desktop/logs/userchangelog.log
+		echo "$item" >>${homeDir}/Desktop/logs/userchangelog.log
 	done
   echo "Services:"
   for item in "${services[@]}"; do
@@ -737,50 +738,50 @@ parse_readme() {
   authUserList="${adminsList} ${usersList}"
   authUsers=("${admins[@]}" "${users[@]}")
 
-  echo >>~/Desktop/logs/userchangelog.log
-	echo "Users without passwords given passwords:" >>~/Desktop/logs/userchangelog.log
+  echo >>${homeDir}/Desktop/logs/userchangelog.log
+	echo "Users without passwords given passwords:" >>${homeDir}/Desktop/logs/userchangelog.log
 	for item in "${currentUsers[@]}"; do
 		if [[ $(grep "${item}" /etc/shadow) != *":$"* ]]; then
 			echo "####Setting a new password for ${item}####"
 			passwd "$item"
-			echo "$item" >>~/Desktop/logs/userchangelog.log
+			echo "$item" >>${homeDir}/Desktop/logs/userchangelog.log
 		fi
 	done
 
-  echo >>~/Desktop/logs/userchangelog.log
-	echo "Users deleted off the system:" >>~/Desktop/logs/userchangelog.log
+  echo >>${homeDir}/Desktop/logs/userchangelog.log
+	echo "Users deleted off the system:" >>${homeDir}/Desktop/logs/userchangelog.log
 	for item in "${currentUsers[@]}"; do
 		if [[ "$authUserList" != *"$item"* ]]; then
-			echo "${item}" >>~/Desktop/logs/userchangelog.log
+			echo "${item}" >>${homeDir}/Desktop/logs/userchangelog.log
 			echo "####Removing user ${item} from system####"
 			deluser "${item}"
 		fi
 	done
 
-  echo >>~/Desktop/logs/userchangelog.log
-	echo "Users added to the system:" >>~/Desktop/logs/userchangelog.log
+  echo >>${homeDir}/Desktop/logs/userchangelog.log
+	echo "Users added to the system:" >>${homeDir}/Desktop/logs/userchangelog.log
 	for item in "${users[@]}"; do
 		if [[ "$currentUserList" != *"$item"* ]]; then
-			echo "${item}" >>~/Desktop/logs/userchangelog.log
+			echo "${item}" >>${homeDir}/Desktop/logs/userchangelog.log
 			echo "####Adding user ${item}####"
 			adduser --gecos "${item}"
 		fi
 	done
 
-  echo >>~/Desktop/logs/userchangelog.log
-	echo "Authorized admins given sudo permissions:" >>~/Desktop/logs/userchangelog.log
+  echo >>${homeDir}/Desktop/logs/userchangelog.log
+	echo "Authorized admins given sudo permissions:" >>${homeDir}/Desktop/logs/userchangelog.log
 	for item in "${admins[@]}"; do
 		if [[ "$(groups "${item}")" != *"sudo"* ]]; then
-			echo "${item}" >>~/Desktop/logs/userchangelog.log
+			echo "${item}" >>${homeDir}/Desktop/logs/userchangelog.log
 			usermod -aG sudo "${item}"
 		fi
 	done
 
-	echo >>~/Desktop/logs/userchangelog.log
-	echo "Authorized standard users stripped of sudo permissions:" >>~/Desktop/logs/userchangelog.log
+	echo >>${homeDir}/Desktop/logs/userchangelog.log
+	echo "Authorized standard users stripped of sudo permissions:" >>${homeDir}/Desktop/logs/userchangelog.log
 	for item in "${users[@]}"; do
 		if [[ "$(groups "${item}")" == *"sudo"* ]]; then
-			echo "${item}" >>~/Desktop/logs/userchangelog.log
+			echo "${item}" >>${homeDir}/Desktop/logs/userchangelog.log
 			gpasswd -d "${item}" sudo
 		fi
 	done
@@ -788,34 +789,34 @@ parse_readme() {
 	for item in "${authGenUsers[@]}"; do
 		usermod --shell /usr/sbin/nologin "${item}"
 	done
-	echo "All standard users are now in the 'NoLogin' Shell" >>~/Desktop/logs/userchangelog.log
+	echo "All standard users are now in the 'NoLogin' Shell" >>${homeDir}/Desktop/logs/userchangelog.log
 
 	rootUserList=$(grep :0: /etc/passwd | tr '\n' ' ')
 	IFS=' ' read -r -a rootUsers <<<"$rootUserList"
-	echo >>~/Desktop/logs/userchangelog.log
-	echo "All current root users on the machine (should only be 'root')" >>~/Desktop/logs/userchangelog.log
+	echo >>${homeDir}/Desktop/logs/userchangelog.log
+	echo "All current root users on the machine (should only be 'root')" >>${homeDir}/Desktop/logs/userchangelog.log
 	for thing in "${rootUsers[@]}"; do
-		echo "${thing%%:*}" >>~/Desktop/logs/userchangelog.log
+		echo "${thing%%:*}" >>${homeDir}/Desktop/logs/userchangelog.log
 	done
 
 	allUserList=$(cut -d ':' -f1 /etc/passwd | tr '\n' ' ')
 	IFS=' ' read -r -a allUsers <<<"$allUserList"
-	echo >>~/Desktop/logs/userchangelog.log
-	echo "All current users on the machine (make sure all users that look like normal users are authorized)" >>~/Desktop/logs/userchangelog.log
+	echo >>${homeDir}/Desktop/logs/userchangelog.log
+	echo "All current users on the machine (make sure all users that look like normal users are authorized)" >>${homeDir}/Desktop/logs/userchangelog.log
 	for thing in "${allUsers[@]}"; do
-		echo "$thing" >>~/Desktop/logs/userchangelog.log
+		echo "$thing" >>${homeDir}/Desktop/logs/userchangelog.log
 	done
 
 	for item in "${authUsers[@]}"; do
 		crontab -u "$item" -r
 	done
-	echo "- Cleared crontab for all users" >>~/Desktop/logs/changelog.log
+	echo "- Cleared crontab for all users" >>${homeDir}/Desktop/logs/changelog.log
 
 	useradd -D -f 30
 	for item in "${authUsers[@]}"; do
 		chage --inactive 30 "$item"
 	done
-	echo "- Account inactivity policy set" >>~/Desktop/logs/changelog.log
+	echo "- Account inactivity policy set" >>${homeDir}/Desktop/logs/changelog.log
 }
 
 second_time_failsafe() {
@@ -878,13 +879,13 @@ clean() {
 audit() {
 	#run rkhunter
 	rkhunter --check --vl --sk
-	cp /var/log/rkhunter.log ~/Desktop/logs
-	chmod 777 ~/Desktop/logs/rkhunter.log
+	cp /var/log/rkhunter.log ${homeDir}/Desktop/logs
+	chmod 777 ${homeDir}/Desktop/logs/rkhunter.log
 
 	#run lynis
 	lynis audit system
-	cp /var/log/lynis.log ~/Desktop/logs
-	chmod 777 ~/Desktop/logs/lynis.log
+	cp /var/log/lynis.log ${homeDir}/Desktop/logs
+	chmod 777 ${homeDir}/Desktop/logs/lynis.log
 
 	# echo
 	# echo "#########Bash Vulnerability Test#########"
@@ -898,9 +899,9 @@ audit() {
 
 end() {
 	echo "#########Creating symbolic link to /var/log/ in logs folder on Desktop#########"
-	ln -s /var/log/ ~/Desktop/logs/servicelogs
-	touch ~/Desktop/logs/logs_to_check.txt
-	chmod 777 ~/Desktop/logs/logs_to_check.txt
+	ln -s /var/log/ ${homeDir}/Desktop/logs/servicelogs
+	touch ${homeDir}/Desktop/logs/logs_to_check.txt
+	chmod 777 ${homeDir}/Desktop/logs/logs_to_check.txt
 	{
 		echo "Logs to check often:"
 		echo "/var/log/messages - The main system logs or current activity logs are available."
@@ -914,24 +915,24 @@ end() {
 		echo "/var/log/ufw.log - Firewall log"
 		echo "/var/log/utmp or /var/log/wtmp - Login records file."
 		echo "Execute 'sudo logwatch | less' to see an overview of all important log files"
-	} >>~/Desktop/logs/logs_to_check.txt
-	echo "- Created symbolic link to \/var\/log\/ in logs folder on Desktop" >>~/Desktop/logs/changelog.log
+	} >>${homeDir}/Desktop/logs/logs_to_check.txt
+	echo "- Created symbolic link to \/var\/log\/ in logs folder on Desktop" >>${homeDir}/Desktop/logs/changelog.log
 
-	touch ~/Desktop/to-do.txt
-	chmod 777 ~/Desktop/to-do.txt
+	touch ${homeDir}/Desktop/to-do.txt
+	chmod 777 ${homeDir}/Desktop/to-do.txt
 	{
 		echo "Manual changes:"
 		echo "- Check for backdoors (ss -tulw)"
 		echo "- Check for malicious packages that might still be installed (dpkg -l | grep <keyword> (i.e. crack))"
 		echo "- Make sure updates are checked for daily and update Ubuntu according to the ReadMe"
 		echo "- 'sudo nmap -v -sS localhost' to check open ports"
-	} >>~/Desktop/to-do.txt
+	} >>${homeDir}/Desktop/to-do.txt
 
 	echo "$timeCheck"
 	echo "Script done! Good luck :D"
 }
 
-failsafe=~/Desktop/logs/changelog.log
+failsafe=${homeDir}/Desktop/logs/changelog.log
 if [[ -f "$failsafe" ]]; then
 	echo "This script is detected as being run for more than one time"
 	echo "This has been known to cause a wide variety of problems, including potential loss of internet, which in worst case scenario, can necessitate a restart of the image."
@@ -942,16 +943,16 @@ if [[ -f "$failsafe" ]]; then
 		echo "Would you like to remove and replace the current installments of the changelog and backups? (other option is creating new files)"
 		read -r removeYN
 		if [[ $removeYN == "yes" ]]; then
-			rm -r ~/Desktop/logs
+			rm -r ${homeDir}/Desktop/logs
 			first_time_initialize
 			second_time_failsafe
 		elif [[ $removeYN == "no" ]]; then
 
 			echo "Replacing legacy folder and backing up old files"
-			mkdir -p ~/Desktop/logs_legacy
-			mv -r ~/Desktop/logs ~/Desktop/logs_legacy
-			mv ~/Desktop/logs/changelog.log ~/Desktop/logs_legacy
-			mv -r ~/Desktop/logs/backups/ ~/Desktop/logs_legacy
+			mkdir -p ${homeDir}/Desktop/logs_legacy
+			mv -r ${homeDir}/Desktop/logs ${homeDir}/Desktop/logs_legacy
+			mv ${homeDir}/Desktop/logs/changelog.log ${homeDir}/Desktop/logs_legacy
+			mv -r ${homeDir}/Desktop/logs/backups/ ${homeDir}/Desktop/logs_legacy
 			first_time_initialize
 			second_time_failsafe
 		else
