@@ -3,14 +3,14 @@ import string
 from bs4 import BeautifulSoup
 from urllib.request import urlopen
 
-illegal_chars = string.ascii_uppercase + ':()'
+illegal_chars = string.ascii_uppercase + ':()' + "1234567890"
 
 def get_list(link, get_type):
   url = link
   html = urlopen(url).read().decode("utf-8")
   soup = BeautifulSoup(html, "html.parser")
   users = soup.find('pre').get_text().split()
-  services = soup.find('ul').get_text().strip().split('\n')
+  services = soup.find_all('ul')[28].get_text().strip().split('\n')
   admins = []
   auth_users = []
   is_admin = True

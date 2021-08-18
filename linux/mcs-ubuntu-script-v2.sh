@@ -9,7 +9,7 @@ fi
 
 declare -a services
 islamp="no"
-homeDir="/home/$username/"
+homeDir="/home/$username"
 
 init() {
   \unalias -a
