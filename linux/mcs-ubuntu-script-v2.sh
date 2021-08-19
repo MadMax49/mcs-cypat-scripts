@@ -33,29 +33,14 @@ packages() {
 	apt-get install rkhunter -y
 	apt-get install lynis -y -qq
 	apt-get install ufw -y -qq
-	apt-get install gufw -y -qq
-	apt-get install libcanberra-gtk-module -y -qq
-	apt-get install clamav-daemon -y -qq
-	apt-get install clamav -y -qq
-	apt-get install clamtk -y -qq
 	apt-get install libpam-cracklib -y -qq
 	apt-get install libpam-tmpdir -y -qq
 	apt-get install libpam-pkcs11 -y -qq
-	apt-get install tree -y -qq
-	apt-get install arpwatch -y -qq
-	apt-get install unzip -y -qq
-	apt-get install zip -y -qq
 	apt-get install unattended-upgrades -y -qq
 	apt-get install logwatch -y -qq
-	apt-get install libdate-manip-perl -y -qq
-	apt-get install hardinfo -y -qq
 	apt-get install nmap -y -qq
-	apt-get install tcpd -y -qq
-	apt-get install curl -y -qq
   apt-get install python3-pip -y
   pip3 install bs4
-	apt-get install open-vm-tools -y -qq
-	apt-get install --reinstall coreutils -y -qq
 	echo "Type anything to continue"
 	read -r timeCheck
 	if [[ $timeCheck == "exit" ]]; then
@@ -93,33 +78,16 @@ services() {
 		ufw allow http
 		ufw allow https
 		systemctl restart apache2
-		# echo "####Configuring ufw for web servers####"
-		cp /etc/ufw/before.rules ${homeDir}/Desktop/logs/backups/
-		# rm /etc/ufw/before.rules
-		# cp ${homeDir}/Desktop/linux/before.rules /etc/ufw
 		service apache2 restart
-		# echo "- UFW configured for use on a web server" >>${homeDir}/Desktop/logs/changelog.log
 
 		echo "####Configuring Apache2 config file####"
 		cp /etc/apache2/apache2.conf ${homeDir}/Desktop/logs/backups
-		rm /etc/apache2/apache2.conf
-		cp ${homeDir}/Desktop/linux/apache2.conf /etc/apache2
+		cp ${homeDir}/Desktop/linux/apache2.conf /etc/apache2/apache2.conf
 		chmod 511 /usr/sbin/apache2
-		chmod 755 /var/log/apache2/
+		chmod -R 755 /var/log/apache2/
 		chmod -R 755 /var/www
 		/etc/init.d/apache2 restart
-		touch ${homeDir}/Desktop/server-link.desktop
-		chmod 777 ${homeDir}/Desktop/server-link.desktop
-		{
-			echo [Desktop Entry]
-			echo Encoding=UTF-8
-			echo Name=Link to web server
-			echo Type=Link
-			echo URL="http://localhost/"
-			echo Icon=text-html
-			echo Name[en_US]=server-link
-		} >>${homeDir}/Desktop/server-link.desktop
-		echo "- Apache2 installed, configured, and http(s) allowed" >>${homeDir}/Desktop/logs/changelog.log
+
 		echo "####Installing PHP####"
 		apt-get install php -y -qq
 		apt-get install libapache2-mod-php -y -qq
@@ -130,10 +98,21 @@ services() {
 		systemctl restart apache2
 		echo "###Configuring php.ini####"
 		cp /etc/php/7.2/apache2/php.ini ${homeDir}/Desktop/logs/backups/
-		rm /etc/php/7.2/apache2/php.ini
-		cp ${homeDir}/Desktop/linux/php.ini /etc/php/7.2/apache2
+		cp ${homeDir}/Desktop/linux/php.ini /etc/php/7.2/apache2/php.ini
 		service apache2 restart
-		echo "- Configured PHP 7.2 for use on a web server" >>${homeDir}/Desktop/logs/changelog.log
+
+		#install + config mysql
+		ufw allow ms-sql-s
+		ufw allow ms-sql-m
+		ufw allow mysql
+		ufw allow mysql-proxy
+		apt-get install mysql-server -y -qq
+		chown -R mysql:mysql /var/lib/mysql
+		dpkg --configure -a
+		ln -s /etc/mysql/mysql.conf.d /etc/mysql/conf.d
+		mysqld --initialize --explicit_defaults_for_timestamp
+		mysql_secure_installation
+
     islamp='yes'
 	fi
 
@@ -263,7 +242,7 @@ services() {
 			systemctl restart apache2
 			echo "####Configuring ufw for web servers####"
 			chmod 511 /usr/sbin/apache2
-			chmod 750 /var/log/apache2/
+			chmod -R 750 /var/log/apache2/
 			chmod -R 444 /var/www
 			/etc/init.d/apache2 restart
 			echo "- Apache2 installed, configured, and http(s) allowed" >>${homeDir}/Desktop/logs/changelog.log
@@ -307,7 +286,7 @@ services() {
 		apt-get purge bind9 -y -qq
 	fi
 
-	if [[ ${services[*]} =~ 'mysql' ]]; then
+	if [[ ${services[*]} =~ 'mysql' && $islamp == 'no' ]]; then
     ufw allow ms-sql-s
 		ufw allow ms-sql-m
 		ufw allow mysql
@@ -368,7 +347,7 @@ services() {
 		} >>/etc/mysql/my.cnf
 		chown -R root:root /etc/mysql/
 		chmod 644 /etc/mysql/my.cnf
-  else
+  elif [[ $islamp == 'no ']]; then
     ufw deny ms-sql-s
 		ufw deny ms-sql-m
 		ufw deny mysql
@@ -466,16 +445,8 @@ general_config() {
 
   echo "ENABLED=\"0\"" >>/etc/default/irqbalance
 
-	lightdmdir=/etc/lightdm
-	lightdmconf=/etc/lightdm/lightdm.conf
-	if [[ -f ${lightdmdir} ]]; then
-		if [[ -f ${lightdmconf} ]]; then
-			cp /etc/lightdm/lightdm.conf ${homeDir}/Desktop/logs/backups
-			echo "allow-guest=false" >>/etc/lightdm/lightdm.conf
-		else
-			touch /etc/lightdm/lightdm.conf
-			echo "allow-guest=false" >>/etc/lightdm/lightdm.conf
-		fi
+	if [[ -f "/etc/lightdm/lightdm.conf" ]]; then
+		echo "allow-guest=false" >>/etc/lightdm/lightdm.conf
 	fi
 
   echo >/etc/rc.local
@@ -490,8 +461,8 @@ general_config() {
 	cp ${homeDir}/Desktop/linux/common-password /etc/pam.d/common-password
 
   # lockout bad
-	# cp /etc/pam.d/common-auth ${homeDir}/Desktop/logs/backups/
-	# cp ${homeDir}/Desktop/linux/common-auth /etc/pam.d/common-auth
+	cp /etc/pam.d/common-auth ${homeDir}/Desktop/logs/backups/
+	cp ${homeDir}/Desktop/linux/common-auth /etc/pam.d/common-auth
 
 	# account even worse
 	# cp /etc/pam.d/common-account ${homeDir}/Desktop/logs/backups/
@@ -515,13 +486,12 @@ general_config() {
 
   sed -i '45s/.*/*\o011\o011 hard\o011 core\o011\o011 0/' /etc/security/limits.conf
 
-
 }
 
 hacking_tools() {
   apt-get purge netcat -y -qq
-  apt-get purge nc -y -qq
-  apt-get purge ncat -y -qq
+  apt-get purge netcat-openbsd -y -qq
+	apt-get purge netcat-traditional -y -qq
 	apt-get purge socket -y -qq
 	apt-get purge sbd -y -qq
   apt-get purge john -y -qq
@@ -561,9 +531,9 @@ hacking_tools() {
   apt-get purge openbsd-inetd -y -qq
   apt-get purge talk -y -qq
   systemctl --now disable avahi-daemon
-	systemctl --now disable isc-dhcp-server #comment if dhcp server
+	systemctl --now disable isc-dhcp-server
 	systemctl --now disable isc-dhcp-server6
-	systemctl --now disable slapd #comment if ldap server
+	systemctl --now disable slapd
 	apt-get purge ldap-utils -y -qq
 	apt-get purge slapd -y -qq
 	systemctl --now disable nfs-server
@@ -867,7 +837,6 @@ second_time_failsafe() {
 clean() {
 	rkhunter --propupd
 	sysctl -p
-	systemctl daemon-reload
 	ufw reload
 	apt-get update
 	apt-get upgrade
@@ -883,50 +852,17 @@ audit() {
 	chmod 777 ${homeDir}/Desktop/logs/rkhunter.log
 
 	#run lynis
-	lynis audit system
+	lynis audit system –quick
 	cp /var/log/lynis.log ${homeDir}/Desktop/logs
 	chmod 777 ${homeDir}/Desktop/logs/lynis.log
 
-	# echo
-	# echo "#########Bash Vulnerability Test#########"
-	# env i='() { :;}; echo Your system is Bash vulnerable' bash -c "echo Bash vulnerability test"
-	# echo "*********Is Bash vulnerable? (Will say 'Your system is bash vulnerable')*********"
-	# read -r bashvulnYN
-	# if [[ $bashvulnYN == "yes" ]]; then
-	# 	apt-get update && apt-get install --only-upgrade bash
-	# fi
 }
 
 end() {
 	echo "#########Creating symbolic link to /var/log/ in logs folder on Desktop#########"
 	ln -s /var/log/ ${homeDir}/Desktop/logs/servicelogs
-	touch ${homeDir}/Desktop/logs/logs_to_check.txt
-	chmod 777 ${homeDir}/Desktop/logs/logs_to_check.txt
-	{
-		echo "Logs to check often:"
-		echo "/var/log/messages - The main system logs or current activity logs are available."
-		echo "/var/log/auth.log - Authentication logs"
-		echo "/var/log/kern.log - Kernel logs"
-		echo "/var/log/cron.log - Crond logs (cron job)"
-		echo "/var/log/maillog - Mail server logs"
-		echo "/var/log/boot.log - System boot log"
-		echo "/var/log/mysqld.log - MySQL database server log file"
-		echo "/var/log/secure - Authentication log"
-		echo "/var/log/ufw.log - Firewall log"
-		echo "/var/log/utmp or /var/log/wtmp - Login records file."
-		echo "Execute 'sudo logwatch | less' to see an overview of all important log files"
-	} >>${homeDir}/Desktop/logs/logs_to_check.txt
+	cp ${homeDir}/Desktop/linux/logs-to-check.txt ${homeDir}/Desktop/logs/logs-to-check.txt
 	echo "- Created symbolic link to \/var\/log\/ in logs folder on Desktop" >>${homeDir}/Desktop/logs/changelog.log
-
-	touch ${homeDir}/Desktop/to-do.txt
-	chmod 777 ${homeDir}/Desktop/to-do.txt
-	{
-		echo "Manual changes:"
-		echo "- Check for backdoors (ss -tulw)"
-		echo "- Check for malicious packages that might still be installed (dpkg -l | grep <keyword> (i.e. crack))"
-		echo "- Make sure updates are checked for daily and update Ubuntu according to the ReadMe"
-		echo "- 'sudo nmap -v -sS localhost' to check open ports"
-	} >>${homeDir}/Desktop/to-do.txt
 
 	echo "$timeCheck"
 	echo "Script done! Good luck :D"
