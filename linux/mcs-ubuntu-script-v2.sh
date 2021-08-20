@@ -855,7 +855,6 @@ audit() {
 	lynis audit system –quick
 	cp /var/log/lynis.log ${homeDir}/Desktop/logs
 	chmod 777 ${homeDir}/Desktop/logs/lynis.log
-
 }
 
 end() {
