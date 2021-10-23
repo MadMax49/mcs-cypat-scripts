@@ -12,17 +12,17 @@ islamp="no"
 homeDir="/home/$username"
 
 init() {
-  \unalias -a
-  echo "Please enter the username of the main user on this machine."
-  read -r username
-  logsDir="/home/$username/Desktop/logs"
-  mkdir -p ${logsDir}
-  mkdir -p ${logsDir}/backups
-  cp /etc/group ${logsDir}/backups/
+	\unalias -a
+	echo "Please enter the username of the main user on this machine."
+	read -r username
+	logsDir="/home/$username/Desktop/logs"
+	mkdir -p ${logsDir}
+	mkdir -p ${logsDir}/backups
+	cp /etc/group ${logsDir}/backups/
 	cp /etc/passwd ${logsDir}/backups/
 	cp /etc/shadow ${logsDir}/backups/
-  touch ${logsDir}/changelog.log
-  chmod -R 777 ${logsDir}
+	touch ${logsDir}/changelog.log
+	chmod -R 777 ${logsDir}
 }
 
 packages() {
@@ -39,8 +39,8 @@ packages() {
 	apt-get install unattended-upgrades -y -qq
 	apt-get install logwatch -y -qq
 	apt-get install nmap -y -qq
-  apt-get install python3-pip -y
-  pip3 install bs4
+	apt-get install python3-pip -y
+	pip3 install bs4
 	echo "Type anything to continue"
 	read -r timeCheck
 	if [[ $timeCheck == "exit" ]]; then
@@ -53,9 +53,9 @@ firewall() {
 	ufw deny 23 # telnet
 	ufw deny 515 # spooler
 	ufw deny 111 # sun remote thing
-  ufw deny 135 # ms rpc
-  ufw deny 137, 138, 139 # netbios
-  ufw deny 69 # tftp
+	ufw deny 135 # ms rpc
+	ufw deny 137, 138, 139 # netbios
+	ufw deny 69 # tftp
 	ufw default deny incoming
 	ufw default deny routed
 	ufw logging on
@@ -65,7 +65,7 @@ firewall() {
 
 services() {
 
-  if [[ ${services[*]} =~ 'apache' && ${services[*]} =~ 'mysql' ]]; then
+	if [[ ${services[*]} =~ 'apache' && ${services[*]} =~ 'mysql' ]]; then
 		apt-get purge nginx -y -qq
 		apt-get purge nginx-common -y -qq
 		apt-get purge nginx-core -y -qq
@@ -263,13 +263,12 @@ services() {
 		echo "- Apache2 removed and http(s) blocked" >>${homeDir}/Desktop/logs/changelog.log
 	fi
 
-  ufw deny smtp
-  ufw deny pop3
-  ufw deny imap2
-  ufw deny imaps
-  ufw deny pop3s
-  #apt-get purge postfix -y -qq
-  apt-get purge dovecot-* -y -qq
+	ufw deny smtp
+	ufw deny pop3
+	ufw deny imap2
+	ufw deny imaps
+	ufw deny pop3s
+	apt-get purge dovecot-* -y -qq
 
 	if [[ ${services[*]} =~ 'bind9' || ${services[*]} =~ 'dns' ]]; then
 		apt-get install bind9 -y -qq
@@ -287,7 +286,7 @@ services() {
 	fi
 
 	if [[ ${services[*]} =~ 'mysql' && $islamp == 'no' ]]; then
-    ufw allow ms-sql-s
+		ufw allow ms-sql-s
 		ufw allow ms-sql-m
 		ufw allow mysql
 		ufw allow mysql-proxy
@@ -347,8 +346,8 @@ services() {
 		} >>/etc/mysql/my.cnf
 		chown -R root:root /etc/mysql/
 		chmod 644 /etc/mysql/my.cnf
-  elif [[ $islamp == 'no ']]; then
-    ufw deny ms-sql-s
+    elif [[ $islamp == 'no' ]]; then
+		ufw deny ms-sql-s
 		ufw deny ms-sql-m
 		ufw deny mysql
 		ufw deny mysql-proxy
@@ -361,39 +360,21 @@ services() {
 }
 
 general_config() {
-  passwd -l root
+	passwd -l root
 
-  systemctl mask ctrl-alt-del.target
+	systemctl mask ctrl-alt-del.target
 	systemctl daemon-reload
 
-  # echo "#########Configuring swapfile#########"
-	# swapon -s
-	# echo "*********Is there a swap file present?*********"
-	# read -r swapYN
-	# if [[ $swapYN == "yes" ]]; then
-	# 	echo 0 | tee /proc/sys/vm/swappiness
-	# 	echo vm.swappiness = 0 | tee -a /etc/sysctl.conf
-	# 	chown root:root /swapfile
-	# 	chmod 0600 /swapfile
-	# elif [[ $swapYN == "no" ]]; then
-	# 	fallocate -l 4G /swapfile
-	# 	chown root:root /swapfile
-	# 	chmod 0600 /swapfile
-	# 	mkswap /swapfile
-	# 	swapon /swapfile
-	# 	swapon -s
-	# fi
-
-  systemctl start systemd-timesyncd.service
+	systemctl start systemd-timesyncd.service
 	timedatectl set-ntp true
 
-  echo "ALL: ALL" >>/etc/hosts.deny
+	echo "ALL: ALL" >>/etc/hosts.deny
 	chown root:root /etc/hosts.allow
 	chmod 644 /etc/hosts.allow
 	chown root:root /etc/hosts.deny
 	chmod 644 /etc/hosts.deny
 
-  echo "#########Disabling Uncommon Network protocols and file system configurations#########"
+	echo "#########Disabling Uncommon Network protocols and file system configurations#########"
 	touch /etc/modprobe.d/dccp.conf
 	chmod 644 /etc/modprobe.d/dccp.conf
 	echo "install dccp /bin/true" >/etc/modprobe.d/dccp.conf
@@ -443,24 +424,21 @@ general_config() {
 	echo "install usb-storage /bin/true" >/etc/modprobe.d/usb-storage.conf
 	rmmod usb-storage
 
-  echo "ENABLED=\"0\"" >>/etc/default/irqbalance
+	echo "ENABLED=\"0\"" >>/etc/default/irqbalance
 
 	if [[ -f "/etc/lightdm/lightdm.conf" ]]; then
 		echo "allow-guest=false" >>/etc/lightdm/lightdm.conf
 	fi
-
-  echo >/etc/rc.local
+	
+	echo >/etc/rc.local
 	echo "exit 0" >/etc/rc.local
 
-  # LOGIN DEFS
-  cp /etc/login.defs ${homeDir}/Desktop/logs/backups/
+	cp /etc/login.defs ${homeDir}/Desktop/logs/backups/
 	cp ${homeDir}/Desktop/linux/login.defs /etc/login.defs
 
-  # COMMON PASSWORD
-  cp /etc/pam.d/common-password ${homeDir}/Desktop/logs/backups/
+	cp /etc/pam.d/common-password ${homeDir}/Desktop/logs/backups/
 	cp ${homeDir}/Desktop/linux/common-password /etc/pam.d/common-password
 
-  # lockout bad
 	cp /etc/pam.d/common-auth ${homeDir}/Desktop/logs/backups/
 	cp ${homeDir}/Desktop/linux/common-auth /etc/pam.d/common-auth
 
@@ -468,69 +446,68 @@ general_config() {
 	# cp /etc/pam.d/common-account ${homeDir}/Desktop/logs/backups/
 	# cp ${homeDir}/Desktop/linux/common-account /etc/pam.d/common-account
 
-  # SYSCTL!!!!
-  cp /etc/sysctl.conf ${homeDir}/Desktop/logs/backups/
+	cp /etc/sysctl.conf ${homeDir}/Desktop/logs/backups/
 	cp ${homeDir}/Desktop/linux/sysctl.conf /etc/sysctl.conf
 
-  cp /etc/fstab ${homeDir}/Desktop/logs/backups/
+	cp /etc/fstab ${homeDir}/Desktop/logs/backups/
 	echo "tmpfs /run/shm tmpfs defaults,noexec,nosuid 0 0" >>/etc/fstab
 
-  chown root:root /etc/securetty
+	chown root:root /etc/securetty
 	chmod 0600 /etc/securetty
 
-  cp ${homeDir}/Desktop/linux/pam_pkcs11.conf /etc/pam_pkcs11/pam_pkcs11.conf
+	cp ${homeDir}/Desktop/linux/pam_pkcs11.conf /etc/pam_pkcs11/pam_pkcs11.conf
 
-  echo "Authorized uses only. All activity may be monitored and reported." >/etc/issue
-	echo "Authorized uses only. All activity may be monitored and reported." >/etc/issue.net
-  sed -i '29s/.*/banner-message-text='\''Authorized uses only. All activity may be monitored and reported.'\''\n/' /etc/gdm3/greeter.dconf-defaults
+	echo "Authorized users only. All activity may be monitored and reported." >/etc/issue
+	echo "Authorized users only. All activity may be monitored and reported." >/etc/issue.net
 
-  sed -i '45s/.*/*\o011\o011 hard\o011 core\o011\o011 0/' /etc/security/limits.conf
+	sed -i '45s/.*/*\o011\o011 hard\o011 core\o011\o011 0/' /etc/security/limits.conf
 
 }
 
 hacking_tools() {
-  apt-get purge netcat -y -qq
-  apt-get purge netcat-openbsd -y -qq
+	apt-get purge nmap* -y -qq
+	apt-get purge netcat -y -qq
+	apt-get purge netcat-openbsd -y -qq
 	apt-get purge netcat-traditional -y -qq
 	apt-get purge socket -y -qq
 	apt-get purge sbd -y -qq
-  apt-get purge john -y -qq
-  apt-get purge hashcat -y -qq
-  apt-get purge hydra -y -qq
+	apt-get purge john -y -qq
+	apt-get purge hashcat -y -qq
+	apt-get purge hydra -y -qq
 	apt-get purge hydra-gtk -y -qq
-  apt-get purge aircrack-ng -y -qq
-  apt-get purge fcrackzip -y -qq
-  apt-get purge lcrack -y -qq
-  apt-get purge ophcrack -y -qq
+	apt-get purge aircrack-ng -y -qq
+	apt-get purge fcrackzip -y -qq
+	apt-get purge lcrack -y -qq
+	apt-get purge ophcrack -y -qq
 	apt-get purge ophcrack-cli -y -qq
-  apt-get purge pyrit -y -qq
-  apt-get purge rarcrack -y -qq
-  apt-get purge sipcrack -y -qq
-  apt-get purge nfs-kernel-server -y -qq
+	apt-get purge pyrit -y -qq
+	apt-get purge rarcrack -y -qq
+	apt-get purge sipcrack -y -qq
+	apt-get purge nfs-kernel-server -y -qq
 	apt-get purge nfs-common -y -qq
 	apt-get purge portmap -y -qq
 	apt-get purge rpcbind -y -qq
 	apt-get purge autofs -y -qq
-  apt-get purge vnc4server -y -qq
+	apt-get purge vnc4server -y -qq
 	apt-get purge vncsnapshot -y -qq
 	apt-get purge vtgrab -y -qq
-  apt-get purge wireshark -y -qq
-  apt-get purge cewl -y -qq
-  apt-get purge medusa -y -qq
-  apt-get purge wfuzz -y -qq
-  apt-get purge sqlmap -y -qq
-  apt-get purge snmp -y -qq
-  apt-get purge crack -y -qq
-  apt-get purge rsh-server -y -qq
-  apt-get purge nis -y -qq
-  apt-get purge prelink -y -qq
-  apt-get purge backdoor-factory -y -qq
+	apt-get purge wireshark -y -qq
+	apt-get purge cewl -y -qq
+	apt-get purge medusa -y -qq
+	apt-get purge wfuzz -y -qq
+	apt-get purge sqlmap -y -qq
+	apt-get purge snmp -y -qq
+	apt-get purge crack -y -qq
+	apt-get purge rsh-server -y -qq
+	apt-get purge nis -y -qq
+	apt-get purge prelink -y -qq
+	apt-get purge backdoor-factory -y -qq
 	apt-get purge shellinabox -y -qq
-  apt-get purge at -y -qq
-  apt-get purge xinetd -y -qq
-  apt-get purge openbsd-inetd -y -qq
-  apt-get purge talk -y -qq
-  systemctl --now disable avahi-daemon
+	apt-get purge at -y -qq
+	apt-get purge xinetd -y -qq
+	apt-get purge openbsd-inetd -y -qq
+	apt-get purge talk -y -qq
+	systemctl --now disable avahi-daemon
 	systemctl --now disable isc-dhcp-server
 	systemctl --now disable isc-dhcp-server6
 	systemctl --now disable slapd
@@ -542,14 +519,14 @@ hacking_tools() {
 	apt-get purge rpcbind -y -qq
 	systemctl --now disable rsync
 	apt-get purge rsync -y -qq
-  apt-get autoremove -y -qq
+	apt-get autoremove -y -qq
 	apt-get autoclean -y -qq
 	apt-get clean -y -qq
 }
 
 media_files() {
 
-	echo "#########Logging the fire directories of media files on the machine#########"
+	echo "#########Logging the file directories of media files on the machine#########"
 	touch ${homeDir}/Desktop/logs/media_files.log
 	chmod 777 ${homeDir}/Desktop/logs/media_files.log
 	{
@@ -676,39 +653,39 @@ media_files() {
 		find / -name "*.im1"
 		find / -name "*.jpe"
 
-	} >>${homeDir}/Desktop/logs/media_files.log
+	} >> ${homeDir}/Desktop/logs/media_files.log
 }
 
 parse_readme() {
-  touch ${homeDir}/Desktop/logs/userchangelog.log
+	touch ${homeDir}/Desktop/logs/userchangelog.log
 	chmod 777 ${homeDir}/Desktop/logs/userchangelog.log
-  echo "Please enter the link to the README"
-  read -r link
-  adminsList=$(python3 scraper.py $link admins)
-  IFS=';' read -r -a admins <<< "$adminsList"
-  usersList=$(python3 scraper.py $link users)
-  IFS=';' read -r -a users <<< "$usersList"
-  servicesList=$(python3 scraper.py $link services)
-  IFS=';' read -r -a services <<< "$servicesList"
-  echo "Authorized Administrators supposed to be on the system:" >>${homeDir}/Desktop/logs/userchangelog.log
-  for item in "${admins[@]}"; do
+	echo "Please enter the link to the README"
+	read -r link
+	adminsList=$(python3 scraper.py $link admins)
+	IFS=';' read -r -a admins <<< "$adminsList"
+	usersList=$(python3 scraper.py $link users)
+	IFS=';' read -r -a users <<< "$usersList"
+	servicesList=$(python3 scraper.py $link services)
+	IFS=';' read -r -a services <<< "$servicesList"
+	echo "Authorized Administrators supposed to be on the system:" >>${homeDir}/Desktop/logs/userchangelog.log
+	for item in "${admins[@]}"; do
 		echo "$item" >>${homeDir}/Desktop/logs/userchangelog.log
 	done
-  echo "Authorized Standard Users supposed to be on the system:" >>${homeDir}/Desktop/logs/userchangelog.log
-  for item in "${users[@]}"; do
+	echo "Authorized Standard Users supposed to be on the system:" >>${homeDir}/Desktop/logs/userchangelog.log
+	for item in "${users[@]}"; do
 		echo "$item" >>${homeDir}/Desktop/logs/userchangelog.log
 	done
-  echo "Services:"
-  for item in "${services[@]}"; do
+	echo "Services:"
+	for item in "${services[@]}"; do
 		echo "$item"
 	done
 
-  currentUserList=$(eval getent passwd "{$(awk '/^UID_MIN/ {print $2}' /etc/login.defs)..$(awk '/^UID_MAX/ {print $2}' /etc/login.defs)}" | cut -d: -f1 | tr '\n' ' ')
+	currentUserList=$(eval getent passwd "{$(awk '/^UID_MIN/ {print $2}' /etc/login.defs)..$(awk '/^UID_MAX/ {print $2}' /etc/login.defs)}" | cut -d: -f1 | tr '\n' ' ')
 	IFS=' ' read -r -a currentUsers <<<"$currentUserList"
-  authUserList="${adminsList} ${usersList}"
-  authUsers=("${admins[@]}" "${users[@]}")
+	authUserList="${adminsList} ${usersList}"
+	authUsers=("${admins[@]}" "${users[@]}")
 
-  echo >>${homeDir}/Desktop/logs/userchangelog.log
+	echo >>${homeDir}/Desktop/logs/userchangelog.log
 	echo "Users without passwords given passwords:" >>${homeDir}/Desktop/logs/userchangelog.log
 	for item in "${currentUsers[@]}"; do
 		if [[ $(grep "${item}" /etc/shadow) != *":$"* ]]; then
@@ -718,7 +695,7 @@ parse_readme() {
 		fi
 	done
 
-  echo >>${homeDir}/Desktop/logs/userchangelog.log
+	echo >>${homeDir}/Desktop/logs/userchangelog.log
 	echo "Users deleted off the system:" >>${homeDir}/Desktop/logs/userchangelog.log
 	for item in "${currentUsers[@]}"; do
 		if [[ "$authUserList" != *"$item"* ]]; then
@@ -728,7 +705,7 @@ parse_readme() {
 		fi
 	done
 
-  echo >>${homeDir}/Desktop/logs/userchangelog.log
+	echo >>${homeDir}/Desktop/logs/userchangelog.log
 	echo "Users added to the system:" >>${homeDir}/Desktop/logs/userchangelog.log
 	for item in "${users[@]}"; do
 		if [[ "$currentUserList" != *"$item"* ]]; then
@@ -738,7 +715,7 @@ parse_readme() {
 		fi
 	done
 
-  echo >>${homeDir}/Desktop/logs/userchangelog.log
+	echo >>${homeDir}/Desktop/logs/userchangelog.log
 	echo "Authorized admins given sudo permissions:" >>${homeDir}/Desktop/logs/userchangelog.log
 	for item in "${admins[@]}"; do
 		if [[ "$(groups "${item}")" != *"sudo"* ]]; then
@@ -798,20 +775,22 @@ second_time_failsafe() {
 		read -r failYN
 		if [[ $failYN == "all" ]]; then
 			init
-      packages
-      parse_readme
-      hacking_tools
-      general_config
-      services
-      file_config
-      firewall
-      media_files
-      clean
-      audit
-      end
-      clamtk
+			packages
+			parse_readme
+			hacking_tools
+			general_config
+			services
+			file_config
+			firewall
+			media_files
+			clean
+			audit
+			end
+			clamtk
 		elif [[ $failYN == "packages" ]]; then
 			packages
+		elif [[ $failYN == "user_auditing" ]]; then
+			parse_readme
 		elif [[ $failYN == "firewall" ]]; then
 			firewall
 		elif [[ $failYN == "services" ]]; then
@@ -852,7 +831,7 @@ audit() {
 	chmod 777 ${homeDir}/Desktop/logs/rkhunter.log
 
 	#run lynis
-	lynis audit system –quick
+	lynis audit system --quick
 	cp /var/log/lynis.log ${homeDir}/Desktop/logs
 	chmod 777 ${homeDir}/Desktop/logs/lynis.log
 }
@@ -913,8 +892,8 @@ fi
 
 #Calls for functions to run through individual portions of the script
 init
-packages
 parse_readme
+packages
 hacking_tools
 general_config
 services
@@ -924,4 +903,3 @@ media_files
 clean
 audit
 end
-clamtk
