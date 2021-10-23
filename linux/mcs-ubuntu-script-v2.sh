@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "MCS Ubuntu Script v2.0.0 Updated 8/15/2021 at 6:47 EST"
+echo "MCS Ubuntu Script v2.0.0 Updated 10/23/2021 at 5:11 PM EST"
 
 if [[ "$(whoami)" != root ]]; then
 	echo "This script can only be run as root"
@@ -9,13 +9,13 @@ fi
 
 declare -a services
 islamp="no"
-homeDir="/home/$username"
 
 init() {
 	\unalias -a
 	echo "Please enter the username of the main user on this machine."
 	read -r username
 	logsDir="/home/$username/Desktop/logs"
+	homeDir="/home/$username"
 	mkdir -p ${logsDir}
 	mkdir -p ${logsDir}/backups
 	cp /etc/group ${logsDir}/backups/
@@ -27,10 +27,8 @@ init() {
 
 packages() {
 	apt-get update -y
-	apt-get upgrade -y
-	apt-get dist-upgrade -y
-	apt-get install firefox -y
-	apt-get install rkhunter -y
+	apt-get install firefox -y -qq
+	apt-get install rkhunter -y -qq
 	apt-get install lynis -y -qq
 	apt-get install ufw -y -qq
 	apt-get install libpam-cracklib -y -qq
@@ -38,8 +36,7 @@ packages() {
 	apt-get install libpam-pkcs11 -y -qq
 	apt-get install unattended-upgrades -y -qq
 	apt-get install logwatch -y -qq
-	apt-get install nmap -y -qq
-	apt-get install python3-pip -y
+	apt-get install python3-pip -y -qq
 	pip3 install bs4
 	echo "Type anything to continue"
 	read -r timeCheck
@@ -817,8 +814,9 @@ clean() {
 	rkhunter --propupd
 	sysctl -p
 	ufw reload
-	apt-get update
-	apt-get upgrade
+	apt-get update -y
+	apt-get upgrade -y
+	apt-get dist-upgrade -y
 	apt-get autoremove -y -qq
 	apt-get autoclean -y -qq
 	apt-get clean -y -qq
