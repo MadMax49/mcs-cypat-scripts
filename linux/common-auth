@@ -14,10 +14,11 @@
 # pam-auth-update(8) for details.
 
 # here are the per-package modules (the "Primary" block)
-auth  required                    pam_tally2.so onerr=fail deny=3 unlock_time=1200 audit
-auth	[success=1 default=ignore]	pam_unix.so nullok_secure
+auth    required                    pam_tally2.so onerr=fail deny=3 unlock_time=1200 audit
+auth    [success=1 default=ignore]  pam_unix.so nullok_secure
+auth    required                    pam_faildelay.so delay=4000000
 # here's the fallback if no module succeeds
-auth	requisite			pam_deny.so
+auth	required		    pam_deny.so
 # prime the stack with a positive return value if there isn't one already;
 # this avoids us returning an error just because nothing sets a success code
 # since the modules above will each just jump around

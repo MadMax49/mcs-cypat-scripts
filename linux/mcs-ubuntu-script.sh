@@ -45,16 +45,47 @@ init() {
             exit 1
             ;;
 	esac
+	tmp_file=$(tempfile 2>/dev/null) || tmp_file=/tmp/test$$
+    trap "rm -f $tmp_file" 0 1 2 5 15
+
+	dialog --backtitle "Distribution Choice" \
+            --title "Which distribution is this image?" --clear --nocancel \
+            --radiolist "Choose the distribution as stated in the README by pressing SPACE:" 20 61 5 \
+                "ubu-18"  "Ubuntu 18.04" on \
+                "ubu-20"    "Ubuntu 20.04" off \
+                "deb-10" "Debian 10" off 2> $tmp_file
+    return_value=$?
+
+    choice=`cat $tmp_file`
+    case $return_value in
+    0)
+		clear
+        dist_folder=$choice
+		;;
+    255)
+        clear
+        echo "Program aborted."
+        exit 1
+        ;;
+    esac
 }
 
 packages() {
+	cp /home/$username/Desktop/linux/$dist_folder/sources.list /etc/apt/sources.list
 	apt-get update -y
+	apt-get upgrade -y
 	apt-get install ufw -y -qq
 	apt-get install libpam-cracklib -y -qq
 	apt-get install libpam-tmpdir -y -qq
 	apt-get install libpam-pkcs11 -y -qq
+	apt-get install libpam-pwquality -y -qq
 	apt-get install python3-pip -y -qq
 	pip3 install bs4
+	apt-get install unattended-upgrades -y -qq
+	dpkg-reconfigure --priority=low unattended-upgrades
+	cp /home/$username/Desktop/linux/20auto-upgrades /etc/apt/apt.conf.d/20auto-upgrades
+	cp /home/$username/Desktop/linux/50unattended-upgrades /etc/apt/apt.conf.d/50unattended-upgrades
+	apt-get update -y
 }
 
 firewall() {
@@ -122,7 +153,7 @@ services() {
 		mysqld --initialize --explicit_defaults_for_timestamp
 		mysql_secure_installation
 
-    islamp='yes'
+		islamp='yes'
 	fi
 
 	if [[ ${services[*]} =~ 'ssh' ]]; then
@@ -148,8 +179,7 @@ services() {
 		mkdir -p ${homeDir}/.ssh/
 		chmod 700 ${homeDir}/.ssh
 		chmod 600 ${homeDir}/.ssh/authorized_keys
-		ssh-keygen -t rsa
-    chmod 600 ${homeDir}/.ssh/id_rsa
+		chmod 600 ${homeDir}/.ssh/id_rsa
 		echo "- Secured SSH keys" >>${homeDir}/Desktop/logs/changelog.log
 
 		echo "####SSH port can accept SSH connections####"
@@ -371,8 +401,14 @@ services() {
 general_config() {
 	passwd -l root
 
+	useradd -D -f 35
+
 	systemctl mask ctrl-alt-del.target
 	systemctl daemon-reload
+
+	mkdir -p /etc/dconf/db/local.d/
+	cp /home/$username/Desktop/linux/00-disabled-CAD /etc/dconf/db/local.d/
+	dconf update
 
 	systemctl start systemd-timesyncd.service
 	timedatectl set-ntp true
@@ -433,6 +469,8 @@ general_config() {
 	echo "install usb-storage /bin/true" >/etc/modprobe.d/usb-storage.conf
 	rmmod usb-storage
 
+	systemctl disable kdump.service
+
 	echo "ENABLED=\"0\"" >>/etc/default/irqbalance
 
 	if [[ -f "/etc/lightdm/lightdm.conf" ]]; then
@@ -451,9 +489,9 @@ general_config() {
 	cp /etc/pam.d/common-auth ${homeDir}/Desktop/logs/backups/
 	cp ${homeDir}/Desktop/linux/common-auth /etc/pam.d/common-auth
 
-	# account even worse
-	# cp /etc/pam.d/common-account ${homeDir}/Desktop/logs/backups/
-	# cp ${homeDir}/Desktop/linux/common-account /etc/pam.d/common-account
+	account even worse
+	cp /etc/pam.d/common-account ${homeDir}/Desktop/logs/backups/
+	cp ${homeDir}/Desktop/linux/common-account /etc/pam.d/common-account
 
 	cp /etc/sysctl.conf ${homeDir}/Desktop/logs/backups/
 	cp ${homeDir}/Desktop/linux/sysctl.conf /etc/sysctl.conf
@@ -469,7 +507,40 @@ general_config() {
 	echo "Authorized users only. All activity may be monitored and reported." >/etc/issue
 	echo "Authorized users only. All activity may be monitored and reported." >/etc/issue.net
 
+	cp /home/$username/Desktop/linux/greeter.dconf-defaults /etc/gdm3/greeter.dconf-defaults
+	dconf update
+	systemctl restart gdm3
+
 	sed -i '45s/.*/*\o011\o011 hard\o011 core\o011\o011 0/' /etc/security/limits.conf
+	sed -i '1s/^/* hard maxlogins 10\n/' /etc/security/limits.conf
+
+	find /lib /lib64 /usr/lib -perm /022 -type d -exec chmod 755 '{}' \;
+	find /lib /lib64 /usr/lib -perm /022 -type f -exec chmod 755 '{}' \;
+	find /var/log -perm /137 -type f -exec chmod 640 '{}' \;
+	find -L /bin /sbin /usr/bin /usr/sbin /usr/local/bin /usr/local/sbin -perm /022 -type d -exec chmod -R 755 '{}' \;
+	find -L /bin /sbin /usr/bin /usr/sbin /usr/local/bin /usr/local/sbin -perm /022 -type f -exec chmod 755 '{}' \;
+	find -L /bin /sbin /usr/bin /usr/sbin /usr/local/bin /usr/local/sbin ! -user root -type d -exec chown root '{}' \;
+	find -L /bin /sbin /usr/bin /usr/sbin /usr/local/bin /usr/local/sbin ! -user root -type f -exec chown root '{}' \;
+	find /lib /usr/lib /lib64 ! -user root -type d -exec chown root '{}' \;
+	find /lib /usr/lib /lib64 ! -group root -type d -exec chgrp root '{}' \;
+	find /lib /usr/lib /lib64 ! -group root -type f -exec chgrp root '{}' \;
+	find -L /bin /sbin /usr/bin /usr/sbin /usr/local/bin /usr/local/sbin ! -group root -type d -exec chgrp root '{}' \;
+	find /bin /sbin /usr/bin /usr/sbin /usr/local/bin /usr/local/sbin ! -group root -type f ! -perm /2000 -exec chgrp root '{}' \;
+	
+	# session lock
+	gsettings set org.gnome.desktop.screensaver lock-enabled true
+
+	chmod 0750 /var/log
+	chown root /var/log
+	chown syslog /var/log/syslog
+	chgrp adm /var/log/syslog
+	chmod 0640 /var/log/syslog
+	chgrp syslog /var/log
+
+	cp /home/$username/Desktop/linux/autologout.sh /etc/profile.d/
+
+	su -c "echo install usb-storage /bin/true >> /etc/modprobe.d/DISASTIG.conf"
+	su -c "echo blacklist usb-storage >> /etc/modprobe.d/DISASTIG.conf"
 
 }
 
@@ -694,13 +765,9 @@ parse_readme() {
 	authUserList="${adminsList} ${usersList}"
 	authUsers=("${admins[@]}" "${users[@]}")
 
-	echo >>${homeDir}/Desktop/logs/userchangelog.log
-	echo "Users without passwords given passwords:" >>${homeDir}/Desktop/logs/userchangelog.log
-	for item in "${currentUsers[@]}"; do
-		if [[ $(grep "${item}" /etc/shadow) != *":$"* ]]; then
-			echo "####Setting a new password for ${item}####"
-			passwd "$item"
-			echo "$item" >>${homeDir}/Desktop/logs/userchangelog.log
+	for item in "${currentUsers[@]}"; do 
+		if [[ "${item}" != "${username}" ]]; then
+			usermod --password $(echo MCS_Cypat\!1 | openssl passwd -1 -stdin) "${item}"
 		fi
 	done
 
@@ -823,12 +890,12 @@ second_time_failsafe() {
 }
 
 clean() {
-	rkhunter --propupd
 	sysctl -p
 	ufw reload
 	apt-get update -y
 	apt-get upgrade -y
 	apt-get dist-upgrade -y
+	systemctl daemon-reload
 	apt-get autoremove -y -qq
 	apt-get autoclean -y -qq
 	apt-get clean -y -qq
@@ -902,8 +969,8 @@ fi
 
 #Calls for functions to run through individual portions of the script
 init
-parse_readme
 packages
+parse_readme
 hacking_tools
 general_config
 services

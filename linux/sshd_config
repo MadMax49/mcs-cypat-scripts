@@ -20,8 +20,8 @@ HostKey /etc/ssh/ssh_host_rsa_key
 HostKey /etc/ssh/ssh_host_ed25519_key
 
 # Ciphers and keying
-Ciphers chacha20-poly1305@openssh.com,aes256-gcm@openssh.com,aes128-gcm@openssh.com,aes256-ctr,aes192-ctr,aes128-ctr
-MACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com,hmac-sha2-512,hmac-sha2-256
+Ciphers aes256-ctr,aes192-ctr,aes128-ctr
+MACs hmac-sha2-512,hmac-sha2-256
 KexAlgorithms curve25519-sha256@libssh.org,ecdh-sha2-nistp521,ecdh-sha2-nistp384,ecdh-sha2-nistp256
 #RekeyLimit default none
 
@@ -91,7 +91,7 @@ AllowTcpForwarding no
 #GatewayPorts no
 X11Forwarding no
 #X11DisplayOffset 10
-#X11UseLocalhost yes
+X11UseLocalhost yes
 #PermitTTY yes
 PrintMotd no
 PrintLastLog yes
@@ -100,7 +100,7 @@ TCPKeepAlive no
 PermitUserEnvironment no
 Compression delayed
 ClientAliveInterval 300
-ClientAliveCountMax 0
+ClientAliveCountMax 1
 #UseDNS no
 #PidFile /var/run/sshd.pid
 MaxStartups 10:30:60
