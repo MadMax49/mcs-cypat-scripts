@@ -17,15 +17,18 @@ function Audit-Users {
     $users=$( python3 C:\Users\$mainUser\Desktop\windows\scraper.py $readme users)
     $usersList = $users -split ";"
     $currentUserList = Get-LocalUser | Where-Object -Property Enabled -eq True | Select-Object -Property Name 
+    $currentAdminList = Get-LocalGroupMember -Group "Administrators" | Where-Object -Property PrincipalSource -eq MicrosoftAccount | Select-Object -Property Name
     foreach ($user in $currentUserList) {
         if (-not $user -eq $mainUser) {
-            Write-Host $user.Name
+            # Set new passwords for all users other than the main user
+            $NewPass = ConvertTo-SecureString "M3rc1l3ss_cYp@t!1" -AsPlainText -Force
+            Set-LocalUser -Name $user -Password $NewPass
         }
     }
 }
 
 function Manange-Defender {
-    Set-NetFirewallProfile -Enabled True
+    Set-NetFirewallProfile -Enabled $True
     Set-MpPreference -DisableRealtimeMonitoring $False
     Set-MpPreference -RealTimeProtectionEnabled $True
     Update-MpSignature

@@ -489,7 +489,6 @@ general_config() {
 	cp /etc/pam.d/common-auth ${homeDir}/Desktop/logs/backups/
 	cp ${homeDir}/Desktop/linux/common-auth /etc/pam.d/common-auth
 
-	account even worse
 	cp /etc/pam.d/common-account ${homeDir}/Desktop/logs/backups/
 	cp ${homeDir}/Desktop/linux/common-account /etc/pam.d/common-account
 
@@ -539,8 +538,8 @@ general_config() {
 
 	cp /home/$username/Desktop/linux/autologout.sh /etc/profile.d/
 
-	su -c "echo install usb-storage /bin/true >> /etc/modprobe.d/DISASTIG.conf"
-	su -c "echo blacklist usb-storage >> /etc/modprobe.d/DISASTIG.conf"
+	echo "install usb-storage /bin/true" >> /etc/modprobe.d/DISASTIG.conf
+	echo "blacklist usb-storage" >> /etc/modprobe.d/DISASTIG.conf
 
 }
 
@@ -656,6 +655,7 @@ media_files() {
 		find / -name "*.nt"
 		find / -name "*.asp" ! -path '*/usr/lib/*'
 		find / -name "*.vb"
+		find / -name "*.pl"
 		find / -name "*.vbs"
 		find / -name "*.tab" ! -path '*/snap/*' ! -path '*/usr/share/*' ! -path '*/run/*'
 		find / -name "*.spf"
@@ -733,7 +733,7 @@ media_files() {
 		find / -name "*.im1"
 		find / -name "*.jpe"
 
-	} >> ${homeDir}/Desktop/logs/media_files.log
+	} >> ${homeDir}/Desktop/logs/media_files.log 2>/dev/null
 }
 
 parse_readme() {
@@ -767,7 +767,7 @@ parse_readme() {
 
 	for item in "${currentUsers[@]}"; do 
 		if [[ "${item}" != "${username}" ]]; then
-			usermod --password $(echo MCS_Cypat\!1 | openssl passwd -1 -stdin) "${item}"
+			usermod --password $(echo M3rc1l3ss_cYp@t\!1 | openssl passwd -1 -stdin) "${item}"
 		fi
 	done
 
@@ -901,18 +901,6 @@ clean() {
 	apt-get clean -y -qq
 }
 
-audit() {
-	#run rkhunter
-	rkhunter --check --vl --sk
-	cp /var/log/rkhunter.log ${homeDir}/Desktop/logs
-	chmod 777 ${homeDir}/Desktop/logs/rkhunter.log
-
-	#run lynis
-	lynis audit system --quick
-	cp /var/log/lynis.log ${homeDir}/Desktop/logs
-	chmod 777 ${homeDir}/Desktop/logs/lynis.log
-}
-
 end() {
 	echo "#########Creating symbolic link to /var/log/ in logs folder on Desktop#########"
 	ln -s /var/log/ ${homeDir}/Desktop/logs/servicelogs
@@ -978,5 +966,4 @@ file_config
 firewall
 media_files
 clean
-audit
 end
