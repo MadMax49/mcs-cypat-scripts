@@ -1,6 +1,6 @@
 #Requires -RunAsAdministrator
 
-function Init-Script {
+function Initialize-Script {
     $mainUser = Read-Host "Please enter the main user on this machine"
     $distro = Read-Host "Please enter the type of machine this is (win10 or server19)"
     if ( -Not ('win10', 'server19').contains($distro.ToLower()) ) {
@@ -44,7 +44,12 @@ function Install-Programs {
 }
 
 function Secure-System {
-    cmd.exe /c "reg add 'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update' /v AUOptions /t REG_DWORD /d 0 /f"
+    # enable automatic updates
+    Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update' -Name AUOptions -Value 0 -Type DWord
 }
 
+Initialize-Script
 Install-Programs
+Manage-Defender
+Audit-Users
+Secure-System
