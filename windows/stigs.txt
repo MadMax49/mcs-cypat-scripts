@@ -1,0 +1,20 @@
+https://www.stigviewer.com/stig/windows_10/2021-03-10/finding/V-220739
+https://www.stigviewer.com/stig/windows_10/2021-03-10/finding/V-220732
+https://www.stigviewer.com/stig/windows_10/2021-03-10/finding/V-220793
+https://www.stigviewer.com/stig/windows_10/2021-03-10/finding/V-220721
+https://www.stigviewer.com/stig/windows_10/2021-03-10/finding/V-220720
+https://www.stigviewer.com/stig/windows_10/2021-03-10/finding/V-220718
+https://www.stigviewer.com/stig/windows_10/2021-03-10/finding/V-220967
+https://www.stigviewer.com/stig/windows_10/2021-03-10/finding/V-220747
+https://www.stigviewer.com/stig/windows_10/2021-03-10/finding/V-220958
+https://www.stigviewer.com/stig/windows_10/2021-03-10/finding/V-220812
+https://www.stigviewer.com/stig/windows_10/2021-03-10/finding/V-220928
+https://www.stigviewer.com/stig/windows_10/2021-03-10/finding/V-220709
+https://www.stigviewer.com/stig/windows_10/2021-03-10/finding/V-220702
+https://www.stigviewer.com/stig/windows_10/2021-03-10/finding/V-220703 <<
+https://www.stigviewer.com/stig/windows_10/2021-03-10/finding/V-220705
+https://www.stigviewer.com/stig/windows_10/2021-03-10/finding/V-220742
+https://www.stigviewer.com/stig/windows_10/2021-03-10/finding/V-220717 
+https://www.stigviewer.com/stig/windows_10/2021-03-10/finding/V-220907
+https://www.stigviewer.com/stig/windows_10/2021-03-10/finding/V-220900
+https://www.stigviewer.com/stig/windows_10/2021-03-10/finding/V-220782 
