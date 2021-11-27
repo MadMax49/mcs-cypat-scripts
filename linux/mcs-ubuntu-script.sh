@@ -71,7 +71,7 @@ init() {
 
 packages() {
 	cp "/home/$username/Desktop/linux/$dist_folder/sources.list" /etc/apt/sources.list
-	add-apt-repository ppa:apt-fast/stable
+	add-apt-repository ppa:apt-fast/stable -y 
 	apt-get update -y
 	apt-get install apt-fast
 	apt-fast install ufw -y -qq
@@ -85,7 +85,7 @@ packages() {
 	dpkg-reconfigure --priority=low unattended-upgrades
 	cp "/home/$username/Desktop/linux/20auto-upgrades" /etc/apt/apt.conf.d/20auto-upgrades
 	cp "/home/$username/Desktop/linux/50unattended-upgrades" /etc/apt/apt.conf.d/50unattended-upgrades
-	apt-get update -y
+	apt-fast update -y
 	apt-fast upgrade -y
 }
 
@@ -107,14 +107,14 @@ firewall() {
 services() {
 
 	if [[ ${services[*]} =~ 'apache' && ${services[*]} =~ 'mysql' ]]; then
-		apt-get purge nginx -y -qq
-		apt-get purge nginx-common -y -qq
-		apt-get purge nginx-core -y -qq
+		apt-fast purge nginx -y -qq
+		apt-fast purge nginx-common -y -qq
+		apt-fast purge nginx-core -y -qq
 		echo "- NGINX removed from the machine" >>"${homeDir}/Desktop/logs/changelog.log"
-		apt-get install apache2 -y -qq
-		apt-get install apache2-utils -y -qq
-		apt-get install libapache2-mod-evasive -y -qq
-		apt-get install libapache2-mod-security2 -y -qq
+		apt-fast install apache2 -y -qq
+		apt-fast install apache2-utils -y -qq
+		apt-fast install libapache2-mod-evasive -y -qq
+		apt-fast install libapache2-mod-security2 -y -qq
 		ufw allow in "Apache Full"
 		ufw allow http
 		ufw allow https
@@ -130,9 +130,9 @@ services() {
 		/etc/init.d/apache2 restart
 
 		echo "####Installing PHP####"
-		apt-get install php -y -qq
-		apt-get install libapache2-mod-php -y -qq
-		apt-get install php-mysql -y -qq
+		apt-fast install php -y -qq
+		apt-fast install libapache2-mod-php -y -qq
+		apt-fast install php-mysql -y -qq
 		cp /etc/apache2/mods-enabled/dir.conf "${homeDir}/Desktop/logs/backups"
 		rm /etc/apache2/mods-enabled/dir.conf
 		cp "${homeDir}/Desktop/linux/dir.conf" /etc/apache2/mods-enabled
@@ -147,7 +147,7 @@ services() {
 		ufw allow ms-sql-m
 		ufw allow mysql
 		ufw allow mysql-proxy
-		apt-get install mysql-server -y -qq
+		apt-fast install mysql-server -y -qq
 		chown -R mysql:mysql /var/lib/mysql
 		dpkg --configure -a
 		ln -s /etc/mysql/mysql.conf.d /etc/mysql/conf.d
@@ -158,9 +158,9 @@ services() {
 	fi
 
 	if [[ ${services[*]} =~ 'ssh' ]]; then
-		apt-get install ssh -y -qq
-		apt-get install openssh-server -y -qq
-		apt-get upgrade openssl libssl-dev -y -qq
+		apt-fast install ssh -y -qq
+		apt-fast install openssh-server -y -qq
+		apt-fast upgrade openssl libssl-dev -y -qq
 		apt-cache policy openssl libssl-dev
 		echo "- Packages ssh and openssh-server installed and heartbleed bug fixed" >>"${homeDir}/Desktop/logs/changelog.log"
 
@@ -188,7 +188,7 @@ services() {
 		service ssh restart
 		echo "- SSH configured" >>"${homeDir}/Desktop/logs/changelog.log"
 	else
-		apt-get purge openssh-server
+		apt-fast purge openssh-server
 		ufw deny ssh
 	fi
 
@@ -198,9 +198,9 @@ services() {
 		ufw allow 138/udp
 		ufw allow 139/tcp
 		ufw allow 445/tcp
-		apt-get install samba -y -qq
-		apt-get install system-config-samba -y -qq
-		apt-get install libpam-winbind -y -qq
+		apt-fast install samba -y -qq
+		apt-fast install system-config-samba -y -qq
+		apt-fast install libpam-winbind -y -qq
 		systemctl restart smbd.service nmbd.service
 		echo "- Samba installed and allowed" >>"${homeDir}/Desktop/logs/changelog.log"
 	else
@@ -208,12 +208,12 @@ services() {
 		ufw deny netbios-dgm
 		ufw deny netbios-ssn
 		ufw deny microsoft-ds
-		apt-get purge samba -y -qq
+		apt-fast purge samba -y -qq
 		echo "- Samba uninstalled and blocked" >>"${homeDir}/Desktop/logs/changelog.log"
 	fi
 
 	if [[ ${services[*]} =~ 'vsftpd' ]]; then
-		apt-get install vsftpd
+		apt-fast install vsftpd
 		cp /etc/vsftpd.conf /etc/vsftpd.conf_default
 		cp /etc/vsftpd.conf "${homeDir}/Desktop/logs/backups/"
 		service vsftpd start
@@ -241,7 +241,7 @@ services() {
 		ufw deny saft
 		ufw deny ftps-data
 		ufw deny ftps
-		apt-get purge vsftpd -y -qq
+		apt-fast purge vsftpd -y -qq
 		echo "- FTP uninstalled and blocked" >>"${homeDir}/Desktop/logs/changelog.log"
 	fi
 
@@ -249,32 +249,32 @@ services() {
 	ufw deny telnet
 	ufw deny rtelnet
 	ufw deny telnets
-	apt-get purge telnet -y -qq
-	apt-get purge telnetd -y -qq
-	apt-get purge inetutils-telnetd -y -qq
-	apt-get purge telnetd-ssl -y -qq
+	apt-fast purge telnet -y -qq
+	apt-fast purge telnetd -y -qq
+	apt-fast purge inetutils-telnetd -y -qq
+	apt-fast purge telnetd-ssl -y -qq
 
 	if [[ ${services[*]} =~ 'apache' && $islamp == 'no' || ${services[*]} =~ 'nginx' && $islamp == 'no' ]]; then
 		if [[ ${services[*]} =~ 'nginx' ]]; then
-			apt-get purge apache2 -y -qq
-			apt-get purge apache2-bin -y -qq
-			apt-get purge apache2-utils -y -qq
-			apt-get purge libapache2-mod-evasive -y -qq
-			apt-get purge libapache2-mod-security2 -y -qq
+			apt-fast purge apache2 -y -qq
+			apt-fast purge apache2-bin -y -qq
+			apt-fast purge apache2-utils -y -qq
+			apt-fast purge libapache2-mod-evasive -y -qq
+			apt-fast purge libapache2-mod-security2 -y -qq
 			echo "- Apache2 removed" >>"${homeDir}/Desktop/logs/changelog.log"
-			apt-get install nginx -y -qq
+			apt-fast install nginx -y -qq
 			ufw allow http
 			ufw allow https
 			echo "- NGINX installed" >>"${homeDir}/Desktop/logs/changelog.log"
 		elif [[ ${services[*]} =~ 'apache' ]]; then
-			apt-get purge nginx -y -qq
-			apt-get purge nginx-common -y -qq
-			apt-get purge nginx-core -y -qq
+			apt-fast purge nginx -y -qq
+			apt-fast purge nginx-common -y -qq
+			apt-fast purge nginx-core -y -qq
 			echo "- NGINX removed from the machine" >>"${homeDir}/Desktop/logs/changelog.log"
-			apt-get install apache2 -y -qq
-			apt-get install apache2-utils -y -qq
-			apt-get install libapache2-mod-evasive -y -qq
-			apt-get install libapache2-mod-security2 -y -qq
+			apt-fast install apache2 -y -qq
+			apt-fast install apache2-utils -y -qq
+			apt-fast install libapache2-mod-evasive -y -qq
+			apt-fast install libapache2-mod-security2 -y -qq
 			ufw allow http
 			ufw allow https
 			systemctl restart apache2
@@ -286,17 +286,17 @@ services() {
 			echo "- Apache2 installed, configured, and http(s) allowed" >>"${homeDir}/Desktop/logs/changelog.log"
 		fi
 	elif [[ $islamp == 'no' ]]; then
-		apt-get purge nginx -y -qq
-		apt-get purge nginx-common -y -qq
-		apt-get purge nginx-core -y -qq
+		apt-fast purge nginx -y -qq
+		apt-fast purge nginx-common -y -qq
+		apt-fast purge nginx-core -y -qq
 		echo "- NGINX removed from the machine" >>"${homeDir}/Desktop/logs/changelog.log"
 		ufw deny http
 		ufw deny https
-		apt-get purge apache2 -y -qq
-		apt-get purge apache2-bin -y -qq
-		apt-get purge apache2-utils -y -qq
-		apt-get purge libapache2-mod-evasive -y -qq
-		apt-get purge libapache2-mod-security2 -y -qq
+		apt-fast purge apache2 -y -qq
+		apt-fast purge apache2-bin -y -qq
+		apt-fast purge apache2-utils -y -qq
+		apt-fast purge libapache2-mod-evasive -y -qq
+		apt-fast purge libapache2-mod-security2 -y -qq
 		rm -r /var/www/*
 		echo "- Apache2 removed and http(s) blocked" >>"${homeDir}/Desktop/logs/changelog.log"
 	fi
@@ -306,10 +306,10 @@ services() {
 	ufw deny imap2
 	ufw deny imaps
 	ufw deny pop3s
-	apt-get purge dovecot-* -y -qq
+	apt-fast purge dovecot-* -y -qq
 
 	if [[ ${services[*]} =~ 'bind9' || ${services[*]} =~ 'dns' ]]; then
-		apt-get install bind9 -y -qq
+		apt-fast install bind9 -y -qq
 		named-checkzone test.com. /var/cache/bind/db.test
 		{
 			echo "zone \"test.com.\" {"
@@ -320,7 +320,7 @@ services() {
 		systemctl restart bind9
 	else
 		systemctl stop bind9
-		apt-get purge bind9 -y -qq
+		apt-fast purge bind9 -y -qq
 	fi
 
 	if [[ ${services[*]} =~ 'mysql' && $islamp == 'no' ]]; then
@@ -328,7 +328,7 @@ services() {
 		ufw allow ms-sql-m
 		ufw allow mysql
 		ufw allow mysql-proxy
-		apt-get install mysql-server -y -qq
+		apt-fast install mysql-server -y -qq
 		mv /etc/mysql/my.cnf /etc/mysql/my.cnf.bak
 		mv /etc/mysql/debian.cnf /etc/mysql/debian.cnf.bak
 		chown -R mysql:mysql /var/lib/mysql
@@ -389,11 +389,11 @@ services() {
 		ufw deny ms-sql-m
 		ufw deny mysql
 		ufw deny mysql-proxy
-		apt-get purge mysql-server -y -qq
-		apt-get purge mysql-client -y -qq
+		apt-fast purge mysql-server -y -qq
+		apt-fast purge mysql-client -y -qq
 	fi
 
-	apt-get purge cups -y -qq
+	apt-fast purge cups -y -qq
 
 }
 
@@ -543,63 +543,63 @@ general_config() {
 }
 
 hacking_tools() {
-	apt-get purge nmap* -y -qq
-	apt-get purge netcat -y -qq
-	apt-get purge netcat-openbsd -y -qq
-	apt-get purge netcat-traditional -y -qq
-	apt-get purge socket -y -qq
-	apt-get purge sbd -y -qq
-	apt-get purge john -y -qq
-	apt-get purge hashcat -y -qq
-	apt-get purge hydra -y -qq
-	apt-get purge hydra-gtk -y -qq
-	apt-get purge aircrack-ng -y -qq
-	apt-get purge fcrackzip -y -qq
-	apt-get purge lcrack -y -qq
-	apt-get purge ophcrack -y -qq
-	apt-get purge ophcrack-cli -y -qq
-	apt-get purge pyrit -y -qq
-	apt-get purge rarcrack -y -qq
-	apt-get purge sipcrack -y -qq
-	apt-get purge nfs-kernel-server -y -qq
-	apt-get purge nfs-common -y -qq
-	apt-get purge portmap -y -qq
-	apt-get purge rpcbind -y -qq
-	apt-get purge autofs -y -qq
-	apt-get purge vnc4server -y -qq
-	apt-get purge vncsnapshot -y -qq
-	apt-get purge vtgrab -y -qq
-	apt-get purge wireshark -y -qq
-	apt-get purge cewl -y -qq
-	apt-get purge medusa -y -qq
-	apt-get purge wfuzz -y -qq
-	apt-get purge sqlmap -y -qq
-	apt-get purge snmp -y -qq
-	apt-get purge crack -y -qq
-	apt-get purge rsh-server -y -qq
-	apt-get purge nis -y -qq
-	apt-get purge prelink -y -qq
-	apt-get purge backdoor-factory -y -qq
-	apt-get purge shellinabox -y -qq
-	apt-get purge at -y -qq
-	apt-get purge xinetd -y -qq
-	apt-get purge openbsd-inetd -y -qq
-	apt-get purge talk -y -qq
+	apt-fast purge nmap* -y -qq
+	apt-fast purge netcat -y -qq
+	apt-fast purge netcat-openbsd -y -qq
+	apt-fast purge netcat-traditional -y -qq
+	apt-fast purge socket -y -qq
+	apt-fast purge sbd -y -qq
+	apt-fast purge john -y -qq
+	apt-fast purge hashcat -y -qq
+	apt-fast purge hydra -y -qq
+	apt-fast purge hydra-gtk -y -qq
+	apt-fast purge aircrack-ng -y -qq
+	apt-fast purge fcrackzip -y -qq
+	apt-fast purge lcrack -y -qq
+	apt-fast purge ophcrack -y -qq
+	apt-fast purge ophcrack-cli -y -qq
+	apt-fast purge pyrit -y -qq
+	apt-fast purge rarcrack -y -qq
+	apt-fast purge sipcrack -y -qq
+	apt-fast purge nfs-kernel-server -y -qq
+	apt-fast purge nfs-common -y -qq
+	apt-fast purge portmap -y -qq
+	apt-fast purge rpcbind -y -qq
+	apt-fast purge autofs -y -qq
+	apt-fast purge vnc4server -y -qq
+	apt-fast purge vncsnapshot -y -qq
+	apt-fast purge vtgrab -y -qq
+	apt-fast purge wireshark -y -qq
+	apt-fast purge cewl -y -qq
+	apt-fast purge medusa -y -qq
+	apt-fast purge wfuzz -y -qq
+	apt-fast purge sqlmap -y -qq
+	apt-fast purge snmp -y -qq
+	apt-fast purge crack -y -qq
+	apt-fast purge rsh-server -y -qq
+	apt-fast purge nis -y -qq
+	apt-fast purge prelink -y -qq
+	apt-fast purge backdoor-factory -y -qq
+	apt-fast purge shellinabox -y -qq
+	apt-fast purge at -y -qq
+	apt-fast purge xinetd -y -qq
+	apt-fast purge openbsd-inetd -y -qq
+	apt-fast purge talk -y -qq
 	systemctl --now disable avahi-daemon
 	systemctl --now disable isc-dhcp-server
 	systemctl --now disable isc-dhcp-server6
 	systemctl --now disable slapd
-	apt-get purge ldap-utils -y -qq
-	apt-get purge slapd -y -qq
+	apt-fast purge ldap-utils -y -qq
+	apt-fast purge slapd -y -qq
 	systemctl --now disable nfs-server
-	apt-get purge nfs-server -y -qq
+	apt-fast purge nfs-server -y -qq
 	systemctl --now disable rpcbind
-	apt-get purge rpcbind -y -qq
+	apt-fast purge rpcbind -y -qq
 	systemctl --now disable rsync
-	apt-get purge rsync -y -qq
-	apt-get autoremove -y -qq
-	apt-get autoclean -y -qq
-	apt-get clean -y -qq
+	apt-fast purge rsync -y -qq
+	apt-fast autoremove -y -qq
+	apt-fast autoclean -y -qq
+	apt-fast clean -y -qq
 }
 
 media_files() {
@@ -891,13 +891,12 @@ second_time_failsafe() {
 clean() {
 	sysctl -p
 	ufw reload
-	apt-get update -y
-	apt-get upgrade -y
-	apt-get dist-upgrade -y
+	apt-fast update -y
+	apt-fast upgrade -y
 	systemctl daemon-reload
-	apt-get autoremove -y -qq
-	apt-get autoclean -y -qq
-	apt-get clean -y -qq
+	apt-fast autoremove -y -qq
+	apt-fast autoclean -y -qq
+	apt-fast clean -y -qq
 }
 
 end() {
