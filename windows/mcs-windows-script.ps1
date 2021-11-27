@@ -131,6 +131,7 @@ function Edit-Keys {
     Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows Defender\Spynet' SpynetReporting 2 DWord 
     Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows Defender\Spynet' SubmitSamplesConsent 1 DWord 
     Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows Defender\MpEngine' MpCloudBlockLevel 2 DWord 
+    Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows Defender\Scan' DisableHeuristics 0 DWord
     # set UAC to maximum
     Edit-Registry '\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' ConsentPromptBehaviorAdmin 2  DWord
     Edit-Registry '\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' ValidateAdminCodeSignatures 1 DWord 
@@ -214,6 +215,9 @@ function Edit-Keys {
     Edit-Registry '\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\' EnableLUA 1 DWord
     # enable DEP
     cmd.exe /c "BCDEDIT /set {current} nx OptOut"
+    Clear-RecycleBin -force -ErrorAction Ignore
+    # restart explorer
+    Stop-Process -ProcessName explorer
 }
 
 function Disable-Features {
@@ -304,13 +308,18 @@ function Stop-Services {
     Set-Service -Name TermService -StartupType Disabled -ErrorAction Ignore
     Stop-Service -Name TlntSvr -Force -ErrorAction Ignore
     Set-Service -Name TlntSvr -StartupType Disabled -ErrorAction Ignore
+
+    Start-Service -Name EventLog -Force -ErrorAction Ignore
+    Set-Service -Name EventLog -StartupType Enabled -ErrorAction Ignore
 }
 
 function Remove-HackingTools {
-    Invoke-Item 'C:\Program Files (x86)\Nmap\Uninstall.exe' -ErrorAction Ignore
-    Invoke-Item 'C:\Program Files\Npcap\Uninstall.exe' -ErrorAction Ignore
-    Invoke-Item 'C:\Program Files\Genshin Impact\Uninstall.exe' -ErrorAction Ignore
-    Invoke-Item 'C:\Program Files\Wireshark\Uninstall.exe' -ErrorAction Ignore
+    $mainUser = $global:mainUser
+    Invoke-Item "C:\Program Files (x86)\Nmap\Uninstall.exe" -ErrorAction Ignore
+    Invoke-Item "C:\Program Files\Npcap\Uninstall.exe" -ErrorAction Ignore
+    Invoke-Item "C:\Program Files\Genshin Impact\Uninstall.exe" -ErrorAction Ignore
+    Invoke-Item "C:\Program Files\Wireshark\Uninstall.exe" -ErrorAction Ignore
+    Invoke-Item "C:\Users\$mainUser\AppData\Roaming\uTorrent Web\Uninstall.exe" -ErrorAction Ignore
 }
 
 function Get-FileType($type) {
@@ -411,7 +420,18 @@ else {
     Disable-Features
     Remove-HackingTools
     Get-MediaFiles
+    $scanYN = Read-Host 'Would you like to scan the machine for potential viruses or corrupted files? (y/n)'
+    if ($scanYN.ToLower() -eq 'y') {
+        cmd.exe /c "DISM.exe /Online /Cleanup-image /Restorehealth"
+        cmd.exe /c "sfc /scannow"
+        Write-Host "`nIf it says to run sfc once you restart the system, run sfc /scannow when you restart the system"
+    }
     Write-Host "`nScript done! Please restart the system for some of the changes to take effect and go get the rest of the vulns! (It's suggested that on this restart, you also do updates)"
     Write-Host "`nScript completed in" $stopwatch.Elapsed.Minutes "minutes and" $stopwatch.Elapsed.Seconds "seconds"
     $stopwatch.Stop()
+    $restartYN = Read-Host 'Would you like to install all updates automatically and restart the computer now to apply changes? (y/n)'
+    if ($restartYN.ToLower() -eq 'y') {
+        Install-Module PSWindowsUpdate -Confirm:$False -Force
+        Get-WindowsUpdate -AcceptAll -Install -AutoReboot
+    }
 }
