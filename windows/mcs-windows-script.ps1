@@ -80,6 +80,45 @@ function Edit-LocalUsers {
     }
 }
 
+function Edit-ADUsers {
+    $mainUser = $global:mainUser
+    Disable-LocalUser -Name "Guest"
+    Disable-LocalUser -Name "Administrator"
+    $readme = Read-Host "Please enter the link to the README"
+    $admins=$( py C:\Users\$mainUser\Desktop\windows\scraper.py $readme admins)
+    $adminsList = $admins -split ";"
+    $users=$( py C:\Users\$mainUser\Desktop\windows\scraper.py $readme users)
+    $usersList = $users -split ";"
+    $authUsersList = @($adminsList) + $usersList
+    $currentUserList = Get-ADUser | Where-Object -Property Enabled -eq True | Select-Object -Property Name 
+    $currentAdminList = Get-ADGroupMember -Identity Administrators | Select-Object -Property SamAccountName
+    foreach ($user in $usersList) {
+        if (-not ($user -in $currentUserList)) {
+            # adds user if user on README is not on the AD
+            New-ADUser -Name "$user"
+        }
+    }
+
+    foreach ($user in $currentUserList) {
+        if (-not ($user -in $authUsersList)) {
+            # delete user if user on the AD and not on the README
+            Disable-ADAccount -Identity $user
+        }
+    }
+    foreach ($admin in $currentAdminList) {
+        # if admin is an admin on the AD but not an authorized admin in the readme, remove from the group
+        if (-not ($admin -in $adminsList)) {
+            Remove-ADGroupMember -Identity "Administrators" -Members $admin
+        }
+    }
+    foreach ($admin in $adminsList) {
+        # if admin is an admin on the README but not on the AD, make that user an admin
+        if (-not ($admin -in $currentAdminList)) {
+            Add-ADGroupMember -Identity "Administrators" -Members $admin
+        }
+    }
+}
+
 function Start-Defender {
     Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled True
     New-NetFirewallRule -DisplayName "Block 23" -Direction Inbound -LocalPort 23 -Protocol TCP -Action Block | Out-Null
@@ -213,11 +252,15 @@ function Edit-Keys {
     Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy\' LetAppsActivateWithVoiceAboveLock 2 DWord
     Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy\' LetAppsActivateWithVoice 2 DWord
     Edit-Registry '\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\' EnableLUA 1 DWord
+    Edit-Registry '\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\webcam' Value 'Deny' String
     # enable DEP
     cmd.exe /c "BCDEDIT /set {current} nx OptOut"
-    Clear-RecycleBin -force -ErrorAction Ignore
-    # restart explorer
+    Clear-RecycleBin -Force -ErrorAction Ignore
+    # restart explorer for some changes to take effect
     Stop-Process -ProcessName explorer
+    # bitlocker (broken rn)
+    # $SecureString = ConvertTo-SecureString "1720" -AsPlainText -Force
+    # Enable-BitLocker -MountPoint "C:" -EncryptionMethod Aes256 -UsedSpaceOnly -Pin $SecureString -TPMandPinProtector
 }
 
 function Disable-Features {
@@ -308,6 +351,8 @@ function Stop-Services {
     Set-Service -Name TermService -StartupType Disabled -ErrorAction Ignore
     Stop-Service -Name TlntSvr -Force -ErrorAction Ignore
     Set-Service -Name TlntSvr -StartupType Disabled -ErrorAction Ignore
+    Stop-Service -Name seclogon -Force -ErrorAction Ignore
+    Set-Service -Name seclogon -StartupType Disabled -ErrorAction Ignore
 
     Start-Service -Name EventLog -Force -ErrorAction Ignore
     Set-Service -Name EventLog -StartupType Enabled -ErrorAction Ignore
@@ -413,16 +458,27 @@ else {
     $stopwatch =  [system.diagnostics.stopwatch]::StartNew()
     Install-Programs
     Start-Defender
-    $localYN = Read-Host 'Are the users on this system domain (active directory) or local? (domain/local/both)'
-    if ($localYN.ToLower() -eq 'domain') {
-        Edit-ADUsers
-    }
-    elseif ($localYN.ToLower() -eq 'local') {
-        Edit-LocalUsers
+    if ($global:distro -eq 'server') {
+        if (-not (Get-Command "Get-ADUser" -ErrorAction SilentlyContinue)) {
+            "Active Directory doesn't seem to be installed on this machine. If you believe this is an error, please manage Active Directory accounts manually. Editing local users..."
+            Edit-LocalUsers
+        }
+        else {
+            $localYN = Read-Host 'Are the users on this system domain (active directory) or local? (domain/local/both)'
+            if ($localYN.ToLower() -eq 'domain') {
+                Edit-ADUsers
+            }
+            elseif ($localYN.ToLower() -eq 'local') {
+                Edit-LocalUsers
+            }
+            else {
+                Edit-LocalUsers
+                Edit-ADUsers
+            }
+        }
     }
     else {
         Edit-LocalUsers
-        Edit-ADUsers
     }
     Edit-LocalSecurity
     Edit-Keys
@@ -434,7 +490,7 @@ else {
     if ($scanYN.ToLower() -eq 'y') {
         cmd.exe /c "DISM.exe /Online /Cleanup-image /Restorehealth"
         cmd.exe /c "sfc /scannow"
-        Write-Host "`nIf it says to run sfc once you restart the system, run sfc /scannow when you restart the system"
+        Write-Warning "If the above command outputted to run sfc again once you've restarted the system, run sfc /scannow when you restart the system"
     }
     Write-Host "`nScript done! Please restart the system for some of the changes to take effect and go get the rest of the vulns! (It's suggested that on this restart, you also do updates)"
     Write-Host "`nScript completed in" $stopwatch.Elapsed.Minutes "minutes and" $stopwatch.Elapsed.Seconds "seconds"
@@ -443,5 +499,8 @@ else {
     if ($restartYN.ToLower() -eq 'y') {
         Install-Module PSWindowsUpdate -Confirm:$False -Force
         Get-WindowsUpdate -AcceptAll -Install -AutoReboot
+    }
+    else {
+        Write-Host "Alright! Exiting now... Don't forget to restart soon."
     }
 }
