@@ -27,7 +27,7 @@ function Install-Programs {
     choco upgrade -y firefox
 }
 
-function Edit-Users {
+function Edit-LocalUsers {
     $mainUser = $global:mainUser
     Disable-LocalUser -Name "Guest"
     Disable-LocalUser -Name "Administrator"
@@ -413,7 +413,17 @@ else {
     $stopwatch =  [system.diagnostics.stopwatch]::StartNew()
     Install-Programs
     Start-Defender
-    Edit-Users
+    $localYN = Read-Host 'Are the users on this system domain (active directory) or local? (domain/local/both)'
+    if ($localYN.ToLower() -eq 'domain') {
+        Edit-ADUsers
+    }
+    elseif ($localYN.ToLower() -eq 'local') {
+        Edit-LocalUsers
+    }
+    else {
+        Edit-LocalUsers
+        Edit-ADUsers
+    }
     Edit-LocalSecurity
     Edit-Keys
     Stop-Services
