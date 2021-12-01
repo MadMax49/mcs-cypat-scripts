@@ -360,11 +360,11 @@ function Stop-Services {
 
 function Remove-HackingTools {
     $mainUser = $global:mainUser
-    Invoke-Item "C:\Program Files (x86)\Nmap\Uninstall.exe" -ErrorAction Ignore
-    Invoke-Item "C:\Program Files\Npcap\Uninstall.exe" -ErrorAction Ignore
-    Invoke-Item "C:\Program Files\Genshin Impact\Uninstall.exe" -ErrorAction Ignore
-    Invoke-Item "C:\Program Files\Wireshark\Uninstall.exe" -ErrorAction Ignore
-    Invoke-Item "C:\Users\$mainUser\AppData\Roaming\uTorrent Web\Uninstall.exe" -ErrorAction Ignore
+    Invoke-Item "C:\Program Files (x86)\Nmap\Uninstall.exe" -ArgumentList "/S /v /qn" -Wait -ErrorAction Ignore
+    Invoke-Item "C:\Program Files\Npcap\Uninstall.exe" -ArgumentList "/S /v /qn" -Wait -ErrorAction Ignore
+    Invoke-Item "C:\Program Files\Genshin Impact\Uninstall.exe" -ArgumentList "/S /v /qn" -Wait -ErrorAction Ignore
+    Invoke-Item "C:\Program Files\Wireshark\Uninstall.exe" -ArgumentList "/S /v /qn" -Wait -ErrorAction Ignore
+    Invoke-Item "C:\Users\$mainUser\AppData\Roaming\uTorrent Web\Uninstall.exe" -ArgumentList "/S /v /qn" -Wait -ErrorAction Ignore
 }
 
 function Get-FileType($type) {
