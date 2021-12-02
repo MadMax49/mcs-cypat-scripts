@@ -602,137 +602,58 @@ hacking_tools() {
 	apt-fast clean -y -qq
 }
 
+record_files() {
+	find /home -type f -name "$1" 2>/dev/null
+	find /root -type f -name "$1" 2>/dev/null
+}
+
 media_files() {
 
-	echo "#########Logging the file directories of media files on the machine#########"
+	echo "#########Logging the file directories of media files in home directories on the machine#########"
 	touch "${homeDir}/Desktop/logs/media_files.log"
 	chmod 777 "${homeDir}/Desktop/logs/media_files.log"
-	{
-		echo "Most common types of media files:"
-		find / -name "*.midi"
-		find / -name "*.mid"
-		find / -name "*.mp3"
-		find / -name "*.ogg" ! -path '*/snap/*' ! -path '*/usr/share/*'
-		find / -name "*.wav" ! -path '*/usr/share/*' ! -path '*/usr/lib/*'
-		find / -name "*.mov"
-		find / -name "*.wmv"
-		find / -name "*.mp4"
-		find / -name "*.avi"
-		find / -name "*.swf"
-		find / -name "*.ico" ! -path '*/usr/share/*'
-		find / -name "*.svg" ! -path '*/var/lib/*' ! -path '*/etc/alternatives/*' ! -path '*/snap/*' ! -path '*/usr/lib/*' ! -path '*/usr/share/*'
-		find / -name "*.gif" ! -path '*/usr/lib/*' ! -path '*/usr/share/*'
-		find / -name "*.jpeg"
-		find / -name "*.jpg" ! -path '*/usr/share/*' ! -path '*/snap/*' ! -path '*/usr/lib/*'
-		find / -name "*.png" ! -path '*/etc/alternatives/*' ! -path '*/snap/*' ! -path '*/usr/lib/*' ! -path '*/usr/share/*' ! -path '*/var/lib/*'
 
-		echo
-		echo "PHP files:"
-		find / -name "*.php" ! -path '*/var/cache/*'
-		find / -name "*.php3"
-		find / -name "*.php4"
-		find / -name "*.phtml"
-		find / -name "*.phps"
-		find / -name "*.phpt"
-		find / -name "*.php5"
+	echo "Most common types of media files:" >> "${homeDir}/Desktop/logs/media_files.log"
+	common=("*.midi" "*.mid" "*.mp3" "*.ogg" "*.wav" "*.mov" "*.wmv" "*.mp4" "*.avi" "*.swf" "*.ico" "*.svg" "*.gif" "*.jpeg" "*.jpg" "*.png" "*.doc*" "*.ppt*" "*.xl*" "*.pub" "*.pdf" "*.7z" "*.zip" "*.rar" "*.txt" "*.exe" "*.pcapng" "*.jar" "*.json")
+	for i in "${common[@]}"
+	do
+		record_files "$i" >> "${homeDir}/Desktop/logs/media_files.log"
+	done
 
-		echo
-		echo "Script files:"
-		find / -name "*.sh" ! -path '*/usr/libreoffice/*' ! -path '*/snap/*' ! -path '*/usr/bin/*' ! -path '*/usr/lib/*' ! -path '*/usr/share/*' ! -path '*/usr/src/*' ! -path '*/lib/*' ! -path '*/boot/*' ! -path '*/etc/profile.d/*' ! -path '*/etc/gdm3/*' ! -path '*/etc/acpi/*' ! -path '*/etc/wpa_supplicant/*' ! -path '*/etc/init.d/*' ! -path '*/etc/console-setup/*'
-		find / -name "*.bash" ! -path '*/usr/share/*'
-		find / -name "*.bsh"
-		find / -name "*.csh" ! -path '*/usr/share/*' ! -path '*/snap/*' ! -path '*/usr/lib/*'
-		find / -name "*.bash_profile"
-		find / -name "*.profile" ! -path '*/snap/*' ! -path '*/usr/share/*' ! -path '*/usr/src/*'
-		find / -name "*.bashrc" ! -path '*/snap/*' ! -path '*/usr/share/*'
-		find / -name "*.zsh"
-		find / -name "*.ksh"
-		find / -name "*.cc" ! -path '*/usr/src/*'
-		find / -name "*.startx"
-		find / -name "*.bat" ! -path '*/usr/share/*'
-		find / -name "*.cmd" ! -path '*/usr/src/*'
-		find / -name "*.nt"
-		find / -name "*.asp" ! -path '*/usr/lib/*'
-		find / -name "*.vb"
-		find / -name "*.pl"
-		find / -name "*.vbs"
-		find / -name "*.tab" ! -path '*/snap/*' ! -path '*/usr/share/*' ! -path '*/run/*'
-		find / -name "*.spf"
-		find / -name "*.rc" ! -path '*/snap/*' ! -path '*/usr/share/*'
-		find / -name "*.reg"
-		find / -name "*.py" ! -path '*/snap/*' ! -path '*/usr/lib/*' ! -path '*/usr/share/*' ! -path '*/usr/src/*'
-		find / -name "*.ps1"
-		find / -name "*.psm1"
+	echo "PHP files:" >> "${homeDir}/Desktop/logs/media_files.log"
+	php=("*.php"  "*.php3" "*.php4" "*.phtml" "*.phps" "*.phpt" "*.php5")
+	for i in "${php[@]}"
+	do
+		record_files "$i" >> "${homeDir}/Desktop/logs/media_files.log"
+	done
 
-		echo
-		echo "Audio:"
-		find / -name "*.mod" ! -path '*/usr/share/*' ! -path '*/usr/lib/*' ! -path '*/boot/*'
-		find / -name "*.mp2"
-		find / -name "*.mpa"
-		find / -name "*.abs"
-		find / -name "*.mpega"
-		find / -name "*.au"
-		find / -name "*.snd"
-		find / -name "*.aiff"
-		find / -name "*.aif"
-		find / -name "*.sid"
-		find / -name "*.flac"
+	echo "Script files:" >> "${homeDir}/Desktop/logs/media_files.log"
+	script=("*.sh" "*.bash" "*.bsh" "*.csh" "*.bash_profile" "*.profile" "*.bashrc" "*.zsh" "*.ksh" "*.cc" "*.startx" "*.bat" "*.cmd" "*.nt" "*.asp" "*.vb" "*.pl" "*.vbs" "*.tab" "*.spf" "*.rc" "*.reg" "*.py" "*.ps1" "*.psm1" "*.c" "*.cs" "*.js" "*.html")
+	for i in "${script[@]}"
+	do
+		record_files "$i" >> "${homeDir}/Desktop/logs/media_files.log"
+	done
 
-		echo
-		echo "Video:"
-		find / -name "*.mpeg"
-		find / -name "*.mpg" ! -path '*/lib/*'
-		find / -name "*.mpe"
-		find / -name "*.dl"
-		find / -name "*.movie"
-		find / -name "*.movi"
-		find / -name "*.mv"
-		find / -name "*.iff"
-		find / -name "*.anim5"
-		find / -name "*.anim3"
-		find / -name "*.anim7"
-		find / -name "*.vfw"
-		find / -name "*.avx"
-		find / -name "*.fli"
-		find / -name "*.flc"
-		find / -name "*.qt"
-		find / -name "*.spl"
-		find / -name "*.swf"
-		find / -name "*.dcr"
-		find / -name "*.dir" ! -path '*/snap/*' ! -path '*/usr/share/*'
-		find / -name "*.dxr"
-		find / -name "*.rpm"
-		find / -name "*.rm"
-		find / -name "*.smi"
-		find / -name "*.ra"
-		find / -name "*.ram"
-		find / -name "*.rv"
-		find / -name "*.asf"
-		find / -name "*.asx"
-		find / -name "*.wma"
-		find / -name "*.wax"
-		find / -name "*.wmx"
-		find / -name "*.3gp"
-		find / -name "*.flv"
-		find / -name "*.m4v"
+	echo "Audio:" >> "${homeDir}/Desktop/logs/media_files.log"
+	audio=("*.mod" "*.mp2" "*.mpa" "*.abs" "*.mpega" "*.au" "*.snd" "*.aiff" "*.aif" "*.sid" "*.flac")
+	for i in "${audio[@]}"
+	do
+		record_files "$i" >> "${homeDir}/Desktop/logs/media_files.log"
+	done
 
-		echo
-		echo "Images:"
-		find / -name "*.tiff"
-		find / -name "*.tif"
-		find / -name "*.rs"
-		find / -name "*.rgb"
-		find / -name "*.xwd"
-		find / -name "*.xpm" ! -path '*/snap/*' ! -path '*/usr/share/*'
-		find / -name "*.ppm" ! -path '*/usr/share/*'
-		find / -name "*.pbm"
-		find / -name "*.pgm"
-		find / -name "*.pcx"
-		find / -name "*.svgz" ! -path '*/usr/share/*'
-		find / -name "*.im1"
-		find / -name "*.jpe"
+	echo "Video:" >> "${homeDir}/Desktop/logs/media_files.log"
+	video=("*.mpeg" "*.mpg" "*.mpe" "*.dl" "*.movie" "*.movi" "*.mv" "*.iff" "*.anim5" "*.anim3" "*.anim7" "*.vfw" "*.avx" "*.fli" "*.flc" "*.qt" "*.spl" "*.swf" "*.dcr" "*.dir" "*.dxr" "*.rpm" "*.rm" "*.smi" "*.ra" "*.ram" "*.rv" "*.asf" "*.asx" "*.wma" "*.wax" "*.wmx" "*.3gp" "*.flv" "*.m4v")
+	for i in "${video[@]}"
+	do
+		record_files "$i" >> "${homeDir}/Desktop/logs/media_files.log"
+	done
 
-	} >> "${homeDir}/Desktop/logs/media_files.log" 2>/dev/null
+	echo "Images:" >> "${homeDir}/Desktop/logs/media_files.log"
+	images=("*.tiff" "*.tif" "*.rs" "*.rgb" "*.xwd" "*.xpm" "*.ppm" "*.pbm" "*.pgm" "*.pcx" "*.svgz" "*.im1" "*.jpe")
+	for i in "${images[@]}"
+	do
+		record_files "$i" >> "${homeDir}/Desktop/logs/media_files.log"
+	done
 }
 
 parse_readme() {

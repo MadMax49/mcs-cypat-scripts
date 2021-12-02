@@ -380,7 +380,7 @@ function Get-MediaFiles {
 
     Write-Host "Logging most common types of media files..."
     Add-Content -Path $path -Value "Most common types of media files:"
-    $commonList = ('midi', 'mid', 'mp3', 'ogg', 'wav', 'mov', 'wmv', 'mp4', 'avi', 'swf', 'ico', 'svg', 'gif', 'jpeg', 'jpg', 'png', 'exe')
+    $commonList = ('midi', 'mid', 'mp3', 'ogg', 'wav', 'mov', 'wmv', 'mp4', 'avi', 'swf', 'ico', 'svg', 'gif', 'jpeg', 'jpg', 'png', 'exe', 'doc*', 'ppt*', 'xl*', 'pub', 'pdf', '7z', 'zip', 'rar', 'txt', 'pcapng', 'jar', 'json')
     $commonList | ForEach-Object {
         Get-FileType $_
     }
@@ -394,7 +394,7 @@ function Get-MediaFiles {
 
     Write-Host "Logging script files..."
     Add-Content -Path $path -Value "`nScript files:"
-    $scriptList = ('sh', 'bash', 'bsh', 'csh', 'startx', 'bat', 'cmd', 'nt', 'asp', 'vb', 'pl', 'vps', 'tab', 'spf', 'rc', 'reg', 'py', 'ps1', 'psm1')
+    $scriptList = ('sh', 'bash', 'bsh', 'csh', 'startx', 'bat', 'cmd', 'nt', 'asp', 'vb', 'pl', 'vps', 'tab', 'spf', 'rc', 'reg', 'py', 'ps1', 'psm1', 'c', 'cs', 'js', 'html')
     $scriptList | ForEach-Object {
         Get-FileType $_
     }
