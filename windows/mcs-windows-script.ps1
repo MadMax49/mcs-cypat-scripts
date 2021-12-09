@@ -148,8 +148,15 @@ function Edit-Registry($path, $name, $value, $type) {
 function Edit-LocalSecurity {
     $mainUser = $global:mainUser
     ipconfig /flushdns
-    secedit /configure /db c:\windows\security\local.sdb /cfg c:\Users\$mainUser\Desktop\windows\secpol.cfg /areas SECURITYPOLICY
+    Copy-Item "C:\Users\$mainUser\Desktop\windows\templates\SecGuide.adml" -Destination 'C:\Windows\PolicyDefinitions\en-US\'
+    Copy-Item "C:\Users\$mainUser\Desktop\windows\templates\SecGuide.admx" -Destination 'C:\Windows\PolicyDefinitions\'
+    Copy-Item "C:\Users\$mainUser\Desktop\windows\templates\MSS-legacy.adml" -Destination 'C:\Windows\PolicyDefinitions\en-US\'
+    Copy-Item "C:\Users\$mainUser\Desktop\windows\templates\MSS-legacy.admx" -Destination 'C:\Windows\PolicyDefinitions\en-US\'
+    gpupdate /force
+    Copy-Item "C:\Users\$mainUser\Desktop\windows\GroupPolicy" -Destination 'C:\Windows\System32\' -Recurse -Force
+    gpupdate /force
     auditpol /set /category:"*" /success:enable /failure:enable
+    # secedit /configure /db c:\windows\security\local.sdb /cfg c:\Users\$mainUser\Desktop\windows\secpol.cfg /areas SECURITYPOLICY
 }
 
 function Edit-Keys {
@@ -253,6 +260,8 @@ function Edit-Keys {
     Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy\' LetAppsActivateWithVoice 2 DWord
     Edit-Registry '\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\' EnableLUA 1 DWord
     Edit-Registry '\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\webcam' Value 'Deny' String
+    Edit-Registry '\SYSTEM\CurrentControlSet\Control\Session Manager\kernel\' DisableExceptionChainValidation 0 DWord
+    Edit-Registry '\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\' SafeModeBlockNonAdmins 1 DWord
     # enable DEP
     cmd.exe /c "BCDEDIT /set {current} nx OptOut"
     Clear-RecycleBin -Force -ErrorAction Ignore
