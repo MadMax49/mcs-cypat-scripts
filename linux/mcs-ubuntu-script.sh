@@ -221,7 +221,7 @@ services() {
 		openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/private/vsftpd.pem -out /etc/ssl/private/vsftpd.pem
 		cp "${homeDir}/Desktop/linux/vsftpd.conf" /etc/vsftpd.conf
 		mkdir /srv/ftp/new_location
-		usermod –d /srv/ftp/new_location ftp
+		usermod -d /srv/ftp/new_location ftp
 		systemctl restart vsftpd.service
 		ufw allow 20/tcp
 		ufw allow 21/tcp
@@ -419,56 +419,57 @@ general_config() {
 	chmod 644 /etc/hosts.deny
 
 	echo "#########Disabling Uncommon Network protocols and file system configurations#########"
-	touch /etc/modprobe.d/dccp.conf
-	chmod 644 /etc/modprobe.d/dccp.conf
-	echo "install dccp /bin/true" >/etc/modprobe.d/dccp.conf
-	touch /etc/modprobe.d/sctp.conf
-	chmod 644 /etc/modprobe.d/sctp.conf
-	echo "install sctp /bin/true" >/etc/modprobe.d/sctp.conf
-	touch /etc/modprobe.d/rds.conf
-	chmod 644 /etc/modprobe.d/rds.conf
-	echo "install rds /bin/true" >/etc/modprobe.d/rds.conf
-	touch /etc/modprobe.d/tipc.conf
-	chmod 644 /etc/modprobe.d/tipc.conf
-	echo "install tipc /bin/true" >/etc/modprobe.d/tipc.conf
-	touch /etc/modprobe.d/cramfs.conf
-	chmod 644 /etc/modprobe.d/cramfs.conf
-	echo "install cramfs /bin/true" >/etc/modprobe.d/cramfs.conf
-	rmmod cramfs
-	touch /etc/modprobe.d/freevxfs.conf
-	chmod 644 /etc/modprobe.d/freevxfs.conf
-	echo "install freevxfs /bin/true" >/etc/modprobe.d/freevxfs.conf
-	rmmod freevxfs
-	touch /etc/modprobe.d/jffs2.conf
-	chmod 644 /etc/modprobe.d/jffs2.conf
-	echo "install jffs2 /bin/true" >/etc/modprobe.d/jffs2.conf
-	rmmod jffs2
-	touch /etc/modprobe.d/hfs.conf
-	chmod 644 /etc/modprobe.d/hfs.conf
-	echo "install hfs /bin/true" >/etc/modprobe.d/hfs.conf
-	rmmod hfs
-	touch /etc/modprobe.d/hfsplus.conf
-	chmod 644 /etc/modprobe.d/hfsplus.conf
-	echo "install hfsplus /bin/true" >/etc/modprobe.d/hfsplus.conf
-	rmmod hfsplus
-	touch /etc/modprobe.d/squashfs.conf
-	chmod 644 /etc/modprobe.d/squashfs.conf
-	echo "install squashfs /bin/true" >/etc/modprobe.d/squashfs.conf
-	rmmod squashfs
-	touch /etc/modprobe.d/udf.conf
-	chmod 644 /etc/modprobe.d/udf.conf
-	echo "install udf /bin/true" >/etc/modprobe.d/udf.conf
-	rmmod udf
-	touch /etc/modprobe.d/vfat.conf
-	chmod 644 /etc/modprobe.d/vfat.conf
-	echo "install vfat /bin/true" >/etc/modprobe.d/vfat.conf
-	rmmod vfat
-	touch /etc/modprobe.d/usb-storage.conf
-	chmod 644 /etc/modprobe.d/usb-storage.conf
-	echo "install usb-storage /bin/true" >/etc/modprobe.d/usb-storage.conf
-	rmmod usb-storage
-
-	systemctl disable kdump.service
+	{	
+		touch /etc/modprobe.d/dccp.conf
+		chmod 644 /etc/modprobe.d/dccp.conf
+		echo "install dccp /bin/true" >/etc/modprobe.d/dccp.conf
+		touch /etc/modprobe.d/sctp.conf
+		chmod 644 /etc/modprobe.d/sctp.conf
+		echo "install sctp /bin/true" >/etc/modprobe.d/sctp.conf
+		touch /etc/modprobe.d/rds.conf
+		chmod 644 /etc/modprobe.d/rds.conf
+		echo "install rds /bin/true" >/etc/modprobe.d/rds.conf
+		touch /etc/modprobe.d/tipc.conf
+		chmod 644 /etc/modprobe.d/tipc.conf
+		echo "install tipc /bin/true" >/etc/modprobe.d/tipc.conf
+		touch /etc/modprobe.d/cramfs.conf
+		chmod 644 /etc/modprobe.d/cramfs.conf
+		echo "install cramfs /bin/true" >/etc/modprobe.d/cramfs.conf
+		rmmod cramfs
+		touch /etc/modprobe.d/freevxfs.conf
+		chmod 644 /etc/modprobe.d/freevxfs.conf
+		echo "install freevxfs /bin/true" >/etc/modprobe.d/freevxfs.conf
+		rmmod freevxfs
+		touch /etc/modprobe.d/jffs2.conf
+		chmod 644 /etc/modprobe.d/jffs2.conf
+		echo "install jffs2 /bin/true" >/etc/modprobe.d/jffs2.conf
+		rmmod jffs2
+		touch /etc/modprobe.d/hfs.conf
+		chmod 644 /etc/modprobe.d/hfs.conf
+		echo "install hfs /bin/true" >/etc/modprobe.d/hfs.conf
+		rmmod hfs
+		touch /etc/modprobe.d/hfsplus.conf
+		chmod 644 /etc/modprobe.d/hfsplus.conf
+		echo "install hfsplus /bin/true" >/etc/modprobe.d/hfsplus.conf
+		rmmod hfsplus
+		touch /etc/modprobe.d/squashfs.conf
+		chmod 644 /etc/modprobe.d/squashfs.conf
+		echo "install squashfs /bin/true" >/etc/modprobe.d/squashfs.conf
+		rmmod squashfs
+		touch /etc/modprobe.d/udf.conf
+		chmod 644 /etc/modprobe.d/udf.conf
+		echo "install udf /bin/true" >/etc/modprobe.d/udf.conf
+		rmmod udf
+		touch /etc/modprobe.d/vfat.conf
+		chmod 644 /etc/modprobe.d/vfat.conf
+		echo "install vfat /bin/true" >/etc/modprobe.d/vfat.conf
+		rmmod vfat
+		touch /etc/modprobe.d/usb-storage.conf
+		chmod 644 /etc/modprobe.d/usb-storage.conf
+		echo "install usb-storage /bin/true" >/etc/modprobe.d/usb-storage.conf
+		rmmod usb-storage
+		systemctl disable kdump.service
+	} 2>/dev/null
 
 	echo "ENABLED=\"0\"" >>/etc/default/irqbalance
 
