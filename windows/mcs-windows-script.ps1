@@ -367,6 +367,136 @@ function Stop-Services {
     Set-Service -Name EventLog -StartupType Enabled -ErrorAction Ignore
 }
 
+function Disable-FeaturesServer {
+    $WarningPreference = 'SilentlyContinue'
+    Disable-WindowsOptionalFeature -Online -FeatureName "MicrosoftWindowsPowerShellV2Root" -NoRestart | Out-Null
+    Disable-WindowsOptionalFeature -Online -FeatureName "SMB1Protocol" -NoRestart | Out-Null
+    Disable-WindowsOptionalFeature -Online -FeatureName "TelnetClient" -NoRestart | Out-Null
+    Disable-WindowsOptionalFeature -Online -FeatureName "TFTP" -NoRestart | Out-Null
+    Disable-WindowsOptionalFeature -Online -FeatureName "SimpleTCP" -NoRestart | Out-Null
+    Disable-WindowsOptionalFeature -Online -FeatureName "WorkFolders-Client" -NoRestart | Out-Null
+    Disable-WindowsOptionalFeature -Online -FeatureName "Printing-Foundation-Features" -NoRestart | Out-Null
+    $isIIS = Read-Host "Is IIS a critical service (y/n)?"
+    if ($isIIS -eq "n") {
+        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-WebServerRole" -NoRestart | Out-Null
+        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-WebServer" -NoRestart | Out-Null
+        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-CommonHttpFeatures" -NoRestart | Out-Null
+        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-HttpErrors" -NoRestart | Out-Null
+        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-HttpRedirect" -NoRestart | Out-Null
+        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-NetFxExtensibility45" -NoRestart | Out-Null
+        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-ApplicationDevelopment" -NoRestart | Out-Null
+        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-NetFxExtensibility" -NoRestart | Out-Null
+        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-HealthAndDiagnostics" -NoRestart | Out-Null
+        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-HttpLogging" -NoRestart | Out-Null
+        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-LoggingLibraries" -NoRestart | Out-Null
+        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-RequestMonitor" -NoRestart | Out-Null
+        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-HttpTracing" -NoRestart | Out-Null
+        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-Security" -NoRestart | Out-Null
+        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-URLAuthorization" -NoRestart | Out-Null
+        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-RequestFiltering" -NoRestart | Out-Null
+        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-IPSecurity" -NoRestart | Out-Null
+        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-Performance" -NoRestart | Out-Null
+        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-HttpCompressionDynamic" -NoRestart | Out-Null
+        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-WebServerManagementTools" -NoRestart | Out-Null
+        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-HostableWebCore" -NoRestart | Out-Null
+        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-ManagementScriptingTools" -NoRestart | Out-Null
+        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-IIS6ManagementCompatibility" -NoRestart | Out-Null
+        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-Metabase" -NoRestart | Out-Null
+        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-StaticContent" -NoRestart | Out-Null
+        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-DefaultDocument" -NoRestart | Out-Null
+        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-DirectoryBrowsing" -NoRestart | Out-Null
+        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-WebDAV" -NoRestart | Out-Null
+        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-WebSockets" -NoRestart | Out-Null
+        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-ApplicationInit" -NoRestart | Out-Null
+        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-CGI" -NoRestart | Out-Null
+        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-ASPNET" -NoRestart | Out-Null
+        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-ASPNET45" -NoRestart | Out-Null
+        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-ASP" -NoRestart | Out-Null
+        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-ISAPIExtensions" -NoRestart | Out-Null
+        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-ISAPIFilter" -NoRestart | Out-Null
+        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-ServerSideIncludes" -NoRestart | Out-Null
+        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-CustomLogging" -NoRestart | Out-Null
+        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-BasicAuthentication" -NoRestart | Out-Null
+        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-HttpCompressionStatic" -NoRestart | Out-Null
+        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-ManagementConsole" -NoRestart | Out-Null
+        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-ManagementService" -NoRestart | Out-Null
+        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-WMICompatibility" -NoRestart | Out-Null
+        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-LegacyScripts" -NoRestart | Out-Null
+        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-LegacySnapIn" -NoRestart | Out-Null
+        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-FTPServer" -NoRestart | Out-Null
+        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-FTPSvc" -NoRestart | Out-Null
+        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-FTPExtensibility" -NoRestart | Out-Null
+    }
+    $isSSH = Read-Host "Is OpenSSH Server a critical service (y/n)?"
+    if ($isSSH -eq "y") {
+        Add-WindowsCapability -Online -Name OpenSSH.Client~~~~0.0.1.0 -NoRestart | Out-Null
+        Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0 -NoRestart | Out-Null
+        Start-Service sshd
+        Set-Service -Name sshd -StartupType 'Automatic'
+        New-NetFirewallRule -Name 'OpenSSH-Server-In-TCP' -DisplayName 'OpenSSH Server (sshd)' -Enabled True -Direction Inbound -Protocol TCP -Action Allow -LocalPort 22
+    }
+    else {
+        Remove-WindowsCapability -Online -Name OpenSSH.Client~~~~0.0.1.0 -ErrorAction Ignore
+        Remove-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0 -ErrorAction Ignore
+        New-NetFirewallRule -Name 'No-OpenSSH-Server-In-TCP' -DisplayName 'ANTI OpenSSH Server (sshd)' -Enabled True -Direction Inbound -Protocol TCP -Action Deny -LocalPort 22
+    }
+
+    $isRemoteAccess = Read-Host "Is Remote Access a critical service (y/n)?"
+    if ($isRemoteAccess -eq "n") {
+        Stop-Service -Name RemoteAccess -Force -ErrorAction Ignore
+        Set-Service -Name RemoteAccess -StartupType Disabled -ErrorAction Ignore
+    }
+    else {
+        Start-Service -Name RemoteAccess -Force -ErrorAction Ignore
+        Set-Service -Name RemoteAccess -StartupType Enabled -ErrorAction Ignore
+    }
+    $isRemoteReg = Read-Host "Is Remote Registry a critical service (y/n)?"
+    if ($isRemoteReg -eq "n") {
+        Stop-Service -Name RemoteRegistry -Force -ErrorAction Ignore
+        Set-Service -Name RemoteRegistry -StartupType Disabled -ErrorAction Ignore
+    }
+    else {
+        Start-Service -Name RemoteRegistry -Force -ErrorAction Ignore
+        Set-Service -Name RemoteRegistry -StartupType Enabled -ErrorAction Ignore
+    }
+    $isMSFTP = Read-Host "Is Microsoft FTP a critical service (y/n)?"
+    if ($isMSFTP -eq "n") {
+        Stop-Service -Name msftpsvc -Force -ErrorAction Ignore
+        Set-Service -Name msftpsvc -StartupType Disabled -ErrorAction Ignore
+    }
+    else {
+        Start-Service -Name msftpsvc -Force -ErrorAction Ignore
+        Set-Service -Name msftpsvc -StartupType Enabled -ErrorAction Ignore
+    }
+    Stop-Service -Name Spooler -Force -ErrorAction Ignore
+    Set-Service -Name Spooler -StartupType Disabled -ErrorAction Ignore
+    Stop-Service -Name telnet -Force -ErrorAction Ignore
+    Set-Service -Name telnet -StartupType Disabled -ErrorAction Ignore
+    Stop-Service -Name upnphost -Force -ErrorAction Ignore
+    Set-Service -Name upnphost -StartupType Disabled -ErrorAction Ignore
+    Stop-Service -Name SSDPSRV -Force -ErrorAction Ignore
+    Set-Service -Name SSDPSRV -StartupType Disabled -ErrorAction Ignore
+    Stop-Service -Name tftpsvc -Force -ErrorAction Ignore
+    Set-Service -Name tftpsvc -StartupType Disabled -ErrorAction Ignore
+    Stop-Service -Name tapisrv -Force -ErrorAction Ignore
+    Set-Service -Name tapisrv -StartupType Disabled -ErrorAction Ignore
+    Stop-Service -Name lmhosts -Force -ErrorAction Ignore
+    Set-Service -Name lmhosts -StartupType Disabled -ErrorAction Ignore
+    Stop-Service -Name SNMPTRAP -Force -ErrorAction Ignore
+    Set-Service -Name SNMPTRAP -StartupType Disabled -ErrorAction Ignore
+    Stop-Service -Name SessionEnv -Force -ErrorAction Ignore
+    Set-Service -Name SessionEnv -StartupType Disabled -ErrorAction Ignore
+    Stop-Service -Name TermService -Force -ErrorAction Ignore
+    Set-Service -Name TermService -StartupType Disabled -ErrorAction Ignore
+    Stop-Service -Name TlntSvr -Force -ErrorAction Ignore
+    Set-Service -Name TlntSvr -StartupType Disabled -ErrorAction Ignore
+    Stop-Service -Name seclogon -Force -ErrorAction Ignore
+    Set-Service -Name seclogon -StartupType Disabled -ErrorAction Ignore
+
+    Start-Service -Name EventLog -Force -ErrorAction Ignore
+    Set-Service -Name EventLog -StartupType Enabled -ErrorAction Ignore
+}
+
 function Remove-HackingTools {
     $mainUser = $global:mainUser
     Invoke-Item "C:\Program Files (x86)\Nmap\Uninstall.exe" -ArgumentList "/S /v /qn" -Wait -ErrorAction Ignore
@@ -467,7 +597,7 @@ else {
     $stopwatch =  [system.diagnostics.stopwatch]::StartNew()
     Install-Programs
     Start-Defender
-    if ($global:distro -eq 'server') {
+    if ($global:distro -eq 'server19') {
         if (-not (Get-Command "Get-ADUser" -ErrorAction SilentlyContinue)) {
             "Active Directory doesn't seem to be installed on this machine. If you believe this is an error, please manage Active Directory accounts manually. Editing local users..."
             Edit-LocalUsers
@@ -491,8 +621,13 @@ else {
     }
     Edit-LocalSecurity
     Edit-Keys
-    Stop-Services
-    Disable-Features
+    if ($global:distro -ne 'server19') {
+        Stop-Services
+        Disable-Features
+    }
+    else {
+        Disable-FeaturesServer
+    }
     Remove-HackingTools
     Get-MediaFiles
     $scanYN = Read-Host 'Would you like to scan the machine for potential viruses or corrupted files? (y/n)'
