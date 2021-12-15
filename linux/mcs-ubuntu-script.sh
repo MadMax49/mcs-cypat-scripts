@@ -74,19 +74,13 @@ packages() {
 	cp "/home/$username/Desktop/linux/$dist_folder/sources.list" /etc/apt/sources.list
 	add-apt-repository ppa:apt-fast/stable -y 
 	apt-get update -y
-	apt-get install apt-fast
-	apt-fast install ufw -y -qq
-	apt-fast install libpam-tmpdir -y -qq
-	apt-fast install libpam-pkcs11 -y -qq
-	apt-fast install libpam-pwquality -y -qq
-	apt-fast install python3-pip -y -qq
+	apt-get install apt-fast ufw libpam-tmpdir libpam-pkcs11 libpam-pwquality python3-pip unattended-upgrades -y -qq
 	pip3 install bs4
-	apt-fast install unattended-upgrades -y -qq
 	dpkg-reconfigure --priority=low unattended-upgrades
 	cp "/home/$username/Desktop/linux/20auto-upgrades" /etc/apt/apt.conf.d/20auto-upgrades
 	cp "/home/$username/Desktop/linux/50unattended-upgrades" /etc/apt/apt.conf.d/50unattended-upgrades
-	apt-fast update -y
-	apt-fast upgrade -y
+	apt-get update -y
+	apt-get upgrade -y
 }
 
 firewall() {
@@ -97,24 +91,32 @@ firewall() {
 	ufw deny 135 # ms rpc
 	ufw deny 137, 138, 139 # netbios
 	ufw deny 69 # tftp
+	ufw default deny outgoing
 	ufw default deny incoming
 	ufw default deny routed
 	ufw logging on
 	ufw logging high
+	ufw allow in on lo
+	ufw allow out on lo
+	ufw deny in from 127.0.0.0/8
+	ufw deny in from ::1
 	ufw enable
 }
 
 services() {
+	echo "Please enter the services you want to install, separated by spaces: "
+	read -r services
+	IFS=' ' read -r -a services <<< "$services"
 
 	if [[ ${services[*]} =~ 'apache' && ${services[*]} =~ 'mysql' ]]; then
-		apt-fast purge nginx -y -qq
-		apt-fast purge nginx-common -y -qq
-		apt-fast purge nginx-core -y -qq
+		apt-get purge nginx -y -qq
+		apt-get purge nginx-common -y -qq
+		apt-get purge nginx-core -y -qq
 		echo "- NGINX removed from the machine" >>"${homeDir}/Desktop/logs/changelog.log"
-		apt-fast install apache2 -y -qq
-		apt-fast install apache2-utils -y -qq
-		apt-fast install libapache2-mod-evasive -y -qq
-		apt-fast install libapache2-mod-security2 -y -qq
+		apt-get install apache2 -y -qq
+		apt-get install apache2-utils -y -qq
+		apt-get install libapache2-mod-evasive -y -qq
+		apt-get install libapache2-mod-security2 -y -qq
 		ufw allow in "Apache Full"
 		ufw allow http
 		ufw allow https
@@ -130,9 +132,9 @@ services() {
 		/etc/init.d/apache2 restart
 
 		echo "####Installing PHP####"
-		apt-fast install php -y -qq
-		apt-fast install libapache2-mod-php -y -qq
-		apt-fast install php-mysql -y -qq
+		apt-get install php -y -qq
+		apt-get install libapache2-mod-php -y -qq
+		apt-get install php-mysql -y -qq
 		cp /etc/apache2/mods-enabled/dir.conf "${homeDir}/Desktop/logs/backups"
 		rm /etc/apache2/mods-enabled/dir.conf
 		cp "${homeDir}/Desktop/linux/dir.conf" /etc/apache2/mods-enabled
@@ -147,7 +149,7 @@ services() {
 		ufw allow ms-sql-m
 		ufw allow mysql
 		ufw allow mysql-proxy
-		apt-fast install mysql-server -y -qq
+		apt-get install mysql-server -y -qq
 		chown -R mysql:mysql /var/lib/mysql
 		dpkg --configure -a
 		ln -s /etc/mysql/mysql.conf.d /etc/mysql/conf.d
@@ -158,9 +160,9 @@ services() {
 	fi
 
 	if [[ ${services[*]} =~ 'ssh' ]]; then
-		apt-fast install ssh -y -qq
-		apt-fast install openssh-server -y -qq
-		apt-fast upgrade openssl libssl-dev -y -qq
+		apt-get install ssh -y -qq
+		apt-get install openssh-server -y -qq
+		apt-get upgrade openssl libssl-dev -y -qq
 		apt-cache policy openssl libssl-dev
 		echo "- Packages ssh and openssh-server installed and heartbleed bug fixed" >>"${homeDir}/Desktop/logs/changelog.log"
 
@@ -188,7 +190,7 @@ services() {
 		service ssh restart
 		echo "- SSH configured" >>"${homeDir}/Desktop/logs/changelog.log"
 	else
-		apt-fast purge openssh-server
+		apt-get purge openssh-server
 		ufw deny ssh
 	fi
 
@@ -198,9 +200,9 @@ services() {
 		ufw allow 138/udp
 		ufw allow 139/tcp
 		ufw allow 445/tcp
-		apt-fast install samba -y -qq
-		apt-fast install system-config-samba -y -qq
-		apt-fast install libpam-winbind -y -qq
+		apt-get install samba -y -qq
+		apt-get install system-config-samba -y -qq
+		apt-get install libpam-winbind -y -qq
 		systemctl restart smbd.service nmbd.service
 		echo "- Samba installed and allowed" >>"${homeDir}/Desktop/logs/changelog.log"
 	else
@@ -208,17 +210,17 @@ services() {
 		ufw deny netbios-dgm
 		ufw deny netbios-ssn
 		ufw deny microsoft-ds
-		apt-fast purge samba -y -qq
+		apt-get purge samba -y -qq
 		echo "- Samba uninstalled and blocked" >>"${homeDir}/Desktop/logs/changelog.log"
 	fi
 
 	if [[ ${services[*]} =~ 'vsftpd' ]]; then
-		apt-fast install vsftpd
+		apt-get install vsftpd
 		cp /etc/vsftpd.conf /etc/vsftpd.conf_default
 		cp /etc/vsftpd.conf "${homeDir}/Desktop/logs/backups/"
 		service vsftpd start
 		service vsftpd enable
-		openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/private/vsftpd.pem -out /etc/ssl/private/vsftpd.pem
+		openssl req -x509 -nodes -days 720 -newkey rsa:2048 -keyout /etc/ssl/private/vsftpd.key -out /etc/ssl/private/vsftpd.pem
 		cp "${homeDir}/Desktop/linux/vsftpd.conf" /etc/vsftpd.conf
 		mkdir /srv/ftp/new_location
 		usermod -d /srv/ftp/new_location ftp
@@ -232,7 +234,7 @@ services() {
 		ufw allow saft
 		ufw allow ftps-data
 		ufw allow ftps
-		service vsftpd restart
+		systemctl restart vsftpd.service
 		echo "- FTP installed and allowed" >>"${homeDir}/Desktop/logs/changelog.log"
 	else
 		service vsftpd stop
@@ -241,7 +243,7 @@ services() {
 		ufw deny saft
 		ufw deny ftps-data
 		ufw deny ftps
-		apt-fast purge vsftpd -y -qq
+		apt-get purge vsftpd -y -qq
 		echo "- FTP uninstalled and blocked" >>"${homeDir}/Desktop/logs/changelog.log"
 	fi
 
@@ -249,32 +251,32 @@ services() {
 	ufw deny telnet
 	ufw deny rtelnet
 	ufw deny telnets
-	apt-fast purge telnet -y -qq
-	apt-fast purge telnetd -y -qq
-	apt-fast purge inetutils-telnetd -y -qq
-	apt-fast purge telnetd-ssl -y -qq
+	apt-get purge telnet -y -qq
+	apt-get purge telnetd -y -qq
+	apt-get purge inetutils-telnetd -y -qq
+	apt-get purge telnetd-ssl -y -qq
 
 	if [[ ${services[*]} =~ 'apache' && $islamp == 'no' || ${services[*]} =~ 'nginx' && $islamp == 'no' ]]; then
 		if [[ ${services[*]} =~ 'nginx' ]]; then
-			apt-fast purge apache2 -y -qq
-			apt-fast purge apache2-bin -y -qq
-			apt-fast purge apache2-utils -y -qq
-			apt-fast purge libapache2-mod-evasive -y -qq
-			apt-fast purge libapache2-mod-security2 -y -qq
+			apt-get purge apache2 -y -qq
+			apt-get purge apache2-bin -y -qq
+			apt-get purge apache2-utils -y -qq
+			apt-get purge libapache2-mod-evasive -y -qq
+			apt-get purge libapache2-mod-security2 -y -qq
 			echo "- Apache2 removed" >>"${homeDir}/Desktop/logs/changelog.log"
-			apt-fast install nginx -y -qq
+			apt-get install nginx -y -qq
 			ufw allow http
 			ufw allow https
 			echo "- NGINX installed" >>"${homeDir}/Desktop/logs/changelog.log"
 		elif [[ ${services[*]} =~ 'apache' ]]; then
-			apt-fast purge nginx -y -qq
-			apt-fast purge nginx-common -y -qq
-			apt-fast purge nginx-core -y -qq
+			apt-get purge nginx -y -qq
+			apt-get purge nginx-common -y -qq
+			apt-get purge nginx-core -y -qq
 			echo "- NGINX removed from the machine" >>"${homeDir}/Desktop/logs/changelog.log"
-			apt-fast install apache2 -y -qq
-			apt-fast install apache2-utils -y -qq
-			apt-fast install libapache2-mod-evasive -y -qq
-			apt-fast install libapache2-mod-security2 -y -qq
+			apt-get install apache2 -y -qq
+			apt-get install apache2-utils -y -qq
+			apt-get install libapache2-mod-evasive -y -qq
+			apt-get install libapache2-mod-security2 -y -qq
 			ufw allow http
 			ufw allow https
 			systemctl restart apache2
@@ -286,17 +288,17 @@ services() {
 			echo "- Apache2 installed, configured, and http(s) allowed" >>"${homeDir}/Desktop/logs/changelog.log"
 		fi
 	elif [[ $islamp == 'no' ]]; then
-		apt-fast purge nginx -y -qq
-		apt-fast purge nginx-common -y -qq
-		apt-fast purge nginx-core -y -qq
+		apt-get purge nginx -y -qq
+		apt-get purge nginx-common -y -qq
+		apt-get purge nginx-core -y -qq
 		echo "- NGINX removed from the machine" >>"${homeDir}/Desktop/logs/changelog.log"
 		ufw deny http
 		ufw deny https
-		apt-fast purge apache2 -y -qq
-		apt-fast purge apache2-bin -y -qq
-		apt-fast purge apache2-utils -y -qq
-		apt-fast purge libapache2-mod-evasive -y -qq
-		apt-fast purge libapache2-mod-security2 -y -qq
+		apt-get purge apache2 -y -qq
+		apt-get purge apache2-bin -y -qq
+		apt-get purge apache2-utils -y -qq
+		apt-get purge libapache2-mod-evasive -y -qq
+		apt-get purge libapache2-mod-security2 -y -qq
 		rm -r /var/www/*
 		echo "- Apache2 removed and http(s) blocked" >>"${homeDir}/Desktop/logs/changelog.log"
 	fi
@@ -306,10 +308,10 @@ services() {
 	ufw deny imap2
 	ufw deny imaps
 	ufw deny pop3s
-	apt-fast purge dovecot-* -y -qq
+	apt-get purge dovecot-* -y -qq
 
 	if [[ ${services[*]} =~ 'bind9' || ${services[*]} =~ 'dns' ]]; then
-		apt-fast install bind9 -y -qq
+		apt-get install bind9 -y -qq
 		named-checkzone test.com. /var/cache/bind/db.test
 		{
 			echo "zone \"test.com.\" {"
@@ -320,7 +322,7 @@ services() {
 		systemctl restart bind9
 	else
 		systemctl stop bind9
-		apt-fast purge bind9 -y -qq
+		apt-get purge bind9 -y -qq
 	fi
 
 	if [[ ${services[*]} =~ 'mysql' && $islamp == 'no' ]]; then
@@ -328,7 +330,7 @@ services() {
 		ufw allow ms-sql-m
 		ufw allow mysql
 		ufw allow mysql-proxy
-		apt-fast install mysql-server -y -qq
+		apt-get install mysql-server -y -qq
 		mv /etc/mysql/my.cnf /etc/mysql/my.cnf.bak
 		mv /etc/mysql/debian.cnf /etc/mysql/debian.cnf.bak
 		chown -R mysql:mysql /var/lib/mysql
@@ -389,16 +391,17 @@ services() {
 		ufw deny ms-sql-m
 		ufw deny mysql
 		ufw deny mysql-proxy
-		apt-fast purge mysql-server -y -qq
-		apt-fast purge mysql-client -y -qq
+		apt-get purge mysql-server -y -qq
+		apt-get purge mysql-client -y -qq
 	fi
 
-	apt-fast purge cups -y -qq
+	apt-get purge cups -y -qq
 
 }
 
 general_config() {
 	passwd -l root
+	usermod -g 0 root
 
 	useradd -D -f 35
 
@@ -500,18 +503,41 @@ general_config() {
 
 	chown root:root /etc/securetty
 	chmod 0600 /etc/securetty
+	chown root:root /etc/passwd
+	chmod 644 /etc/passwd
+	chown root:root /etc/passwd-
+	chmod 644 /etc/passwd-
+	chown root:root /etc/group
+	chmod 644 /etc/group
+	chown root:root /etc/group-
+	chmod 644 /etc/group-
+	chown root:root /etc/shadow
+	chmod 640 /etc/shadow
+	chown root:root /etc/shadow-
+	chmod 640 /etc/shadow-
+	chown root:root /etc/gshadow
+	chmod 640 /etc/gshadow
+	chown root:root /etc/gshadow-
+	chmod 640 /etc/gshadow-
+
+	sed -e 's/^\([a-zA-Z0-9_]*\):[^:]*:/\1:x:/' -i /etc/passwd
+	sed -ri 's/(^shadow:[^:]*:[^:]*:)([^:]+$)/\1/' /etc/group
 
 	cp "${homeDir}/Desktop/linux/pam_pkcs11.conf" /etc/pam_pkcs11/pam_pkcs11.conf
 
 	echo "Authorized users only. All activity may be monitored and reported." >/etc/issue
+	chown root:root "$(readlink -e /etc/issue)"
+	chmod 0644 "$(readlink -e /etc/issue)"
 	echo "Authorized users only. All activity may be monitored and reported." >/etc/issue.net
+	chown root:root "$(readlink -e /etc/issue.net)"
+	chmod 0644 "$(readlink -e /etc/issue.net)"
 
 	cp "/home/$username/Desktop/linux/greeter.dconf-defaults" /etc/gdm3/greeter.dconf-defaults
 	dconf update
-	systemctl restart gdm3
+	dpkg-reconfigure gdm3
 
-	sed -i '45s/.*/*\o011\o011 hard\o011 core\o011\o011 0/' /etc/security/limits.conf
-	sed -i '1s/^/* hard maxlogins 10\n/' /etc/security/limits.conf
+	echo "* hard core 0" >> /etc/security/limits.conf
+	echo "* hard maxlogins 10" >> /etc/security/limits.conf
 
 	find /lib /lib64 /usr/lib -perm /022 -type d -exec chmod 755 '{}' \;
 	find /lib /lib64 /usr/lib -perm /022 -type f -exec chmod 755 '{}' \;
@@ -530,7 +556,7 @@ general_config() {
 	gsettings set org.gnome.desktop.screensaver lock-enabled true
 
 	chmod 0750 /var/log
-	chown root /var/log
+	chown root:root /var/log
 	chown syslog /var/log/syslog
 	chgrp adm /var/log/syslog
 	chmod 0640 /var/log/syslog
@@ -541,66 +567,90 @@ general_config() {
 	echo "install usb-storage /bin/true" >> /etc/modprobe.d/DISASTIG.conf
 	echo "blacklist usb-storage" >> /etc/modprobe.d/DISASTIG.conf
 
+	df --local -P | awk '{if (NR!=1) print $6}' | xargs -I '{}' find '{}' -xdev -type d \( -perm -0002 -a ! -perm -1000 \) 2>/dev/null | xargs -I '{}' chmod a+t '{}'
+
+	chown root:root /boot/grub/grub.cfg
+	chmod u-wx,go-rwx /boot/grub/grub.cfg
+
+	usermod --password "$(echo sUp3rs3cur3_r0otp@$$w0rd\!0 | openssl passwd -1 -stdin)" root
+
+	chown root:root /etc/crontab
+	chmod 700 /etc/crontab
+	chown root:root /etc/cron.hourly/
+	chmod 700 /etc/cron.hourly/
+	chown root:root /etc/cron.daily/
+	chmod 700 /etc/cron.daily/
+	chown root:root /etc/cron.weekly/
+	chmod 700 /etc/cron.weekly/
+	chown root:root /etc/cron.monthly/
+	chmod 700 /etc/cron.monthly/
+	chown root:root /etc/cron.d/
+	chmod 700 /etc/cron.d/
+
+	cp /etc/sudoers "${logsDir}/backups/"
+	cp "/home/$username/Desktop/linux/sudoers" /etc/sudoers
 }
 
 hacking_tools() {
-	apt-fast purge nmap* -y -qq
-	apt-fast purge netcat -y -qq
-	apt-fast purge netcat-openbsd -y -qq
-	apt-fast purge netcat-traditional -y -qq
-	apt-fast purge socket -y -qq
-	apt-fast purge sbd -y -qq
-	apt-fast purge john -y -qq
-	apt-fast purge hashcat -y -qq
-	apt-fast purge hydra -y -qq
-	apt-fast purge hydra-gtk -y -qq
-	apt-fast purge aircrack-ng -y -qq
-	apt-fast purge fcrackzip -y -qq
-	apt-fast purge lcrack -y -qq
-	apt-fast purge ophcrack -y -qq
-	apt-fast purge ophcrack-cli -y -qq
-	apt-fast purge pyrit -y -qq
-	apt-fast purge rarcrack -y -qq
-	apt-fast purge sipcrack -y -qq
-	apt-fast purge nfs-kernel-server -y -qq
-	apt-fast purge nfs-common -y -qq
-	apt-fast purge portmap -y -qq
-	apt-fast purge rpcbind -y -qq
-	apt-fast purge autofs -y -qq
-	apt-fast purge vnc4server -y -qq
-	apt-fast purge vncsnapshot -y -qq
-	apt-fast purge vtgrab -y -qq
-	apt-fast purge wireshark -y -qq
-	apt-fast purge cewl -y -qq
-	apt-fast purge medusa -y -qq
-	apt-fast purge wfuzz -y -qq
-	apt-fast purge sqlmap -y -qq
-	apt-fast purge snmp -y -qq
-	apt-fast purge crack -y -qq
-	apt-fast purge rsh-server -y -qq
-	apt-fast purge nis -y -qq
-	apt-fast purge prelink -y -qq
-	apt-fast purge backdoor-factory -y -qq
-	apt-fast purge shellinabox -y -qq
-	apt-fast purge at -y -qq
-	apt-fast purge xinetd -y -qq
-	apt-fast purge openbsd-inetd -y -qq
-	apt-fast purge talk -y -qq
+	apt-get purge nmap* -y -qq
+	apt-get purge netcat -y -qq
+	apt-get purge netcat-openbsd -y -qq
+	apt-get purge netcat-traditional -y -qq
+	apt-get purge socket -y -qq
+	apt-get purge sbd -y -qq
+	apt-get purge john -y -qq
+	apt-get purge hashcat -y -qq
+	apt-get purge hydra -y -qq
+	apt-get purge hydra-gtk -y -qq
+	apt-get purge aircrack-ng -y -qq
+	apt-get purge fcrackzip -y -qq
+	apt-get purge lcrack -y -qq
+	apt-get purge ophcrack -y -qq
+	apt-get purge ophcrack-cli -y -qq
+	apt-get purge pyrit -y -qq
+	apt-get purge rarcrack -y -qq
+	apt-get purge sipcrack -y -qq
+	apt-get purge nfs-kernel-server -y -qq
+	apt-get purge nfs-common -y -qq
+	apt-get purge portmap -y -qq
+	apt-get purge rpcbind -y -qq
+	apt-get purge autofs -y -qq
+	apt-get purge vnc4server -y -qq
+	apt-get purge vncsnapshot -y -qq
+	apt-get purge vtgrab -y -qq
+	apt-get purge wireshark -y -qq
+	apt-get purge cewl -y -qq
+	apt-get purge medusa -y -qq
+	apt-get purge wfuzz -y -qq
+	apt-get purge sqlmap -y -qq
+	apt-get purge snmp -y -qq
+	apt-get purge crack -y -qq
+	apt-get purge rsh-server -y -qq
+	apt-get purge nis -y -qq
+	apt-get purge prelink -y -qq
+	apt-get purge backdoor-factory -y -qq
+	apt-get purge shellinabox -y -qq
+	apt-get purge at -y -qq
+	apt-get purge xinetd -y -qq
+	apt-get purge openbsd-inetd -y -qq
+	apt-get purge talk -y -qq
+	apt-get purge avahi-daemon
 	systemctl --now disable avahi-daemon
+	apt-get purge isc-dhcp-server -y -qq
 	systemctl --now disable isc-dhcp-server
 	systemctl --now disable isc-dhcp-server6
 	systemctl --now disable slapd
-	apt-fast purge ldap-utils -y -qq
-	apt-fast purge slapd -y -qq
-	systemctl --now disable nfs-server
-	apt-fast purge nfs-server -y -qq
+	apt-get purge ldap-utils -y -qq
+	apt-get purge slapd -y -qq
+	systemctl --now disable nfs-kernel-server
+	apt-get purge nfs-kernel-server -y -qq
 	systemctl --now disable rpcbind
-	apt-fast purge rpcbind -y -qq
+	apt-get purge rpcbind -y -qq
 	systemctl --now disable rsync
-	apt-fast purge rsync -y -qq
-	apt-fast autoremove -y -qq
-	apt-fast autoclean -y -qq
-	apt-fast clean -y -qq
+	apt-get purge rsync -y -qq
+	apt-get autoremove -y -qq
+	apt-get autoclean -y -qq
+	apt-get clean -y -qq
 }
 
 record_files() {
@@ -758,6 +808,7 @@ parse_readme() {
 
 	useradd -D -f 30
 	for item in "${authUsers[@]}"; do
+		chage -E 30 "${item}"
 		chage --inactive 30 "$item"
 	done
 	echo "- Account inactivity policy set" >>"${homeDir}/Desktop/logs/changelog.log"
@@ -813,12 +864,12 @@ second_time_failsafe() {
 clean() {
 	sysctl -p
 	ufw reload
-	apt-fast update -y
-	apt-fast upgrade -y
+	apt-get update -y
+	apt-get upgrade -y
 	systemctl daemon-reload
-	apt-fast autoremove -y -qq
-	apt-fast autoclean -y -qq
-	apt-fast clean -y -qq
+	apt-get autoremove -y -qq
+	apt-get autoclean -y -qq
+	apt-get clean -y -qq
 }
 
 end() {

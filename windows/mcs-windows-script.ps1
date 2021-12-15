@@ -201,8 +201,8 @@ function Edit-Keys {
     Edit-Registry '\SYSTEM\CurrentControlSet\Control\Lsa\' RestrictAnonymousSAM 1 DWord 
     Edit-Registry '\SOFTWARE\Microsoft\Windows\CurrentVersion\policies\Explorer\' NoDriveTypeAutoRun 255 DWord  
     Edit-Registry '\SOFTWARE\Policies\Microsoft\Biometrics\FacialFeatures\' EnhancedAntiSpoofing 1 DWord 
-    Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows\System\' EnableSmartScreen 1 DWord 
-    Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows\System\' ShellSmartScreenLevel 'Block' String 
+    # Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows\System\' EnableSmartScreen 1 DWord 
+    # Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows\System\' ShellSmartScreenLevel 'Block' String 
     Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows\Explorer\' NoDataExecutionPrevention 0 DWord 
     Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows\DataCollection\' AllowTelemetry 0 DWord
     Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows\DataCollection\' LimitEnhancedDiagnosticDataWindowsAnalytics 1 DWord 
@@ -363,7 +363,7 @@ function Stop-Services {
     Stop-Service -Name seclogon -Force -ErrorAction Ignore
     Set-Service -Name seclogon -StartupType Disabled -ErrorAction Ignore
 
-    Start-Service -Name EventLog -Force -ErrorAction Ignore
+    Start-Service -Name EventLog -ErrorAction Ignore
     Set-Service -Name EventLog -StartupType Enabled -ErrorAction Ignore
 }
 
@@ -493,7 +493,7 @@ function Disable-FeaturesServer {
     Stop-Service -Name seclogon -Force -ErrorAction Ignore
     Set-Service -Name seclogon -StartupType Disabled -ErrorAction Ignore
 
-    Start-Service -Name EventLog -Force -ErrorAction Ignore
+    Start-Service -Name EventLog -ErrorAction Ignore
     Set-Service -Name EventLog -StartupType Enabled -ErrorAction Ignore
 }
 
