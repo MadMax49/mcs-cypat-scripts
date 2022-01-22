@@ -53,6 +53,7 @@ init() {
             --radiolist "Choose the distribution as stated in the README by pressing SPACE:" 20 61 5 \
                 "ubu-18"  "Ubuntu 18.04" on \
                 "ubu-20"    "Ubuntu 20.04" off \
+				"deb-9"  "Debian 9" off \
                 "deb-10" "Debian 10" off 2> $tmp_file
     return_value=$?
 
@@ -104,9 +105,9 @@ firewall() {
 }
 
 services() {
-	echo "Please enter the services you want to install, separated by spaces: "
-	read -r services
-	IFS=' ' read -r -a services <<< "$services"
+	echo "Please enter the list of authorized services on the machine SEPARATED BY SEMICOLONS (;):"
+	read -r servicesList 
+	IFS=';' read -r -a services <<< "$servicesList"
 
 	if [[ ${services[*]} =~ 'apache' && ${services[*]} =~ 'mysql' ]]; then
 		apt-get purge nginx -y -qq
@@ -712,12 +713,19 @@ parse_readme() {
 	chmod 777 "${homeDir}/Desktop/logs/changelog.log"
 	echo "Please enter the link to the README"
 	read -r link
-	adminsList=$(python3 scraper.py "$link" admins)
-	IFS=';' read -r -a admins <<< "$adminsList"
-	usersList=$(python3 scraper.py "$link" users)
-	IFS=';' read -r -a users <<< "$usersList"
-	servicesList=$(python3 scraper.py "$link" services)
-	IFS=';' read -r -a services <<< "$servicesList"
+	if [[ "${link}" == "none" ]]; then
+		echo "Please enter the list of authorized admins separated by SPACES:"
+		read -r adminsList 
+		IFS=' ' read -r -a admins <<< "$adminsList"
+		echo "Please enter the list of authorized users separated by SPACES:"
+		read -r usersList 
+		IFS=' ' read -r -a users <<< "$adminsList"
+	else
+		adminsList=$(python3 "${homeDir}/Desktop/linux/scraper.py" "$link" admins)
+		IFS=';' read -r -a admins <<< "$adminsList"
+		usersList=$(python3 "${homeDir}/Desktop/linux/scraper.py" "$link" users)
+		IFS=';' read -r -a users <<< "$usersList"
+	fi
 	echo "Authorized Administrators supposed to be on the system:" >>"${homeDir}/Desktop/logs/changelog.log"
 	for item in "${admins[@]}"; do
 		echo "$item" >>"${homeDir}/Desktop/logs/changelog.log"
