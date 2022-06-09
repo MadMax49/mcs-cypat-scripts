@@ -410,7 +410,7 @@ general_config() {
 	systemctl daemon-reload
 
 	mkdir -p /etc/dconf/db/local.d/
-	cp "/home/$username/Desktop/linux/00-disabled-CAD" /etc/dconf/db/local.d/
+	cp "/home/$username/Desktop/linux/00-disable-CAD" /etc/dconf/db/local.d/
 	dconf update
 
 	systemctl start systemd-timesyncd.service
@@ -589,7 +589,7 @@ general_config() {
 	chmod 700 /etc/cron.d/
 
 	cp /etc/sudoers "${logsDir}/backups/"
-	cp "/home/$username/Desktop/linux/sudoers" /etc/sudoers
+	cp -f "/home/$username/Desktop/linux/sudoers" /etc/sudoers
 }
 
 hacking_tools() {
