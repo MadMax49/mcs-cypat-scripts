@@ -73,9 +73,8 @@ init() {
 
 packages() {
 	cp "/home/$username/Desktop/linux/$dist_folder/sources.list" /etc/apt/sources.list
-	add-apt-repository ppa:apt-fast/stable -y 
 	apt-get update -y
-	apt-get install apt-fast ufw libpam-tmpdir libpam-pkcs11 libpam-pwquality python3-pip unattended-upgrades -y -qq
+	apt-get install ufw libpam-tmpdir libpam-pkcs11 libpam-pwquality python3-pip unattended-upgrades -y -qq
 	pip3 install bs4
 	dpkg-reconfigure --priority=low unattended-upgrades
 	cp "/home/$username/Desktop/linux/20auto-upgrades" /etc/apt/apt.conf.d/20auto-upgrades
@@ -92,15 +91,15 @@ firewall() {
 	ufw deny 135 # ms rpc
 	ufw deny 137, 138, 139 # netbios
 	ufw deny 69 # tftp
-	ufw default deny outgoing
-	ufw default deny incoming
-	ufw default deny routed
-	ufw logging on
-	ufw logging high
-	ufw allow in on lo
-	ufw allow out on lo
-	ufw deny in from 127.0.0.0/8
-	ufw deny in from ::1
+	# ufw default deny outgoing
+	# ufw default deny incoming
+	# ufw default deny routed
+	# ufw logging on
+	# ufw logging high
+	# ufw allow in on lo
+	# ufw allow out on lo
+	# ufw deny in from 127.0.0.0/8
+	# ufw deny in from ::1
 	ufw enable
 }
 
@@ -476,10 +475,6 @@ general_config() {
 	} 2>/dev/null
 
 	echo "ENABLED=\"0\"" >>/etc/default/irqbalance
-
-	if [[ -f "/etc/lightdm/lightdm.conf" ]]; then
-		echo "allow-guest=false" >>/etc/lightdm/lightdm.conf
-	fi
 	
 	echo >/etc/rc.local
 	echo "exit 0" >/etc/rc.local
