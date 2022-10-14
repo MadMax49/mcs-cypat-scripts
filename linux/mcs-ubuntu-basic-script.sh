@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "MCS Ubuntu Script v2.0.0 Updated 10/23/2021 at 5:11 PM EST"
+echo "MCS Ubuntu BASIC Script v2.0.0 Updated 10/23/2021 at 5:11 PM EST"
 
 if [[ "$(whoami)" != root ]]; then
 	echo "This script can only be run as root"
@@ -9,66 +9,23 @@ fi
 
 declare -a services
 islamp="no"
-DIALOG_OK=0
-DIALOG_ESC=255
 
 init() {
 	\unalias -a
-	apt-get install dialog -y 
 	exec 3>&1
-	username=$(dialog \
-		--title "INPUT BOX" \
-		--clear  \
-		--nocancel \
-		--inputbox \
-		"Please enter the username of the main user on this machine:" \
-		16 51 2>&1 1>&3)
-	return_value=$?
-	exec 3>&-
-
-	case $return_value in
-		"$DIALOG_OK")
-			clear
-			logsDir="/home/$username/Desktop/logs"
-			homeDir="/home/$username"
-			mkdir -p "${logsDir}"
-			mkdir -p "${logsDir}/backups"
-			cp /etc/group "${logsDir}/backups/"
-			cp /etc/passwd "${logsDir}/backups/"
-			cp /etc/shadow "${logsDir}/backups/"
-			touch "${logsDir}/changelog.log"
-			chmod -R 777 "${logsDir}"
-			;;
-		"$DIALOG_ESC")
-			clear
-            echo "Program aborted." >&2
-            exit 1
-            ;;
-	esac
-	tmp_file=$(mktemp 2>/dev/null) || tmp_file=/tmp/test$$
-    trap 'rm -f $tmp_file' 0 1 2 SIGTRAP 15
-
-	dialog --backtitle "Distribution Choice" \
-            --title "Which distribution is this image?" --clear --nocancel \
-            --radiolist "Choose the distribution as stated in the README by pressing SPACE:" 20 61 5 \
-                "ubu-18"  "Ubuntu 18.04" on \
-                "ubu-20"    "Ubuntu 20.04" off \
-				"deb-9"  "Debian 9" off \
-                "deb-10" "Debian 10" off 2> $tmp_file
-    return_value=$?
-
-    choice=$(cat $tmp_file)
-    case $return_value in
-    0)
-		clear
-        dist_folder=$choice
-		;;
-    255)
-        clear
-        echo "Program aborted."
-        exit 1
-        ;;
-    esac
+	echo "What is the username of the main user on this machine: "
+    read -r username
+	clear
+	logsDir="/home/$username/Desktop/logs"
+	homeDir="/home/$username"
+	mkdir -p "${logsDir}"
+	mkdir -p "${logsDir}/backups"
+	cp /etc/group "${logsDir}/backups/"
+	cp /etc/passwd "${logsDir}/backups/"
+	cp /etc/shadow "${logsDir}/backups/"
+	touch "${logsDir}/changelog.log"
+	chmod -R 777 "${logsDir}"
+    dist_folder="ubu-20"
 }
 
 packages() {
@@ -94,8 +51,8 @@ firewall() {
 	# ufw default deny outgoing
 	# ufw default deny incoming
 	# ufw default deny routed
-	# ufw logging on
-	# ufw logging high
+	ufw logging on
+	ufw logging high
 	# ufw allow in on lo
 	# ufw allow out on lo
 	# ufw deny in from 127.0.0.0/8
@@ -421,62 +378,8 @@ general_config() {
 	chown root:root /etc/hosts.deny
 	chmod 644 /etc/hosts.deny
 
-	echo "#########Disabling Uncommon Network protocols and file system configurations#########"
-	{	
-		touch /etc/modprobe.d/dccp.conf
-		chmod 644 /etc/modprobe.d/dccp.conf
-		echo "install dccp /bin/true" >/etc/modprobe.d/dccp.conf
-		touch /etc/modprobe.d/sctp.conf
-		chmod 644 /etc/modprobe.d/sctp.conf
-		echo "install sctp /bin/true" >/etc/modprobe.d/sctp.conf
-		touch /etc/modprobe.d/rds.conf
-		chmod 644 /etc/modprobe.d/rds.conf
-		echo "install rds /bin/true" >/etc/modprobe.d/rds.conf
-		touch /etc/modprobe.d/tipc.conf
-		chmod 644 /etc/modprobe.d/tipc.conf
-		echo "install tipc /bin/true" >/etc/modprobe.d/tipc.conf
-		touch /etc/modprobe.d/cramfs.conf
-		chmod 644 /etc/modprobe.d/cramfs.conf
-		echo "install cramfs /bin/true" >/etc/modprobe.d/cramfs.conf
-		rmmod cramfs
-		touch /etc/modprobe.d/freevxfs.conf
-		chmod 644 /etc/modprobe.d/freevxfs.conf
-		echo "install freevxfs /bin/true" >/etc/modprobe.d/freevxfs.conf
-		rmmod freevxfs
-		touch /etc/modprobe.d/jffs2.conf
-		chmod 644 /etc/modprobe.d/jffs2.conf
-		echo "install jffs2 /bin/true" >/etc/modprobe.d/jffs2.conf
-		rmmod jffs2
-		touch /etc/modprobe.d/hfs.conf
-		chmod 644 /etc/modprobe.d/hfs.conf
-		echo "install hfs /bin/true" >/etc/modprobe.d/hfs.conf
-		rmmod hfs
-		touch /etc/modprobe.d/hfsplus.conf
-		chmod 644 /etc/modprobe.d/hfsplus.conf
-		echo "install hfsplus /bin/true" >/etc/modprobe.d/hfsplus.conf
-		rmmod hfsplus
-		touch /etc/modprobe.d/squashfs.conf
-		chmod 644 /etc/modprobe.d/squashfs.conf
-		echo "install squashfs /bin/true" >/etc/modprobe.d/squashfs.conf
-		rmmod squashfs
-		touch /etc/modprobe.d/udf.conf
-		chmod 644 /etc/modprobe.d/udf.conf
-		echo "install udf /bin/true" >/etc/modprobe.d/udf.conf
-		rmmod udf
-		touch /etc/modprobe.d/vfat.conf
-		chmod 644 /etc/modprobe.d/vfat.conf
-		echo "install vfat /bin/true" >/etc/modprobe.d/vfat.conf
-		rmmod vfat
-		touch /etc/modprobe.d/usb-storage.conf
-		chmod 644 /etc/modprobe.d/usb-storage.conf
-		echo "install usb-storage /bin/true" >/etc/modprobe.d/usb-storage.conf
-		rmmod usb-storage
-		systemctl disable kdump.service
-	} 2>/dev/null
-
 	echo "ENABLED=\"0\"" >>/etc/default/irqbalance
 	
-	echo >/etc/rc.local
 	echo "exit 0" >/etc/rc.local
 
 	cp /etc/login.defs "${homeDir}/Desktop/logs/backups/"
@@ -497,8 +400,6 @@ general_config() {
 	cp /etc/fstab "${homeDir}/Desktop/logs/backups/"
 	echo "tmpfs /run/shm tmpfs defaults,noexec,nosuid 0 0" >>/etc/fstab
 
-	chown root:root /etc/securetty
-	chmod 0600 /etc/securetty
 	chown root:root /etc/passwd
 	chmod 644 /etc/passwd
 	chown root:root /etc/passwd-
@@ -535,16 +436,16 @@ general_config() {
 	echo "* hard core 0" >> /etc/security/limits.conf
 	echo "* hard maxlogins 10" >> /etc/security/limits.conf
 
-	find /lib /lib64 /usr/lib -perm /022 -type d -exec chmod 755 '{}' \;
-	find /lib /lib64 /usr/lib -perm /022 -type f -exec chmod 755 '{}' \;
+	find /lib /lib64 -perm /022 -type d -exec chmod 755 '{}' \;
+	find /lib /lib64 -perm /022 -type f -exec chmod 755 '{}' \;
 	find /var/log -perm /137 -type f -exec chmod 640 '{}' \;
 	find -L /bin /sbin /usr/bin /usr/sbin /usr/local/bin /usr/local/sbin -perm /022 -type d -exec chmod -R 755 '{}' \;
 	find -L /bin /sbin /usr/bin /usr/sbin /usr/local/bin /usr/local/sbin -perm /022 -type f -exec chmod 755 '{}' \;
 	find -L /bin /sbin /usr/bin /usr/sbin /usr/local/bin /usr/local/sbin ! -user root -type d -exec chown root '{}' \;
 	find -L /bin /sbin /usr/bin /usr/sbin /usr/local/bin /usr/local/sbin ! -user root -type f -exec chown root '{}' \;
-	find /lib /usr/lib /lib64 ! -user root -type d -exec chown root '{}' \;
-	find /lib /usr/lib /lib64 ! -group root -type d -exec chgrp root '{}' \;
-	find /lib /usr/lib /lib64 ! -group root -type f -exec chgrp root '{}' \;
+	find /lib /lib64 ! -user root -type d -exec chown root '{}' \;
+	find /lib /lib64 ! -group root -type d -exec chgrp root '{}' \;
+	find /lib /lib64 ! -group root -type f -exec chgrp root '{}' \;
 	find -L /bin /sbin /usr/bin /usr/sbin /usr/local/bin /usr/local/sbin ! -group root -type d -exec chgrp root '{}' \;
 	find /bin /sbin /usr/bin /usr/sbin /usr/local/bin /usr/local/sbin ! -group root -type f ! -perm /2000 -exec chgrp root '{}' \;
 	
@@ -562,8 +463,6 @@ general_config() {
 
 	echo "install usb-storage /bin/true" >> /etc/modprobe.d/DISASTIG.conf
 	echo "blacklist usb-storage" >> /etc/modprobe.d/DISASTIG.conf
-
-	df --local -P | awk '{if (NR!=1) print $6}' | xargs -I '{}' find '{}' -xdev -type d \( -perm -0002 -a ! -perm -1000 \) 2>/dev/null | xargs -I '{}' chmod a+t '{}'
 
 	chown root:root /boot/grub/grub.cfg
 	chmod u-wx,go-rwx /boot/grub/grub.cfg
@@ -650,8 +549,8 @@ hacking_tools() {
 }
 
 record_files() {
-	find /home -type f -name "$1" 2>/dev/null
-	find /root -type f -name "$1" 2>/dev/null
+	# find /home -type f -name "$1" 2>/dev/null
+	# find /root -type f -name "$1" 2>/dev/null
 }
 
 media_files() {
