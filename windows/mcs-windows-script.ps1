@@ -18,7 +18,7 @@ function Install-Programs {
     Invoke-WebRequest "https://bootstrap.pypa.io/get-pip.py" -OutFile "get-pip.py"
     py "get-pip.py"
     Remove-Item "get-pip.py"
-    $env:Path += ";C:\Python311\Scripts"
+    $env:Path += ";C:\Python312\Scripts"
     py -m pip install --upgrade pip
     pip install bs4
     Write-Host "Installing MalwareBytes"
@@ -55,7 +55,7 @@ function Edit-LocalUsers {
     }
 
     foreach ($user in $currentUserList) {
-        cmd.exe /c "wmic UserAccount where Name='$user' set PasswordExpires=true" | Out-Null
+        # cmd.exe /c "wmic UserAccount where Name='$user' set PasswordExpires=true" | Out-Null
         if (-not ($user -in $authUsersList)) {
             # delete user if user on the current system and not on the README
             Disable-LocalUser -Name $user
@@ -76,45 +76,6 @@ function Edit-LocalUsers {
         # if admin is an admin on the README but not on the system, make that user an admin
         if (-not ($admin -in $currentAdminList)) {
             Add-LocalGroupMember -Group "Administrators" -Member $admin -ErrorAction Ignore
-        }
-    }
-}
-
-function Edit-ADUsers {
-    $mainUser = $global:mainUser
-    Disable-LocalUser -Name "Guest"
-    Disable-LocalUser -Name "Administrator"
-    $readme = Read-Host "Please enter the link to the README"
-    $admins=$( py C:\Users\$mainUser\Desktop\windows\scraper.py $readme admins)
-    $adminsList = $admins -split ";"
-    $users=$( py C:\Users\$mainUser\Desktop\windows\scraper.py $readme users)
-    $usersList = $users -split ";"
-    $authUsersList = @($adminsList) + $usersList
-    $currentUserList = Get-ADUser | Where-Object -Property Enabled -eq True | Select-Object -Property Name 
-    $currentAdminList = Get-ADGroupMember -Identity Administrators | Select-Object -Property SamAccountName
-    foreach ($user in $usersList) {
-        if (-not ($user -in $currentUserList)) {
-            # adds user if user on README is not on the AD
-            New-ADUser -Name "$user"
-        }
-    }
-
-    foreach ($user in $currentUserList) {
-        if (-not ($user -in $authUsersList)) {
-            # delete user if user on the AD and not on the README
-            Disable-ADAccount -Identity $user
-        }
-    }
-    foreach ($admin in $currentAdminList) {
-        # if admin is an admin on the AD but not an authorized admin in the readme, remove from the group
-        if (-not ($admin -in $adminsList)) {
-            Remove-ADGroupMember -Identity "Administrators" -Members $admin
-        }
-    }
-    foreach ($admin in $adminsList) {
-        # if admin is an admin on the README but not on the AD, make that user an admin
-        if (-not ($admin -in $currentAdminList)) {
-            Add-ADGroupMember -Identity "Administrators" -Members $admin
         }
     }
 }
@@ -151,12 +112,14 @@ function Edit-LocalSecurity {
     Copy-Item "C:\Users\$mainUser\Desktop\windows\templates\SecGuide.adml" -Destination 'C:\Windows\PolicyDefinitions\en-US\'
     Copy-Item "C:\Users\$mainUser\Desktop\windows\templates\SecGuide.admx" -Destination 'C:\Windows\PolicyDefinitions\'
     Copy-Item "C:\Users\$mainUser\Desktop\windows\templates\MSS-legacy.adml" -Destination 'C:\Windows\PolicyDefinitions\en-US\'
-    Copy-Item "C:\Users\$mainUser\Desktop\windows\templates\MSS-legacy.admx" -Destination 'C:\Windows\PolicyDefinitions\en-US\'
-    gpupdate /force
-    Copy-Item "C:\Users\$mainUser\Desktop\windows\GroupPolicy" -Destination 'C:\Windows\System32\' -Recurse -Force
-    gpupdate /force
-    auditpol /set /category:"*" /success:enable /failure:enable
-    # secedit /configure /db c:\windows\security\local.sdb /cfg c:\Users\$mainUser\Desktop\windows\secpol.cfg /areas SECURITYPOLICY
+    Copy-Item "C:\Users\$mainUser\Desktop\windows\templates\MSS-legacy.admx" -Destination 'C:\Windows\PolicyDefinitions\'
+    gpupdate
+    New-Item -Path "C:\" -Name "Backup" -ItemType "directory"
+    cmd.exe /c "C:\Users\$mainUser\Desktop\windows\LGPO.exe /b C:\Backup /n Backup" 
+    cmd.exe /c "C:\Users\$mainUser\Desktop\windows\LGPO.exe /t C:\Users\$mainUser\Desktop\windows\lgpo.txt" 
+    gpupdate
+    # auditpol /set /category:"*" /success:enable /failure:enable
+    secedit /configure /db c:\windows\security\local.sdb /cfg c:\Users\$mainUser\Desktop\windows\secpol.cfg /areas SECURITYPOLICY
 }
 
 function Edit-Keys {
@@ -169,8 +132,8 @@ function Edit-Keys {
     Set-ItemProperty -Path $path -Name "Hidden" -Value 1 -Type DWord -Force
     # enable file extensions (on restart)
     Set-ItemProperty -Path $path -Name "HideFileExt" -Value 0 -Type DWord -Force
-    # enable defender
-    Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows Defender\' DisableAntiSpyware 0 DWord
+    # # enable defender
+    # Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows Defender\' DisableAntiSpyware 0 DWord
     # enable right click (if they disable it)
     Edit-Registry '\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer' NoViewContextMenu 0 DWord
     # enable cloud protection / automatic sample submission
@@ -184,92 +147,89 @@ function Edit-Keys {
     Edit-Registry '\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' PromptOnSecureDesktop 1 DWord
     Edit-Registry '\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' EnableVirtualization 1 DWord
     # enable automatic updates
-    Edit-Registry '\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update' AUOptions 0 DWord
-    # stigs idk but they're recommended by the DOD
-    Edit-Registry '\SYSTEM\CurrentControlSet\Services\LanManServer\Parameters\' RestrictNullSessAccess 1 DWord
-    Edit-Registry '\SYSTEM\CurrentControlSet\Control\Lsa\' RestrictAnonymous 1 DWord
-    Edit-Registry '\SYSTEM\CurrentControlSet\Control\Lsa\' NoLMHash 1 DWord
-    Edit-Registry '\SYSTEM\CurrentControlSet\Services\LanManServer\Parameters\' LmCompatibilityLevel 5 DWord
-    Edit-Registry '\SYSTEM\CurrentControlSet\Control\Remote Assistance' fAllowToGetHelp 0 DWord
-    Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services\' fAllowToGetHelp 0 DWord
-    Edit-Registry '\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer\' NoAutorun 1 DWord
-    Edit-Registry '\SYSTEM\CurrentControlSet\Control\Session Manager\kernel\' DisableExceptionChainValidation 0 DWord
-    Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows\Installer\' AlwaysInstallElevated 0 DWord
-    Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows\Explorer\' NoAutoplayfornonVolume 1 DWord
-    Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows\WinRM\Client\' AllowBasic 0 DWord 
-    Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows\WinRM\Service\' AllowBasic 0 DWord
-    Edit-Registry '\SYSTEM\CurrentControlSet\Control\Lsa\' RestrictAnonymousSAM 1 DWord 
-    Edit-Registry '\SOFTWARE\Microsoft\Windows\CurrentVersion\policies\Explorer\' NoDriveTypeAutoRun 255 DWord  
-    Edit-Registry '\SOFTWARE\Policies\Microsoft\Biometrics\FacialFeatures\' EnhancedAntiSpoofing 1 DWord 
-    # Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows\System\' EnableSmartScreen 1 DWord 
-    # Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows\System\' ShellSmartScreenLevel 'Block' String 
-    Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows\Explorer\' NoDataExecutionPrevention 0 DWord 
+    # # Edit-Registry '\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update' AUOptions 0 DWord
+    # # stigs idk but they're recommended by the DOD
+    # Edit-Registry '\SYSTEM\CurrentControlSet\Services\LanManServer\Parameters\' RestrictNullSessAccess 1 DWord
+    # Edit-Registry '\SYSTEM\CurrentControlSet\Control\Lsa\' RestrictAnonymous 1 DWord
+    # Edit-Registry '\SYSTEM\CurrentControlSet\Control\Lsa\' NoLMHash 1 DWord
+    # Edit-Registry '\SYSTEM\CurrentControlSet\Services\LanManServer\Parameters\' LmCompatibilityLevel 5 DWord
+    # Edit-Registry '\SYSTEM\CurrentControlSet\Control\Remote Assistance' fAllowToGetHelp 0 DWord
+    # Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services\' fAllowToGetHelp 0 DWord
+    # Edit-Registry '\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer\' NoAutorun 1 DWord
+    # Edit-Registry '\SYSTEM\CurrentControlSet\Control\Session Manager\kernel\' DisableExceptionChainValidation 0 DWord
+    # Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows\Installer\' AlwaysInstallElevated 0 DWord
+    # Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows\Explorer\' NoAutoplayfornonVolume 1 DWord
+    # Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows\WinRM\Client\' AllowBasic 0 DWord 
+    # Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows\WinRM\Service\' AllowBasic 0 DWord
+    # Edit-Registry '\SYSTEM\CurrentControlSet\Control\Lsa\' RestrictAnonymousSAM 1 DWord 
+    # Edit-Registry '\SOFTWARE\Microsoft\Windows\CurrentVersion\policies\Explorer\' NoDriveTypeAutoRun 255 DWord  
+    # Edit-Registry '\SOFTWARE\Policies\Microsoft\Biometrics\FacialFeatures\' EnhancedAntiSpoofing 1 DWord 
+    # # Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows\System\' EnableSmartScreen 1 DWord 
+    # # Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows\System\' ShellSmartScreenLevel 'Block' String 
+    # Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows\Explorer\' NoDataExecutionPrevention 0 DWord 
     Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows\DataCollection\' AllowTelemetry 0 DWord
-    Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows\DataCollection\' LimitEnhancedDiagnosticDataWindowsAnalytics 1 DWord 
-    Edit-Registry '\SYSTEM\CurrentControlSet\Control\Lsa\' EveryoneIncludesAnonymous 0 DWord 
-    Edit-Registry '\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\Kerberos\Parameters\' SupportedEncryptionTypes 2147483640 DWord
-    Edit-Registry '\SYSTEM\CurrentControlSet\Control\LSA\pku2u\' AllowOnlineID 0 DWord 
-    Edit-Registry '\SYSTEM\CurrentControlSet\Control\LSA\MSV1_0\' allownullsessionfallback 0 DWord 
-    Edit-Registry '\SYSTEM\CurrentControlSet\Services\LDAP\' LDAPClientIntegrity 1 DWord
-    Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows NT\Rpc\' RestrictRemoteClients 1 DWord 
-    Edit-Registry '\SOFTWARE\Policies\Microsoft\Power\PowerSettings\0e796bdb-100d-47d6-a2d5-f7d2daa51f51\' DCSettingIndex 1 DWord 
-    Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows\System\' EnumerateLocalUsers 0 DWord 
-    Edit-Registry '\SOFTWARE\Policies\Microsoft\Power\PowerSettings\0e796bdb-100d-47d6-a2d5-f7d2daa51f51\' ACSettingIndex 1 DWord 
-    Edit-Registry '\Software\Policies\Microsoft\Windows\Kernel DMA Protection' DeviceEnumerationPolicy 0 DWord
-    Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows\System\' DontDisplayNetworkSelectionUI 1 DWord 
-    Edit-Registry '\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer\' PreXPSP2ShellProtocolBehavior 0 DWord 
-    Edit-Registry '\SYSTEM\CurrentControlSet\Services\Netlogon\Parameters\' RequireStrongKey 1 DWord 
-    Edit-Registry '\SYSTEM\CurrentControlSet\Services\Netlogon\Parameters\' SealSecureChannel 1 DWord 
-    Edit-Registry '\SYSTEM\CurrentControlSet\Services\Netlogon\Parameters\' RequireSignOrSeal 1 DWord 
-    Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services\' fPromptForPassword 1 DWord
-    Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services\' fEncryptRPCTraffic 1 DWord
-    Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services\' MinEncryptionLevel 3 DWord 
-    Edit-Registry '\SOFTWARE\Policies\Microsoft\Internet Explorer\Feeds\' DisableEnclosureDownload 1 DWord 
-    Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows\Windows Search\' AllowIndexingEncryptedStoresOrItems 0 DWord 
-    Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows\Installer\' EnableUserControl 0 DWord
-    Edit-Registry '\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\' DisableAutomaticRestartSignOn 1 DWord
-    Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows\WinRM\Service\' AllowUnencryptedTraffic 0 DWord 
-    Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows\Personalization\' NoLockScreenCamera 1 DWord 
-    Edit-Registry '\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\' DisableIPSourceRouting 2 DWord
-    Edit-Registry '\SYSTEM\CurrentControlSet\Services\Tcpip6\Parameters\' DisableIpSourceRouting 2 DWord
-    Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows\Personalization\' NoLockScreenSlideshow 1 DWord 
-    Edit-Registry '\SOFTWARE\Policies\Microsoft\PassportForWork\PINComplexity\' MinimumPINLength 6 DWord
-    Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows\GameDVR\' AllowGameDVR 0 DWord
-    Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services\' fDisableCdm 1 DWord
-    Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services\' DisablePasswordSaving 1 DWord
-    Edit-Registry '\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters\' EnablePlainTextPassword 0 DWord
-    Edit-Registry '\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\CredUI\' EnumerateAdministrators 0 DWord
-    Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows\System' AllowDomainPINLogon 0 DWord
-    Edit-Registry '\SOFTWARE\Policies\Microsoft\WindowsInkWorkspace' AllowWindowsInkWorkspace 1 DWord
-    Edit-Registry '\SYSTEM\CurrentControlSet\Control\SecurityProviders\Wdigest\' UseLogonCredential 0 DWord
-    Edit-Registry '\SYSTEM\CurrentControlSet\Control\Lsa\' SCENoApplyLegacyAuditPolicy 1 DWord
-    Edit-Registry '\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer' NoPreviewPane 1 DWord
-    Edit-Registry '\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer' NoReadingPane 1 DWord
-    Edit-Registry '\SYSTEM\CurrentControlSet\Policies\EarlyLaunch\' DriverLoadPolicy 1 DWord
-    Edit-Registry '\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\' ConsentPromptBehaviorUser 0 DWord
-    Edit-Registry '\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\' FilterAdministratorToken 1 DWord
-    Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows\PowerShell\ScriptBlockLogging\' EnableScriptBlockLogging 1 DWord
-    Edit-Registry '\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\' EnableInstallerDetection 1 DWord
-    Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows\Network Connections\' NC_ShowSharedAccessUI 0 DWord
-    Edit-Registry '\SOFTWARE\Classes\batfile\shell\runasuser\' SuppressionPolicy 4096 DWord
-    Edit-Registry '\SOFTWARE\Classes\cmdfile\shell\runasuser\' SuppressionPolicy 4096 DWord
-    Edit-Registry '\SOFTWARE\Classes\exefile\shell\runasuser\' SuppressionPolicy 4096 DWord
-    Edit-Registry '\SOFTWARE\Classes\mscfile\shell\runasuser\' SuppressionPolicy 4096 DWord
-    Edit-Registry '\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\' InactivityTimeoutSecs 900 DWord
-    Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy\' LetAppsActivateWithVoiceAboveLock 2 DWord
-    Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy\' LetAppsActivateWithVoice 2 DWord
-    Edit-Registry '\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\' EnableLUA 1 DWord
-    Edit-Registry '\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\webcam' Value 'Deny' String
-    Edit-Registry '\SYSTEM\CurrentControlSet\Control\Session Manager\kernel\' DisableExceptionChainValidation 0 DWord
-    Edit-Registry '\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\' SafeModeBlockNonAdmins 1 DWord
+    # Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows\DataCollection\' LimitEnhancedDiagnosticDataWindowsAnalytics 1 DWord 
+    # Edit-Registry '\SYSTEM\CurrentControlSet\Control\Lsa\' EveryoneIncludesAnonymous 0 DWord 
+    # Edit-Registry '\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\Kerberos\Parameters\' SupportedEncryptionTypes 2147483640 DWord
+    # Edit-Registry '\SYSTEM\CurrentControlSet\Control\LSA\pku2u\' AllowOnlineID 0 DWord 
+    # Edit-Registry '\SYSTEM\CurrentControlSet\Control\LSA\MSV1_0\' allownullsessionfallback 0 DWord 
+    # Edit-Registry '\SYSTEM\CurrentControlSet\Services\LDAP\' LDAPClientIntegrity 1 DWord
+    # Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows NT\Rpc\' RestrictRemoteClients 1 DWord 
+    # Edit-Registry '\SOFTWARE\Policies\Microsoft\Power\PowerSettings\0e796bdb-100d-47d6-a2d5-f7d2daa51f51\' DCSettingIndex 1 DWord 
+    # Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows\System\' EnumerateLocalUsers 0 DWord 
+    # Edit-Registry '\SOFTWARE\Policies\Microsoft\Power\PowerSettings\0e796bdb-100d-47d6-a2d5-f7d2daa51f51\' ACSettingIndex 1 DWord 
+    # Edit-Registry '\Software\Policies\Microsoft\Windows\Kernel DMA Protection' DeviceEnumerationPolicy 0 DWord
+    # Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows\System\' DontDisplayNetworkSelectionUI 1 DWord 
+    # Edit-Registry '\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer\' PreXPSP2ShellProtocolBehavior 0 DWord 
+    # Edit-Registry '\SYSTEM\CurrentControlSet\Services\Netlogon\Parameters\' RequireStrongKey 1 DWord 
+    # Edit-Registry '\SYSTEM\CurrentControlSet\Services\Netlogon\Parameters\' SealSecureChannel 1 DWord 
+    # Edit-Registry '\SYSTEM\CurrentControlSet\Services\Netlogon\Parameters\' RequireSignOrSeal 1 DWord 
+    # Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services\' fPromptForPassword 1 DWord
+    # Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services\' fEncryptRPCTraffic 1 DWord
+    # Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services\' MinEncryptionLevel 3 DWord 
+    # Edit-Registry '\SOFTWARE\Policies\Microsoft\Internet Explorer\Feeds\' DisableEnclosureDownload 1 DWord 
+    # Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows\Windows Search\' AllowIndexingEncryptedStoresOrItems 0 DWord 
+    # Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows\Installer\' EnableUserControl 0 DWord
+    # Edit-Registry '\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\' DisableAutomaticRestartSignOn 1 DWord
+    # Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows\WinRM\Service\' AllowUnencryptedTraffic 0 DWord 
+    # Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows\Personalization\' NoLockScreenCamera 1 DWord 
+    # Edit-Registry '\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\' DisableIPSourceRouting 2 DWord
+    # Edit-Registry '\SYSTEM\CurrentControlSet\Services\Tcpip6\Parameters\' DisableIpSourceRouting 2 DWord
+    # Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows\Personalization\' NoLockScreenSlideshow 1 DWord 
+    # Edit-Registry '\SOFTWARE\Policies\Microsoft\PassportForWork\PINComplexity\' MinimumPINLength 6 DWord
+    # Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows\GameDVR\' AllowGameDVR 0 DWord
+    # Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services\' fDisableCdm 1 DWord
+    # Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services\' DisablePasswordSaving 1 DWord
+    # Edit-Registry '\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters\' EnablePlainTextPassword 0 DWord
+    # Edit-Registry '\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\CredUI\' EnumerateAdministrators 0 DWord
+    # Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows\System' AllowDomainPINLogon 0 DWord
+    # Edit-Registry '\SOFTWARE\Policies\Microsoft\WindowsInkWorkspace' AllowWindowsInkWorkspace 1 DWord
+    # Edit-Registry '\SYSTEM\CurrentControlSet\Control\SecurityProviders\Wdigest\' UseLogonCredential 0 DWord
+    # Edit-Registry '\SYSTEM\CurrentControlSet\Control\Lsa\' SCENoApplyLegacyAuditPolicy 1 DWord
+    # Edit-Registry '\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer' NoPreviewPane 1 DWord
+    # Edit-Registry '\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer' NoReadingPane 1 DWord
+    # Edit-Registry '\SYSTEM\CurrentControlSet\Policies\EarlyLaunch\' DriverLoadPolicy 1 DWord
+    # Edit-Registry '\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\' ConsentPromptBehaviorUser 0 DWord
+    # Edit-Registry '\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\' FilterAdministratorToken 1 DWord
+    # Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows\PowerShell\ScriptBlockLogging\' EnableScriptBlockLogging 1 DWord
+    # Edit-Registry '\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\' EnableInstallerDetection 1 DWord
+    # Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows\Network Connections\' NC_ShowSharedAccessUI 0 DWord
+    # Edit-Registry '\SOFTWARE\Classes\batfile\shell\runasuser\' SuppressionPolicy 4096 DWord
+    # Edit-Registry '\SOFTWARE\Classes\cmdfile\shell\runasuser\' SuppressionPolicy 4096 DWord
+    # Edit-Registry '\SOFTWARE\Classes\exefile\shell\runasuser\' SuppressionPolicy 4096 DWord
+    # Edit-Registry '\SOFTWARE\Classes\mscfile\shell\runasuser\' SuppressionPolicy 4096 DWord
+    # Edit-Registry '\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\' InactivityTimeoutSecs 900 DWord
+    # Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy\' LetAppsActivateWithVoiceAboveLock 2 DWord
+    # Edit-Registry '\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy\' LetAppsActivateWithVoice 2 DWord
+    # Edit-Registry '\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\' EnableLUA 1 DWord
+    # Edit-Registry '\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\webcam' Value 'Deny' String
+    # Edit-Registry '\SYSTEM\CurrentControlSet\Control\Session Manager\kernel\' DisableExceptionChainValidation 0 DWord
+    # Edit-Registry '\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\' SafeModeBlockNonAdmins 1 DWord
     # enable DEP
-    cmd.exe /c "BCDEDIT /set {current} nx OptOut"
-    Clear-RecycleBin -Force -ErrorAction Ignore
+    # cmd.exe /c "BCDEDIT /set {current} nx OptOut"
+    # Clear-RecycleBin -Force -ErrorAction Ignore
     # restart explorer for some changes to take effect
     Stop-Process -ProcessName explorer
-    # bitlocker (broken rn)
-    # $SecureString = ConvertTo-SecureString "1720" -AsPlainText -Force
-    # Enable-BitLocker -MountPoint "C:" -EncryptionMethod Aes256 -UsedSpaceOnly -Pin $SecureString -TPMandPinProtector
 }
 
 function Disable-Features {
@@ -281,54 +241,6 @@ function Disable-Features {
     Disable-WindowsOptionalFeature -Online -FeatureName "SimpleTCP" -NoRestart | Out-Null
     Disable-WindowsOptionalFeature -Online -FeatureName "WorkFolders-Client" -NoRestart | Out-Null
     Disable-WindowsOptionalFeature -Online -FeatureName "Printing-Foundation-Features" -NoRestart | Out-Null
-    Disable-WindowsOptionalFeature -Online -FeatureName "IIS-WebServerRole" -NoRestart | Out-Null
-    Disable-WindowsOptionalFeature -Online -FeatureName "IIS-WebServer" -NoRestart | Out-Null
-    Disable-WindowsOptionalFeature -Online -FeatureName "IIS-CommonHttpFeatures" -NoRestart | Out-Null
-    Disable-WindowsOptionalFeature -Online -FeatureName "IIS-HttpErrors" -NoRestart | Out-Null
-    Disable-WindowsOptionalFeature -Online -FeatureName "IIS-HttpRedirect" -NoRestart | Out-Null
-    Disable-WindowsOptionalFeature -Online -FeatureName "IIS-NetFxExtensibility45" -NoRestart | Out-Null
-    Disable-WindowsOptionalFeature -Online -FeatureName "IIS-ApplicationDevelopment" -NoRestart | Out-Null
-    Disable-WindowsOptionalFeature -Online -FeatureName "IIS-NetFxExtensibility" -NoRestart | Out-Null
-    Disable-WindowsOptionalFeature -Online -FeatureName "IIS-HealthAndDiagnostics" -NoRestart | Out-Null
-    Disable-WindowsOptionalFeature -Online -FeatureName "IIS-HttpLogging" -NoRestart | Out-Null
-    Disable-WindowsOptionalFeature -Online -FeatureName "IIS-LoggingLibraries" -NoRestart | Out-Null
-    Disable-WindowsOptionalFeature -Online -FeatureName "IIS-RequestMonitor" -NoRestart | Out-Null
-    Disable-WindowsOptionalFeature -Online -FeatureName "IIS-HttpTracing" -NoRestart | Out-Null
-    Disable-WindowsOptionalFeature -Online -FeatureName "IIS-Security" -NoRestart | Out-Null
-    Disable-WindowsOptionalFeature -Online -FeatureName "IIS-URLAuthorization" -NoRestart | Out-Null
-    Disable-WindowsOptionalFeature -Online -FeatureName "IIS-RequestFiltering" -NoRestart | Out-Null
-    Disable-WindowsOptionalFeature -Online -FeatureName "IIS-IPSecurity" -NoRestart | Out-Null
-    Disable-WindowsOptionalFeature -Online -FeatureName "IIS-Performance" -NoRestart | Out-Null
-    Disable-WindowsOptionalFeature -Online -FeatureName "IIS-HttpCompressionDynamic" -NoRestart | Out-Null
-    Disable-WindowsOptionalFeature -Online -FeatureName "IIS-WebServerManagementTools" -NoRestart | Out-Null
-    Disable-WindowsOptionalFeature -Online -FeatureName "IIS-HostableWebCore" -NoRestart | Out-Null
-    Disable-WindowsOptionalFeature -Online -FeatureName "IIS-ManagementScriptingTools" -NoRestart | Out-Null
-    Disable-WindowsOptionalFeature -Online -FeatureName "IIS-IIS6ManagementCompatibility" -NoRestart | Out-Null
-    Disable-WindowsOptionalFeature -Online -FeatureName "IIS-Metabase" -NoRestart | Out-Null
-    Disable-WindowsOptionalFeature -Online -FeatureName "IIS-StaticContent" -NoRestart | Out-Null
-    Disable-WindowsOptionalFeature -Online -FeatureName "IIS-DefaultDocument" -NoRestart | Out-Null
-    Disable-WindowsOptionalFeature -Online -FeatureName "IIS-DirectoryBrowsing" -NoRestart | Out-Null
-    Disable-WindowsOptionalFeature -Online -FeatureName "IIS-WebDAV" -NoRestart | Out-Null
-    Disable-WindowsOptionalFeature -Online -FeatureName "IIS-WebSockets" -NoRestart | Out-Null
-    Disable-WindowsOptionalFeature -Online -FeatureName "IIS-ApplicationInit" -NoRestart | Out-Null
-    Disable-WindowsOptionalFeature -Online -FeatureName "IIS-CGI" -NoRestart | Out-Null
-    Disable-WindowsOptionalFeature -Online -FeatureName "IIS-ASPNET" -NoRestart | Out-Null
-    Disable-WindowsOptionalFeature -Online -FeatureName "IIS-ASPNET45" -NoRestart | Out-Null
-    Disable-WindowsOptionalFeature -Online -FeatureName "IIS-ASP" -NoRestart | Out-Null
-    Disable-WindowsOptionalFeature -Online -FeatureName "IIS-ISAPIExtensions" -NoRestart | Out-Null
-    Disable-WindowsOptionalFeature -Online -FeatureName "IIS-ISAPIFilter" -NoRestart | Out-Null
-    Disable-WindowsOptionalFeature -Online -FeatureName "IIS-ServerSideIncludes" -NoRestart | Out-Null
-    Disable-WindowsOptionalFeature -Online -FeatureName "IIS-CustomLogging" -NoRestart | Out-Null
-    Disable-WindowsOptionalFeature -Online -FeatureName "IIS-BasicAuthentication" -NoRestart | Out-Null
-    Disable-WindowsOptionalFeature -Online -FeatureName "IIS-HttpCompressionStatic" -NoRestart | Out-Null
-    Disable-WindowsOptionalFeature -Online -FeatureName "IIS-ManagementConsole" -NoRestart | Out-Null
-    Disable-WindowsOptionalFeature -Online -FeatureName "IIS-ManagementService" -NoRestart | Out-Null
-    Disable-WindowsOptionalFeature -Online -FeatureName "IIS-WMICompatibility" -NoRestart | Out-Null
-    Disable-WindowsOptionalFeature -Online -FeatureName "IIS-LegacyScripts" -NoRestart | Out-Null
-    Disable-WindowsOptionalFeature -Online -FeatureName "IIS-LegacySnapIn" -NoRestart | Out-Null
-    Disable-WindowsOptionalFeature -Online -FeatureName "IIS-FTPServer" -NoRestart | Out-Null
-    Disable-WindowsOptionalFeature -Online -FeatureName "IIS-FTPSvc" -NoRestart | Out-Null
-    Disable-WindowsOptionalFeature -Online -FeatureName "IIS-FTPExtensibility" -NoRestart | Out-Null
 }
 
 function Stop-Services {
@@ -364,146 +276,16 @@ function Stop-Services {
     Set-Service -Name seclogon -StartupType Disabled -ErrorAction Ignore
 
     Start-Service -Name EventLog -ErrorAction Ignore
-    Set-Service -Name EventLog -StartupType Enabled -ErrorAction Ignore
-}
-
-function Disable-FeaturesServer {
-    $WarningPreference = 'SilentlyContinue'
-    Disable-WindowsOptionalFeature -Online -FeatureName "MicrosoftWindowsPowerShellV2Root" -NoRestart | Out-Null
-    Disable-WindowsOptionalFeature -Online -FeatureName "SMB1Protocol" -NoRestart | Out-Null
-    Disable-WindowsOptionalFeature -Online -FeatureName "TelnetClient" -NoRestart | Out-Null
-    Disable-WindowsOptionalFeature -Online -FeatureName "TFTP" -NoRestart | Out-Null
-    Disable-WindowsOptionalFeature -Online -FeatureName "SimpleTCP" -NoRestart | Out-Null
-    Disable-WindowsOptionalFeature -Online -FeatureName "WorkFolders-Client" -NoRestart | Out-Null
-    Disable-WindowsOptionalFeature -Online -FeatureName "Printing-Foundation-Features" -NoRestart | Out-Null
-    $isIIS = Read-Host "Is IIS a critical service (y/n)?"
-    if ($isIIS -eq "n") {
-        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-WebServerRole" -NoRestart | Out-Null
-        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-WebServer" -NoRestart | Out-Null
-        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-CommonHttpFeatures" -NoRestart | Out-Null
-        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-HttpErrors" -NoRestart | Out-Null
-        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-HttpRedirect" -NoRestart | Out-Null
-        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-NetFxExtensibility45" -NoRestart | Out-Null
-        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-ApplicationDevelopment" -NoRestart | Out-Null
-        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-NetFxExtensibility" -NoRestart | Out-Null
-        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-HealthAndDiagnostics" -NoRestart | Out-Null
-        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-HttpLogging" -NoRestart | Out-Null
-        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-LoggingLibraries" -NoRestart | Out-Null
-        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-RequestMonitor" -NoRestart | Out-Null
-        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-HttpTracing" -NoRestart | Out-Null
-        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-Security" -NoRestart | Out-Null
-        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-URLAuthorization" -NoRestart | Out-Null
-        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-RequestFiltering" -NoRestart | Out-Null
-        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-IPSecurity" -NoRestart | Out-Null
-        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-Performance" -NoRestart | Out-Null
-        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-HttpCompressionDynamic" -NoRestart | Out-Null
-        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-WebServerManagementTools" -NoRestart | Out-Null
-        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-HostableWebCore" -NoRestart | Out-Null
-        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-ManagementScriptingTools" -NoRestart | Out-Null
-        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-IIS6ManagementCompatibility" -NoRestart | Out-Null
-        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-Metabase" -NoRestart | Out-Null
-        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-StaticContent" -NoRestart | Out-Null
-        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-DefaultDocument" -NoRestart | Out-Null
-        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-DirectoryBrowsing" -NoRestart | Out-Null
-        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-WebDAV" -NoRestart | Out-Null
-        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-WebSockets" -NoRestart | Out-Null
-        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-ApplicationInit" -NoRestart | Out-Null
-        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-CGI" -NoRestart | Out-Null
-        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-ASPNET" -NoRestart | Out-Null
-        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-ASPNET45" -NoRestart | Out-Null
-        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-ASP" -NoRestart | Out-Null
-        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-ISAPIExtensions" -NoRestart | Out-Null
-        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-ISAPIFilter" -NoRestart | Out-Null
-        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-ServerSideIncludes" -NoRestart | Out-Null
-        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-CustomLogging" -NoRestart | Out-Null
-        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-BasicAuthentication" -NoRestart | Out-Null
-        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-HttpCompressionStatic" -NoRestart | Out-Null
-        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-ManagementConsole" -NoRestart | Out-Null
-        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-ManagementService" -NoRestart | Out-Null
-        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-WMICompatibility" -NoRestart | Out-Null
-        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-LegacyScripts" -NoRestart | Out-Null
-        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-LegacySnapIn" -NoRestart | Out-Null
-        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-FTPServer" -NoRestart | Out-Null
-        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-FTPSvc" -NoRestart | Out-Null
-        Disable-WindowsOptionalFeature -Online -FeatureName "IIS-FTPExtensibility" -NoRestart | Out-Null
-    }
-    $isSSH = Read-Host "Is OpenSSH Server a critical service (y/n)?"
-    if ($isSSH -eq "y") {
-        Add-WindowsCapability -Online -Name OpenSSH.Client~~~~0.0.1.0 -NoRestart | Out-Null
-        Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0 -NoRestart | Out-Null
-        Start-Service sshd
-        Set-Service -Name sshd -StartupType 'Automatic'
-        New-NetFirewallRule -Name 'OpenSSH-Server-In-TCP' -DisplayName 'OpenSSH Server (sshd)' -Enabled True -Direction Inbound -Protocol TCP -Action Allow -LocalPort 22
-    }
-    else {
-        Remove-WindowsCapability -Online -Name OpenSSH.Client~~~~0.0.1.0 -ErrorAction Ignore
-        Remove-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0 -ErrorAction Ignore
-        New-NetFirewallRule -Name 'No-OpenSSH-Server-In-TCP' -DisplayName 'ANTI OpenSSH Server (sshd)' -Enabled True -Direction Inbound -Protocol TCP -Action Deny -LocalPort 22
-    }
-
-    $isRemoteAccess = Read-Host "Is Remote Access a critical service (y/n)?"
-    if ($isRemoteAccess -eq "n") {
-        Stop-Service -Name RemoteAccess -Force -ErrorAction Ignore
-        Set-Service -Name RemoteAccess -StartupType Disabled -ErrorAction Ignore
-    }
-    else {
-        Start-Service -Name RemoteAccess -Force -ErrorAction Ignore
-        Set-Service -Name RemoteAccess -StartupType Enabled -ErrorAction Ignore
-    }
-    $isRemoteReg = Read-Host "Is Remote Registry a critical service (y/n)?"
-    if ($isRemoteReg -eq "n") {
-        Stop-Service -Name RemoteRegistry -Force -ErrorAction Ignore
-        Set-Service -Name RemoteRegistry -StartupType Disabled -ErrorAction Ignore
-    }
-    else {
-        Start-Service -Name RemoteRegistry -Force -ErrorAction Ignore
-        Set-Service -Name RemoteRegistry -StartupType Enabled -ErrorAction Ignore
-    }
-    $isMSFTP = Read-Host "Is Microsoft FTP a critical service (y/n)?"
-    if ($isMSFTP -eq "n") {
-        Stop-Service -Name msftpsvc -Force -ErrorAction Ignore
-        Set-Service -Name msftpsvc -StartupType Disabled -ErrorAction Ignore
-    }
-    else {
-        Start-Service -Name msftpsvc -Force -ErrorAction Ignore
-        Set-Service -Name msftpsvc -StartupType Enabled -ErrorAction Ignore
-    }
-    Stop-Service -Name Spooler -Force -ErrorAction Ignore
-    Set-Service -Name Spooler -StartupType Disabled -ErrorAction Ignore
-    Stop-Service -Name telnet -Force -ErrorAction Ignore
-    Set-Service -Name telnet -StartupType Disabled -ErrorAction Ignore
-    Stop-Service -Name upnphost -Force -ErrorAction Ignore
-    Set-Service -Name upnphost -StartupType Disabled -ErrorAction Ignore
-    Stop-Service -Name SSDPSRV -Force -ErrorAction Ignore
-    Set-Service -Name SSDPSRV -StartupType Disabled -ErrorAction Ignore
-    Stop-Service -Name tftpsvc -Force -ErrorAction Ignore
-    Set-Service -Name tftpsvc -StartupType Disabled -ErrorAction Ignore
-    Stop-Service -Name tapisrv -Force -ErrorAction Ignore
-    Set-Service -Name tapisrv -StartupType Disabled -ErrorAction Ignore
-    Stop-Service -Name lmhosts -Force -ErrorAction Ignore
-    Set-Service -Name lmhosts -StartupType Disabled -ErrorAction Ignore
-    Stop-Service -Name SNMPTRAP -Force -ErrorAction Ignore
-    Set-Service -Name SNMPTRAP -StartupType Disabled -ErrorAction Ignore
-    Stop-Service -Name SessionEnv -Force -ErrorAction Ignore
-    Set-Service -Name SessionEnv -StartupType Disabled -ErrorAction Ignore
-    Stop-Service -Name TermService -Force -ErrorAction Ignore
-    Set-Service -Name TermService -StartupType Disabled -ErrorAction Ignore
-    Stop-Service -Name TlntSvr -Force -ErrorAction Ignore
-    Set-Service -Name TlntSvr -StartupType Disabled -ErrorAction Ignore
-    Stop-Service -Name seclogon -Force -ErrorAction Ignore
-    Set-Service -Name seclogon -StartupType Disabled -ErrorAction Ignore
-
-    Start-Service -Name EventLog -ErrorAction Ignore
-    Set-Service -Name EventLog -StartupType Enabled -ErrorAction Ignore
+    Set-Service -Name EventLog -StartupType Automatic -ErrorAction Ignore
 }
 
 function Remove-HackingTools {
     $mainUser = $global:mainUser
-    Invoke-Item "C:\Program Files (x86)\Nmap\Uninstall.exe" -ArgumentList "/S /v /qn" -Wait -ErrorAction Ignore
-    Invoke-Item "C:\Program Files\Npcap\Uninstall.exe" -ArgumentList "/S /v /qn" -Wait -ErrorAction Ignore
-    Invoke-Item "C:\Program Files\Genshin Impact\Uninstall.exe" -ArgumentList "/S /v /qn" -Wait -ErrorAction Ignore
-    Invoke-Item "C:\Program Files\Wireshark\Uninstall.exe" -ArgumentList "/S /v /qn" -Wait -ErrorAction Ignore
-    Invoke-Item "C:\Users\$mainUser\AppData\Roaming\uTorrent Web\Uninstall.exe" -ArgumentList "/S /v /qn" -Wait -ErrorAction Ignore
+    # Invoke-Item "C:\Program Files (x86)\Nmap\Uninstall.exe" -ArgumentList "/S /v /qn" -Wait -ErrorAction Ignore
+    # Invoke-Item "C:\Program Files\Npcap\Uninstall.exe" -ArgumentList "/S /v /qn" -Wait -ErrorAction Ignore
+    # Invoke-Item "C:\Program Files\Genshin Impact\Uninstall.exe" -ArgumentList "/S /v /qn" -Wait -ErrorAction Ignore
+    # Invoke-Item "C:\Program Files\Wireshark\Uninstall.exe" -ArgumentList "/S /v /qn" -Wait -ErrorAction Ignore
+    # Invoke-Item "C:\Users\$mainUser\AppData\Roaming\uTorrent Web\Uninstall.exe" -ArgumentList "/S /v /qn" -Wait -ErrorAction Ignore
 }
 
 function Get-FileType($type) {
@@ -597,40 +379,13 @@ else {
     $stopwatch =  [system.diagnostics.stopwatch]::StartNew()
     Install-Programs
     Start-Defender
-    if ($global:distro -eq 'server19') {
-        if (-not (Get-Command "Get-ADUser" -ErrorAction SilentlyContinue)) {
-            "Active Directory doesn't seem to be installed on this machine. If you believe this is an error, please manage Active Directory accounts manually. Editing local users..."
-            Edit-LocalUsers
-        }
-        else {
-            $localYN = Read-Host 'Are the users on this system domain (active directory) or local? (domain/local/both)'
-            if ($localYN.ToLower() -eq 'domain') {
-                Edit-ADUsers
-            }
-            elseif ($localYN.ToLower() -eq 'local') {
-                Edit-LocalUsers
-            }
-            else {
-                Edit-LocalUsers
-                Edit-ADUsers
-            }
-        }
-    }
-    else {
-        Edit-LocalUsers
-    }
+    Edit-LocalUsers
     Edit-LocalSecurity
     Edit-Keys
-    if ($global:distro -ne 'server19') {
-        Stop-Services
-        Disable-Features
-    }
-    else {
-        Disable-FeaturesServer
-    }
-    Remove-HackingTools
+    Stop-Services
+    Disable-Features
     Get-MediaFiles
-    $scanYN = Read-Host 'Would you like to scan the machine for potential viruses or corrupted files? (y/n)'
+    $scanYN = Read-Host 'Would you like to scan the machine for potential viruses or corrupted files (this may take some time)? (y/n)'
     if ($scanYN.ToLower() -eq 'y') {
         cmd.exe /c "DISM.exe /Online /Cleanup-image /Restorehealth"
         cmd.exe /c "sfc /scannow"
@@ -639,12 +394,12 @@ else {
     Write-Host "`nScript done! Please restart the system for some of the changes to take effect and go get the rest of the vulns! (It's suggested that on this restart, you also do updates)"
     Write-Host "`nScript completed in" $stopwatch.Elapsed.Minutes "minutes and" $stopwatch.Elapsed.Seconds "seconds"
     $stopwatch.Stop()
-    $restartYN = Read-Host 'Would you like to install all updates automatically and restart the computer now to apply changes? (y/n)'
-    if ($restartYN.ToLower() -eq 'y') {
-        Install-Module PSWindowsUpdate -Confirm:$False -Force
-        Get-WindowsUpdate -AcceptAll -Install -AutoReboot
-    }
-    else {
-        Write-Host "Alright! Exiting now... Don't forget to restart soon."
-    }
+    # $restartYN = Read-Host 'Would you like to install all updates automatically and restart the computer now to apply changes? (y/n)'
+    # if ($restartYN.ToLower() -eq 'y') {
+    #     Install-Module PSWindowsUpdate -Confirm:$False -Force
+    #     Get-WindowsUpdate -AcceptAll -Install -AutoReboot
+    # }
+    # else {
+    #     Write-Host "Alright! Exiting now... Don't forget to restart soon."
+    # }
 }
