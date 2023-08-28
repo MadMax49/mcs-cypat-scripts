@@ -7,7 +7,7 @@ if ( -not ('win10', 'server19').contains($global:distro.ToLower()) ) {
     exit 1
 }
 
-$safeYN = Read-Host "Should the script continue as normal or should it be run in safe mode? (type safe if safe mode is wanted)"
+$safeYN = Read-Host "Should the script continue as normal or should it bea run in safe mode? (type safe if safe mode is wanted)"
 
 function Install-Programs {
     Write-Host "Installing the chocolatey package manager"
